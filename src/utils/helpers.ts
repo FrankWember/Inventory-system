@@ -2,10 +2,10 @@ import { Category } from '../types'
 
 // Color Constants - Minimalist Professional Palette
 export const COLORS = {
-  // Primary - Deep Blue (professional, trustworthy)
-  primary: '#2563EB',
-  primaryLight: '#DBEAFE',
-  primaryDark: '#1E40AF',
+  // Primary - Modern Blue (professional, trustworthy)
+  primary: '#4A90E2',
+  primaryLight: '#E8F2FD',
+  primaryDark: '#3A78C2',
 
   // Success - Green
   emerald: '#059669',
@@ -49,7 +49,7 @@ export const getCategoryColor = (cat: string): string => {
     'Bière': '#EA580C',  // Amber/Orange
     'Soda': '#0891B2',   // Teal
     'Jus': '#059669',    // Emerald
-    'Eau': '#2563EB',    // Blue
+    'Eau': '#4A90E2',    // Modern Blue
     'Vin': '#DC2626',    // Rose/Red
     'Autre': '#64748B',  // Slate
   }

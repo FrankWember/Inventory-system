@@ -18,7 +18,6 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { StockProgressBar } from '../components/StockProgressBar'
 import {
   COLORS,
-  getCategoryColor,
   getStockStatus,
   getStockColor,
   formatWithCassiersShort,
@@ -83,7 +82,6 @@ export default function InventoryScreen({ navigation }: any) {
 
   const renderItem = ({ item: drink }: { item: Drink }) => {
     const status = getStockStatus(drink.stock, drink.min_stock)
-    const catColor = getCategoryColor(drink.category)
 
     return (
       <TouchableOpacity
@@ -91,7 +89,6 @@ export default function InventoryScreen({ navigation }: any) {
         onPress={() => navigation.navigate('EditDrink', { drinkId: drink.id })}
         activeOpacity={0.7}
       >
-        <View style={[styles.catStripe, { backgroundColor: catColor }]} />
         <View style={styles.gridBody}>
           <View style={styles.gridTop}>
             <View style={[styles.statusDot, { backgroundColor: getStockColor(status) }]} />
@@ -218,7 +215,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  catStripe: { height: 4 },
   gridBody: { padding: 12 },
   gridTop: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },

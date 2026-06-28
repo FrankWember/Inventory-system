@@ -22,7 +22,18 @@
     "web": {
       "bundler": "metro",
       "favicon": "./assets/favicon.png",
-      "output": "single"
+      "output": "single",
+      "name": "BarTrack - Inventory Management",
+      "shortName": "BarTrack",
+      "lang": "fr",
+      "scope": "/",
+      "themeColor": "#5B8DC7",
+      "backgroundColor": "#F8FAFC",
+      "description": "Professional inventory management system for bars and restaurants",
+      "orientation": "any",
+      "dir": "ltr",
+      "preferRelatedApplications": false,
+      "display": "standalone"
     },
     "plugins": []
   }

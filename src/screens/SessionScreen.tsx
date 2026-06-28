@@ -58,7 +58,7 @@ export default function SessionScreen() {
   const [journalVisible, setJournalVisible] = useState(false)
   const [journalSession, setJournalSession] = useState<Session | null>(null)
   const [journalExpenses, setJournalExpenses] = useState<Expense[]>([])
-  const [unitMode, setUnitMode] = useState<'units' | 'cassiers'>('units')
+  const [unitModes, setUnitModes] = useState<Record<string, 'units' | 'cassiers'>>({})
 
   const categories: Array<Category | 'Tout'> = ['Tout', 'Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre']
   const todayStr = today()
@@ -68,23 +68,29 @@ export default function SessionScreen() {
     [drinks]
   )
 
+  // Helper to get unit mode for a drink (default to cassiers for beers)
+  const getUnitMode = (drinkId: string, category: string): 'units' | 'cassiers' => {
+    if (unitModes[drinkId]) return unitModes[drinkId]
+    return category === 'Bière' ? 'cassiers' : 'units'
+  }
+
   // Helper functions for unit conversion (1 cassier = 12 units)
-  const convertToUnits = (value: number, category: string): number => {
-    if (category === 'Bière' && unitMode === 'cassiers') {
+  const convertToUnits = (value: number, drinkId: string, category: string): number => {
+    if (category === 'Bière' && getUnitMode(drinkId, category) === 'cassiers') {
       return value * 12
     }
     return value
   }
 
-  const convertFromUnits = (units: number, category: string): number => {
-    if (category === 'Bière' && unitMode === 'cassiers') {
+  const convertFromUnits = (units: number, drinkId: string, category: string): number => {
+    if (category === 'Bière' && getUnitMode(drinkId, category) === 'cassiers') {
       return Math.floor(units / 12)
     }
     return units
   }
 
-  const formatStockDisplay = (units: number, category: string): string => {
-    if (category === 'Bière' && unitMode === 'cassiers') {
+  const formatStockDisplay = (units: number, drinkId: string, category: string): string => {
+    if (category === 'Bière' && getUnitMode(drinkId, category) === 'cassiers') {
       const cassiers = Math.floor(units / 12)
       const remaining = units % 12
       if (remaining > 0) {
@@ -93,6 +99,11 @@ export default function SessionScreen() {
       return `${cassiers}c`
     }
     return units.toString()
+  }
+
+  const toggleUnitMode = (drinkId: string, category: string) => {
+    const current = getUnitMode(drinkId, category)
+    setUnitModes(prev => ({ ...prev, [drinkId]: current === 'units' ? 'cassiers' : 'units' }))
   }
 
   const loadExpensesForDate = async (date: string) => {
@@ -522,22 +533,6 @@ export default function SessionScreen() {
                 </TouchableOpacity>
               ))}
             </ScrollView>
-            {(step === 'purchases' || step === 'inventory') && (
-              <View style={styles.unitToggleContainer}>
-                <TouchableOpacity
-                  style={[styles.unitToggleBtn, unitMode === 'units' && styles.unitToggleBtnActive]}
-                  onPress={() => setUnitMode('units')}
-                >
-                  <Text style={[styles.unitToggleBtnText, unitMode === 'units' && styles.unitToggleBtnTextActive]}>U</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.unitToggleBtn, unitMode === 'cassiers' && styles.unitToggleBtnActive]}
-                  onPress={() => setUnitMode('cassiers')}
-                >
-                  <Text style={[styles.unitToggleBtnText, unitMode === 'cassiers' && styles.unitToggleBtnTextActive]}>C</Text>
-                </TouchableOpacity>
-              </View>
-            )}
           </View>
         </>
       )}
@@ -558,20 +553,38 @@ export default function SessionScreen() {
 
         {step === 'purchases' && filtered.map(drink => {
           const isBeer = drink.category === 'Bière'
-          const displayValue = convertFromUnits(purchases[drink.id] ?? 0, drink.category)
+          const unitMode = getUnitMode(drink.id, drink.category)
+          const displayValue = convertFromUnits(purchases[drink.id] ?? 0, drink.id, drink.category)
           return (
             <View key={drink.id} style={styles.card}>
               <View style={styles.cardTop}>
-                <Text style={styles.cardName} numberOfLines={1}>{drink.name}</Text>
-                <Text style={styles.cardMeta}>
-                  Stock: {formatWithCassiers(drink.stock, drink.category)}
-                  {isBeer && <Text style={styles.unitHintText}> · {unitMode === 'units' ? 'Unités' : 'Cassiers (12u)'}</Text>}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardName} numberOfLines={1}>{drink.name}</Text>
+                  <Text style={styles.cardMeta}>
+                    Stock: {formatWithCassiers(drink.stock, drink.category)}
+                  </Text>
+                </View>
+                {isBeer && (
+                  <View style={styles.unitToggleContainer}>
+                    <TouchableOpacity
+                      style={[styles.unitToggleBtn, unitMode === 'units' && styles.unitToggleBtnActive]}
+                      onPress={() => toggleUnitMode(drink.id, drink.category)}
+                    >
+                      <Text style={[styles.unitToggleBtnText, unitMode === 'units' && styles.unitToggleBtnTextActive]}>U</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.unitToggleBtn, unitMode === 'cassiers' && styles.unitToggleBtnActive]}
+                      onPress={() => toggleUnitMode(drink.id, drink.category)}
+                    >
+                      <Text style={[styles.unitToggleBtnText, unitMode === 'cassiers' && styles.unitToggleBtnTextActive]}>C</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
               <Stepper
                 label={`Quantité reçue${isBeer ? ` (${unitMode === 'units' ? 'unités' : 'cassiers'})` : ''}`}
                 value={displayValue}
-                onValueChange={v => setPurchases(prev => ({ ...prev, [drink.id]: convertToUnits(v, drink.category) }))}
+                onValueChange={v => setPurchases(prev => ({ ...prev, [drink.id]: convertToUnits(v, drink.id, drink.category) }))}
               />
               {isBeer && unitMode === 'cassiers' && (purchases[drink.id] ?? 0) > 0 && (
                 <Text style={styles.conversionText}>= {purchases[drink.id]} unités au total</Text>
@@ -585,20 +598,38 @@ export default function SessionScreen() {
           const sold = getSold(drink.id)
           const closing = closingCounts[drink.id] ?? drink.stock
           const isBeer = drink.category === 'Bière'
-          const displayClosing = convertFromUnits(closing, drink.category)
+          const unitMode = getUnitMode(drink.id, drink.category)
+          const displayClosing = convertFromUnits(closing, drink.id, drink.category)
           return (
             <View key={drink.id} style={[styles.card, sold > 0 && styles.cardHighlight]}>
               <View style={styles.cardTop}>
-                <Text style={styles.cardName} numberOfLines={1}>{drink.name}</Text>
-                <Text style={styles.cardMeta}>
-                  Disponible: {formatWithCassiers(expected, drink.category)}
-                  {isBeer && <Text style={styles.unitHintText}> · {unitMode === 'units' ? 'Unités' : 'Cassiers (12u)'}</Text>}
-                </Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.cardName} numberOfLines={1}>{drink.name}</Text>
+                  <Text style={styles.cardMeta}>
+                    Disponible: {formatWithCassiers(expected, drink.category)}
+                  </Text>
+                </View>
+                {isBeer && (
+                  <View style={styles.unitToggleContainer}>
+                    <TouchableOpacity
+                      style={[styles.unitToggleBtn, unitMode === 'units' && styles.unitToggleBtnActive]}
+                      onPress={() => toggleUnitMode(drink.id, drink.category)}
+                    >
+                      <Text style={[styles.unitToggleBtnText, unitMode === 'units' && styles.unitToggleBtnTextActive]}>U</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      style={[styles.unitToggleBtn, unitMode === 'cassiers' && styles.unitToggleBtnActive]}
+                      onPress={() => toggleUnitMode(drink.id, drink.category)}
+                    >
+                      <Text style={[styles.unitToggleBtnText, unitMode === 'cassiers' && styles.unitToggleBtnTextActive]}>C</Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
               <Stepper
                 label={`Stock restant${isBeer ? ` (${unitMode === 'units' ? 'unités' : 'cassiers'})` : ''}`}
                 value={displayClosing}
-                onValueChange={v => setClosingCounts(prev => ({ ...prev, [drink.id]: convertToUnits(v, drink.category) }))}
+                onValueChange={v => setClosingCounts(prev => ({ ...prev, [drink.id]: convertToUnits(v, drink.id, drink.category) }))}
               />
               {isBeer && unitMode === 'cassiers' && closing > 0 && (
                 <Text style={styles.conversionText}>= {closing} unités au total</Text>
@@ -709,7 +740,7 @@ const styles = StyleSheet.create({
   content: { flex: 1, paddingHorizontal: 12 },
   card: { backgroundColor: COLORS.white, borderRadius: 12, padding: 14, marginBottom: 8, borderWidth: 1, borderColor: COLORS.border },
   cardHighlight: { borderColor: COLORS.primary, backgroundColor: COLORS.primaryLight + '30' },
-  cardTop: { marginBottom: 8 },
+  cardTop: { marginBottom: 8, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   cardName: { fontSize: 14, fontWeight: '600', color: COLORS.slateDark },
   cardMeta: { fontSize: 12, color: COLORS.slate, marginTop: 2 },
   unitHintText: { fontSize: 11, color: COLORS.sky, fontStyle: 'italic' },
