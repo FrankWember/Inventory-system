@@ -12,7 +12,7 @@ The web version now features a professional sidebar navigation for desktop/table
   - Icon + label navigation items
   - Active state highlighting
   - Version display in footer
-  - 240px width
+  - 280px width (optimized for desktop)
   - Smooth hover effects
 
 - **Content Area**: 
@@ -120,7 +120,7 @@ Edit `src/components/Sidebar.tsx`:
 ```typescript
 const styles = StyleSheet.create({
   container: {
-    width: 240, // Change this value
+    width: 280, // Change this value (current: 280px)
     // ...
   }
 })

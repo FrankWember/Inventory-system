@@ -68,51 +68,60 @@ export function Sidebar({ currentRoute, onNavigate }: SidebarProps) {
 
 const styles = StyleSheet.create({
   container: {
-    width: 240,
+    width: 280,
     backgroundColor: COLORS.white,
-    borderRightWidth: 1,
-    borderRightColor: COLORS.border,
     height: '100%',
     flexDirection: 'column',
+    ...Platform.select({
+      web: {
+        boxShadow: '2px 0 12px rgba(0, 0, 0, 0.06)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 2, height: 0 },
+        shadowOpacity: 0.06,
+        shadowRadius: 12,
+        elevation: 4,
+      },
+    }),
   },
   header: {
-    padding: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    padding: 32,
+    paddingBottom: 28,
     alignItems: 'center',
   },
   logo: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
+    width: 64,
+    height: 64,
+    borderRadius: 18,
     backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   appName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: COLORS.slateDark,
-    marginBottom: 4,
+    marginBottom: 6,
   },
   appSubtitle: {
-    fontSize: 12,
+    fontSize: 13,
     color: COLORS.slate,
     textAlign: 'center',
   },
   nav: {
     flex: 1,
-    paddingTop: 16,
-    paddingHorizontal: 12,
+    paddingTop: 20,
+    paddingHorizontal: 16,
   },
   navItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 18,
     borderRadius: 12,
-    marginBottom: 4,
+    marginBottom: 6,
     ...Platform.select({
       web: {
         cursor: 'pointer',
@@ -124,27 +133,26 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.primaryLight,
   },
   navIcon: {
-    marginRight: 12,
-    width: 22,
+    marginRight: 14,
+    width: 24,
   },
   navLabel: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '500',
     color: COLORS.slate,
   },
   navLabelActive: {
-    fontWeight: '600',
+    fontWeight: '700',
     color: COLORS.primary,
   },
   footer: {
-    padding: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    padding: 20,
     alignItems: 'center',
   },
   version: {
     fontSize: 11,
     color: COLORS.slate,
     fontWeight: '500',
+    opacity: 0.7,
   },
 })
