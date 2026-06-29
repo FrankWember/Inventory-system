@@ -29,7 +29,7 @@ import DashboardScreen from './src/screens/DashboardScreen'
 import InventoryScreen from './src/screens/InventoryScreen'
 import SessionScreen from './src/screens/SessionScreen'
 import TrendsScreen from './src/screens/TrendsScreen'
-import FinancesScreen from './src/screens/FinancesScreen'
+import SettingsScreen from './src/screens/SettingsScreen'
 import AddDrinkScreen from './src/screens/AddDrinkScreen'
 import EditDrinkScreen from './src/screens/EditDrinkScreen'
 import SessionDetailScreen from './src/screens/SessionDetailScreen'
@@ -59,7 +59,7 @@ export type TabParamList = {
   Inventory: undefined
   Session: undefined
   Trends: undefined
-  Finances: undefined
+  Settings: undefined
 }
 
 const Tab = createBottomTabNavigator<TabParamList>()
@@ -94,8 +94,8 @@ function MainTabs() {
               iconName = focused ? 'clipboard' : 'clipboard-outline'
             } else if (route.name === 'Trends') {
               iconName = focused ? 'stats-chart' : 'stats-chart-outline'
-            } else if (route.name === 'Finances') {
-              iconName = focused ? 'wallet' : 'wallet-outline'
+            } else if (route.name === 'Settings') {
+              iconName = focused ? 'settings' : 'settings-outline'
             }
 
             return <Ionicons name={iconName} size={size} color={color} />
@@ -140,9 +140,9 @@ function MainTabs() {
           options={{ title: 'Stats' }}
         />
         <Tab.Screen
-          name="Finances"
-          component={FinancesScreen}
-          options={{ title: 'Finances' }}
+          name="Settings"
+          component={SettingsScreen}
+          options={{ title: 'Paramètres' }}
         />
       </Tab.Navigator>
     </ResponsiveLayout>
