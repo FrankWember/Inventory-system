@@ -25,7 +25,7 @@ type AuthMethod = 'email' | 'phone'
 
 export default function SignInScreen({ navigation }: SignInScreenProps) {
   const { signIn, signInWithPhone } = useAuth()
-  const [authMethod, setAuthMethod] = useState<AuthMethod>('email')
+  const [authMethod, setAuthMethod] = useState<AuthMethod>('phone')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
@@ -87,20 +87,6 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
           <View style={styles.form}>
             <View style={styles.authMethodToggle}>
               <TouchableOpacity
-                style={[styles.toggleButton, authMethod === 'email' && styles.toggleButtonActive]}
-                onPress={() => setAuthMethod('email')}
-                disabled={loading}
-              >
-                <Ionicons
-                  name="mail"
-                  size={16}
-                  color={authMethod === 'email' ? COLORS.white : COLORS.slate}
-                />
-                <Text style={[styles.toggleText, authMethod === 'email' && styles.toggleTextActive]}>
-                  Email
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
                 style={[styles.toggleButton, authMethod === 'phone' && styles.toggleButtonActive]}
                 onPress={() => setAuthMethod('phone')}
                 disabled={loading}
@@ -114,9 +100,31 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
                   Téléphone
                 </Text>
               </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toggleButton, authMethod === 'email' && styles.toggleButtonActive]}
+                onPress={() => setAuthMethod('email')}
+                disabled={loading}
+              >
+                <Ionicons
+                  name="mail"
+                  size={16}
+                  color={authMethod === 'email' ? COLORS.white : COLORS.slate}
+                />
+                <Text style={[styles.toggleText, authMethod === 'email' && styles.toggleTextActive]}>
+                  Email
+                </Text>
+              </TouchableOpacity>
             </View>
 
-            {authMethod === 'email' ? (
+            {authMethod === 'phone' ? (
+              <PhoneInput
+                label="Numéro de téléphone"
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="6 XX XX XX XX"
+                editable={!loading}
+              />
+            ) : (
               <Input
                 label="Email"
                 value={email}
@@ -125,14 +133,6 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
-                editable={!loading}
-              />
-            ) : (
-              <PhoneInput
-                label="Numéro de téléphone"
-                value={phone}
-                onChangeText={setPhone}
-                placeholder="6 XX XX XX XX"
                 editable={!loading}
               />
             )}
@@ -204,12 +204,14 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   formContainer: {
     width: '100%',
     maxWidth: 440,
+    alignSelf: 'center',
     ...Platform.select({
       web: {
         backgroundColor: COLORS.white,
@@ -220,27 +222,29 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.08,
         shadowRadius: 12,
       },
-      default: {},
+      default: {
+        paddingHorizontal: 0,
+      },
     }),
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 24,
   },
   iconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 18,
+    width: 64,
+    height: 64,
+    borderRadius: 16,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: FONT.bold,
     color: COLORS.slateDark,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
@@ -249,14 +253,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   authMethodToggle: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
     borderRadius: 10,
     padding: 4,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   toggleButton: {
     flex: 1,

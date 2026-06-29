@@ -250,12 +250,14 @@ const styles = StyleSheet.create({
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingVertical: 16,
     alignItems: 'center',
   },
   formContainer: {
     width: '100%',
     maxWidth: 440,
+    alignSelf: 'center',
     ...Platform.select({
       web: {
         backgroundColor: COLORS.white,
@@ -266,27 +268,29 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.08,
         shadowRadius: 12,
       },
-      default: {},
+      default: {
+        paddingHorizontal: 0,
+      },
     }),
   },
   header: {
     alignItems: 'center',
-    marginBottom: 28,
+    marginBottom: 20,
   },
   iconContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 18,
+    width: 64,
+    height: 64,
+    borderRadius: 16,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 12,
+    marginBottom: 10,
   },
   title: {
-    fontSize: 28,
+    fontSize: 26,
     fontFamily: FONT.bold,
     color: COLORS.slateDark,
-    marginBottom: 6,
+    marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
@@ -295,14 +299,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    marginBottom: 20,
+    marginBottom: 16,
   },
   authMethodToggle: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
     borderRadius: 10,
     padding: 4,
-    marginBottom: 20,
+    marginBottom: 16,
   },
   toggleButton: {
     flex: 1,
