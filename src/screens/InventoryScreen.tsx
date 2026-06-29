@@ -312,7 +312,9 @@ const styles = StyleSheet.create({
   categoryTabTextActive: { color: COLORS.white },
   gridRow: { gap: GRID_GAP, marginBottom: GRID_GAP },
   gridCard: {
-    width: CARD_WIDTH,
+    flex: 1,
+    minWidth: 150,
+    maxWidth: 250,
     backgroundColor: COLORS.white,
     borderRadius: 14,
     overflow: 'hidden',
