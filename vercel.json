@@ -2,32 +2,10 @@
   "buildCommand": "npx expo export --platform web",
   "outputDirectory": "dist",
   "devCommand": "npx expo start --web",
-  "framework": null,
-  "routes": [
-    {
-      "src": "/assets/(.*)",
-      "dest": "/assets/$1"
-    },
-    {
-      "src": "/_expo/(.*)",
-      "dest": "/_expo/$1"
-    },
-    {
-      "src": "/static/(.*)",
-      "dest": "/static/$1"
-    },
-    {
-      "src": "/(.*\\.(js|css|json|png|jpg|jpeg|gif|svg|ico|woff|woff2|ttf|eot))",
-      "dest": "/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/index.html"
-    }
-  ],
+  "cleanUrls": true,
   "headers": [
     {
-      "source": "/assets/(.*)",
+      "source": "/_expo/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
@@ -36,7 +14,7 @@
       ]
     },
     {
-      "source": "/_expo/(.*)",
+      "source": "/assets/(.*)",
       "headers": [
         {
           "key": "Cache-Control",
