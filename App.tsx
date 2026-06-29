@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import { Platform, Dimensions, View, ActivityIndicator } from 'react-native'
-import { NavigationContainer } from '@react-navigation/native'
+import { NavigationContainer, NavigationState, PartialState } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { Ionicons } from '@expo/vector-icons'
@@ -19,10 +19,10 @@ import { applyGlobalFont } from './src/styles/applyFonts'
 import { ResponsiveLayout } from './src/components/ResponsiveLayout'
 import { AuthProvider, useAuth } from './src/contexts/AuthContext'
 import { SettingsProvider } from './src/contexts/SettingsContext'
+import { saveNavigationState, loadNavigationState } from './src/utils/navigationPersistence'
 
 applyGlobalFont()
 
-// Import web-specific styles
 if (Platform.OS === 'web') {
   require('./src/styles/web.css')
 }
@@ -75,6 +75,36 @@ export type TabParamList = {
 const Tab = createBottomTabNavigator<TabParamList>()
 const Stack = createNativeStackNavigator<RootStackParamList>()
 
+// URL-based linking for web so page refresh stays on the same screen
+const webOrigin = Platform.OS === 'web' && typeof globalThis !== 'undefined'
+  ? (globalThis as any).window?.location?.origin || ''
+  : ''
+
+const linking = Platform.OS === 'web' ? {
+  prefixes: [webOrigin, 'bartrack://'],
+  config: {
+    screens: {
+      SignIn: 'signin',
+      SignUp: 'signup',
+      ForgotPassword: 'forgot-password',
+      MainTabs: {
+        path: '',
+        screens: {
+          Dashboard: '',
+          Inventory: 'inventory',
+          Session: 'session',
+          Trends: 'trends',
+          Settings: 'settings',
+        },
+      },
+      AddDrink: 'add-drink',
+      EditDrink: 'edit-drink/:drinkId',
+      SessionDetail: 'session-detail/:sessionId',
+      ChartDetail: 'chart-detail',
+    },
+  },
+} : undefined
+
 function MainTabs() {
   const insets = useSafeAreaInsets()
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
@@ -95,19 +125,11 @@ function MainTabs() {
           headerShown: false,
           tabBarIcon: ({ focused, color, size }) => {
             let iconName: keyof typeof Ionicons.glyphMap = 'home'
-
-            if (route.name === 'Dashboard') {
-              iconName = focused ? 'home' : 'home-outline'
-            } else if (route.name === 'Inventory') {
-              iconName = focused ? 'cube' : 'cube-outline'
-            } else if (route.name === 'Session') {
-              iconName = focused ? 'clipboard' : 'clipboard-outline'
-            } else if (route.name === 'Trends') {
-              iconName = focused ? 'stats-chart' : 'stats-chart-outline'
-            } else if (route.name === 'Settings') {
-              iconName = focused ? 'settings' : 'settings-outline'
-            }
-
+            if (route.name === 'Dashboard') iconName = focused ? 'home' : 'home-outline'
+            else if (route.name === 'Inventory') iconName = focused ? 'cube' : 'cube-outline'
+            else if (route.name === 'Session') iconName = focused ? 'clipboard' : 'clipboard-outline'
+            else if (route.name === 'Trends') iconName = focused ? 'stats-chart' : 'stats-chart-outline'
+            else if (route.name === 'Settings') iconName = focused ? 'settings' : 'settings-outline'
             return <Ionicons name={iconName} size={size} color={color} />
           },
           tabBarActiveTintColor: COLORS.primary,
@@ -129,31 +151,11 @@ function MainTabs() {
           },
         })}
       >
-        <Tab.Screen
-          name="Dashboard"
-          component={DashboardScreen}
-          options={{ title: 'Accueil' }}
-        />
-        <Tab.Screen
-          name="Inventory"
-          component={InventoryScreen}
-          options={{ title: 'Stock' }}
-        />
-        <Tab.Screen
-          name="Session"
-          component={SessionScreen}
-          options={{ title: 'Session' }}
-        />
-        <Tab.Screen
-          name="Trends"
-          component={TrendsScreen}
-          options={{ title: 'Stats' }}
-        />
-        <Tab.Screen
-          name="Settings"
-          component={SettingsScreen}
-          options={{ title: 'Paramètres' }}
-        />
+        <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Accueil' }} />
+        <Tab.Screen name="Inventory" component={InventoryScreen} options={{ title: 'Stock' }} />
+        <Tab.Screen name="Session" component={SessionScreen} options={{ title: 'Session' }} />
+        <Tab.Screen name="Trends" component={TrendsScreen} options={{ title: 'Stats' }} />
+        <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: 'Paramètres' }} />
       </Tab.Navigator>
     </ResponsiveLayout>
   )
@@ -161,8 +163,32 @@ function MainTabs() {
 
 function RootNavigator() {
   const { user, loading, isWelcomeLoading } = useAuth()
+  // On web, linking handles navigation state — no need for manual restore
+  const [isReady, setIsReady] = useState(Platform.OS === 'web')
+  const [initialState, setInitialState] = useState<NavigationState | PartialState<NavigationState> | undefined>()
 
-  if (loading) {
+  useEffect(() => {
+    if (Platform.OS === 'web') return
+
+    const restoreState = async () => {
+      try {
+        if (user) {
+          const savedState = await loadNavigationState()
+          if (savedState) {
+            setInitialState(savedState)
+          }
+        }
+      } finally {
+        setIsReady(true)
+      }
+    }
+
+    if (!loading) {
+      restoreState()
+    }
+  }, [loading, user])
+
+  if (loading || !isReady) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface }}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -175,12 +201,15 @@ function RootNavigator() {
     return <WelcomeLoadingScreen name={displayName} isReturningUser />
   }
 
+  // Cast needed because initialState is not in the TypeScript types for Stack.Navigator
+  // but works at runtime for native state restoration
+  const navigatorProps = Platform.OS !== 'web' && initialState ? { initialState } : {}
+
   return (
     <Stack.Navigator
+      {...(navigatorProps as any)}
       screenOptions={{
-        headerStyle: {
-          backgroundColor: COLORS.white,
-        },
+        headerStyle: { backgroundColor: COLORS.white },
         headerTintColor: COLORS.primary,
         headerTitleStyle: {
           fontFamily: FONT.bold,
@@ -192,71 +221,27 @@ function RootNavigator() {
       }}
     >
       {!user ? (
-        // Auth screens
         <>
           {Platform.OS === 'web' ? (
             <>
-              <Stack.Screen
-                name="SignIn"
-                component={SignInScreen}
-                options={{ headerShown: false }}
-              />
-              <Stack.Screen
-                name="SignUp"
-                component={SignUpScreen}
-                options={{ headerShown: false }}
-              />
+              <Stack.Screen name="SignIn" component={SignInScreen} options={{ headerShown: false }} />
+              <Stack.Screen name="SignUp" component={SignUpScreen} options={{ headerShown: false }} />
             </>
           ) : (
             <>
-              <Stack.Screen
-                name="SignIn"
-                component={AuthScreen}
-                options={{ headerShown: false }}
-                initialParams={{ mode: 'signin' }}
-              />
-              <Stack.Screen
-                name="SignUp"
-                component={AuthScreen}
-                options={{ headerShown: false }}
-                initialParams={{ mode: 'signup' }}
-              />
+              <Stack.Screen name="SignIn" component={AuthScreen} options={{ headerShown: false }} initialParams={{ mode: 'signin' }} />
+              <Stack.Screen name="SignUp" component={AuthScreen} options={{ headerShown: false }} initialParams={{ mode: 'signup' }} />
             </>
           )}
-          <Stack.Screen
-            name="ForgotPassword"
-            component={ForgotPasswordScreen}
-            options={{ headerShown: false }}
-          />
+          <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
         </>
       ) : (
-        // App screens
         <>
-          <Stack.Screen
-            name="MainTabs"
-            component={MainTabs}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="AddDrink"
-            component={AddDrinkScreen}
-            options={{ title: 'Ajouter' }}
-          />
-          <Stack.Screen
-            name="EditDrink"
-            component={EditDrinkScreen}
-            options={{ title: 'Modifier' }}
-          />
-          <Stack.Screen
-            name="SessionDetail"
-            component={SessionDetailScreen}
-            options={{ title: 'Journal de caisse' }}
-          />
-          <Stack.Screen
-            name="ChartDetail"
-            component={ChartDetailScreen}
-            options={{ title: 'Détails' }}
-          />
+          <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+          <Stack.Screen name="AddDrink" component={AddDrinkScreen} options={{ title: 'Ajouter' }} />
+          <Stack.Screen name="EditDrink" component={EditDrinkScreen} options={{ title: 'Modifier' }} />
+          <Stack.Screen name="SessionDetail" component={SessionDetailScreen} options={{ title: 'Journal de caisse' }} />
+          <Stack.Screen name="ChartDetail" component={ChartDetailScreen} options={{ title: 'Détails' }} />
         </>
       )}
     </Stack.Navigator>
@@ -272,6 +257,9 @@ export default function App() {
     Manrope_800ExtraBold,
   })
 
+  const routeNameRef = useRef<string | undefined>(undefined)
+  const navigationRef = useRef<any>(null)
+
   if (!fontsLoaded) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface }}>
@@ -285,7 +273,21 @@ export default function App() {
       <AuthProvider>
         <SettingsProvider>
           <StatusBar style="dark" />
-          <NavigationContainer>
+          <NavigationContainer
+            ref={navigationRef}
+            linking={linking}
+            onReady={() => {
+              routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name
+            }}
+            onStateChange={async (state) => {
+              const previousRouteName = routeNameRef.current
+              const currentRouteName = navigationRef.current?.getCurrentRoute()?.name
+              if (previousRouteName !== currentRouteName && Platform.OS !== 'web') {
+                await saveNavigationState(state)
+              }
+              routeNameRef.current = currentRouteName
+            }}
+          >
             <RootNavigator />
           </NavigationContainer>
         </SettingsProvider>

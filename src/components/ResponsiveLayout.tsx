@@ -54,9 +54,26 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
+    height: '100%',
   },
   content: {
     flex: 1,
+    margin: 20,
+    marginLeft: 16,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
     overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 16px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 16,
+        elevation: 5,
+      },
+    }),
   },
 })

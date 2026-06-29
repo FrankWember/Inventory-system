@@ -7,6 +7,8 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Dimensions,
+  Platform,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../lib/supabase'
@@ -16,11 +18,16 @@ import { Badge } from '../components/Badge'
 import { ScreenSkeleton } from '../components/Skeleton'
 import { COLORS, FONT, fmt, fmtShort, today, dateLabel, formatWithCassiers } from '../utils/helpers'
 
+const BREAKPOINT = 768
+
 export default function DashboardScreen({ navigation }: any) {
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
+  const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
+
+  const isDesktop = Platform.OS === 'web' && windowWidth >= BREAKPOINT
 
   const loadData = async () => {
     try {
@@ -52,6 +59,13 @@ export default function DashboardScreen({ navigation }: any) {
 
   useEffect(() => {
     loadData()
+  }, [])
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setWindowWidth(window.width)
+    })
+    return () => subscription?.remove()
   }, [])
 
   const onRefresh = () => {
@@ -220,98 +234,129 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 16,
-    paddingBottom: 24,
+    padding: 20,
+    paddingBottom: 32,
+    ...Platform.select({
+      web: {
+        maxWidth: 1200,
+        alignSelf: 'center',
+        width: '100%',
+      },
+    }),
   },
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  statsRow: { flexDirection: 'row', gap: 16, marginBottom: 20 },
   statBox: {
     flex: 1,
     backgroundColor: COLORS.white,
-    borderRadius: 14,
-    paddingVertical: 14,
-    paddingHorizontal: 12,
+    borderRadius: 16,
+    paddingVertical: 20,
+    paddingHorizontal: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+      },
+    }),
   },
-  statLabel: { fontSize: 11, color: COLORS.slate, fontWeight: '600', letterSpacing: 0.2 },
-  statValue: { fontSize: 17, fontWeight: '800', color: COLORS.slateDark, marginTop: 6, fontVariant: ['tabular-nums'], letterSpacing: -0.3 },
+  statLabel: { fontSize: 12, fontFamily: FONT.semibold, color: COLORS.slate, letterSpacing: 0.3, textTransform: 'uppercase' },
+  statValue: { fontSize: 24, fontFamily: FONT.extrabold, color: COLORS.slateDark, marginTop: 8, fontVariant: ['tabular-nums'], letterSpacing: -0.5 },
   section: {
     backgroundColor: COLORS.white,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 12,
+    borderRadius: 18,
+    padding: 20,
+    marginBottom: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+      },
+    }),
   },
   sectionHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 6,
+    marginBottom: 12,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '800', color: COLORS.slateDark, letterSpacing: -0.2 },
-  sectionHint: { fontSize: 12, color: COLORS.slate, fontWeight: '500' },
+  sectionTitle: { fontSize: 17, fontFamily: FONT.bold, color: COLORS.slateDark, letterSpacing: -0.3 },
+  sectionHint: { fontSize: 13, fontFamily: FONT.medium, color: COLORS.slate },
   badgeRow: { flexDirection: 'row', gap: 6 },
   alertRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    paddingVertical: 10,
+    gap: 12,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
-  alertBar: { width: 4, height: 30, borderRadius: 2 },
+  alertBar: { width: 4, height: 36, borderRadius: 2 },
   alertMain: { flex: 1, minWidth: 0 },
-  alertName: { fontSize: 14, color: COLORS.slateDark, fontWeight: '600' },
-  alertSub: { fontSize: 11, color: COLORS.slate, marginTop: 2 },
+  alertName: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.slateDark },
+  alertSub: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 3 },
   alertRight: { alignItems: 'flex-end' },
-  alertStock: { fontSize: 13, fontWeight: '700' },
-  moreLink: { fontSize: 13, color: COLORS.primary, fontWeight: '700', marginTop: 10 },
+  alertStock: { fontSize: 14, fontFamily: FONT.bold, fontVariant: ['tabular-nums'] },
+  moreLink: { fontSize: 14, fontFamily: FONT.bold, color: COLORS.primary, marginTop: 12 },
   healthyCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    padding: 14,
-    marginBottom: 12,
+    gap: 16,
+    padding: 18,
+    marginBottom: 16,
     backgroundColor: COLORS.primaryLight,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.primary,
   },
   healthyIcon: {
-    width: 34, height: 34, borderRadius: 10,
+    width: 40, height: 40, borderRadius: 12,
     backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center',
   },
-  healthyText: { flex: 1, fontSize: 13, color: '#065F46', fontWeight: '600' },
+  healthyText: { flex: 1, fontSize: 14, fontFamily: FONT.semibold, color: '#065F46' },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 9,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
-    gap: 12,
+    gap: 14,
   },
   topRank: {
-    width: 22, height: 22, borderRadius: 7,
+    width: 28, height: 28, borderRadius: 8,
     backgroundColor: COLORS.primarySoft, color: COLORS.primary,
-    fontSize: 12, fontWeight: '800', textAlign: 'center', lineHeight: 22,
+    fontSize: 14, fontFamily: FONT.bold, textAlign: 'center', lineHeight: 28,
   },
-  topMain: { flex: 1, minWidth: 0, gap: 6 },
-  topName: { fontSize: 14, fontWeight: '600', color: COLORS.slateDark },
-  topBarTrack: { height: 5, borderRadius: 3, backgroundColor: COLORS.slateLight, overflow: 'hidden' },
+  topMain: { flex: 1, minWidth: 0, gap: 7 },
+  topName: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.slateDark },
+  topBarTrack: { height: 6, borderRadius: 3, backgroundColor: COLORS.slateLight, overflow: 'hidden' },
   topBarFill: { height: '100%', borderRadius: 3, backgroundColor: COLORS.primary },
   topRight: { alignItems: 'flex-end' },
-  topRevenue: { fontSize: 14, fontWeight: '800', color: COLORS.slateDark, fontVariant: ['tabular-nums'] },
-  topSold: { fontSize: 11, color: COLORS.slate, marginTop: 2 },
+  topRevenue: { fontSize: 16, fontFamily: FONT.bold, color: COLORS.slateDark, fontVariant: ['tabular-nums'] },
+  topSold: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 2 },
   emptyHint: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    padding: 14,
+    gap: 12,
+    padding: 18,
     backgroundColor: COLORS.white,
-    borderRadius: 14,
+    borderRadius: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
-  emptyHintText: { flex: 1, fontSize: 13, color: COLORS.slate, lineHeight: 18 },
+  emptyHintText: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: COLORS.slate, lineHeight: 20 },
 })

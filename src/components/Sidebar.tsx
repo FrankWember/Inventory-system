@@ -75,6 +75,8 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 20,
     borderBottomRightRadius: 20,
     overflow: 'hidden',
+    marginVertical: 20,
+    marginLeft: 20,
     ...Platform.select({
       web: {
         boxShadow: '2px 0 12px rgba(0, 0, 0, 0.06)',

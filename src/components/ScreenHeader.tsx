@@ -1,7 +1,7 @@
 import React from 'react'
 import { View, Text, StyleSheet, ViewStyle } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
-import { COLORS } from '../utils/helpers'
+import { COLORS, FONT } from '../utils/helpers'
 
 interface ScreenHeaderProps {
   title: string
@@ -40,12 +40,13 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
+    fontFamily: FONT.bold,
     color: COLORS.slateDark,
     letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 13,
+    fontFamily: FONT.regular,
     color: COLORS.slate,
     marginTop: 2,
   },

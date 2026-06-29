@@ -13,7 +13,6 @@ import {
   Platform,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { Calendar, LocaleConfig } from 'react-native-calendars'
 import { supabase } from '../lib/supabase'
 import { Drink, Category, Session, Expense } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
@@ -21,11 +20,8 @@ import { StepIndicator } from '../components/StepIndicator'
 import { Stepper } from '../components/Stepper'
 import { SessionExpensesPanel } from '../components/SessionExpensesPanel'
 import { ScreenSkeleton } from '../components/Skeleton'
-import { FadeIn } from '../components/FadeIn'
-import SessionDetailScreen from './SessionDetailScreen'
 import {
   COLORS,
-  FONT,
   fmt,
   fmtNum,
   today,
@@ -33,16 +29,6 @@ import {
   dateLabelLong,
   formatWithCassiers,
 } from '../utils/helpers'
-
-// Configure French locale for calendar
-LocaleConfig.locales['fr'] = {
-  monthNames: ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'],
-  monthNamesShort: ['Janv.','Févr.','Mars','Avr.','Mai','Juin','Juil.','Août','Sept.','Oct.','Nov.','Déc.'],
-  dayNames: ['Dimanche','Lundi','Mardi','Mercredi','Jeudi','Vendredi','Samedi'],
-  dayNamesShort: ['Dim.','Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.'],
-  today: "Aujourd'hui"
-}
-LocaleConfig.defaultLocale = 'fr'
 
 type Step = 'purchases' | 'inventory' | 'summary' | 'done'
 
@@ -77,9 +63,6 @@ export default function SessionScreen({ navigation }: any) {
   const [categoryFilter, setCategoryFilter] = useState<string>('Tout')
   const [pastSessions, setPastSessions] = useState<Session[]>([])
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
-  const [selectedDate, setSelectedDate] = useState<string>(today())
-  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
-  const [allSessions, setAllSessions] = useState<Session[]>([])
 
   const categories: Array<Category | 'Tout'> = ['Tout', 'Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre']
   const todayStr = today()
@@ -89,32 +72,6 @@ export default function SessionScreen({ navigation }: any) {
   const drinksCategoryMap = useMemo(
     () => Object.fromEntries(drinks.map(d => [d.id, d.category])),
     [drinks]
-  )
-
-  // Generate marked dates for calendar
-  const markedDates = useMemo(() => {
-    const marks: any = {}
-    allSessions.forEach(session => {
-      marks[session.date] = {
-        marked: true,
-        dotColor: session.closed ? COLORS.emerald : COLORS.amber,
-      }
-    })
-    // Highlight selected date
-    if (selectedDate) {
-      marks[selectedDate] = {
-        ...marks[selectedDate],
-        selected: true,
-        selectedColor: COLORS.primary,
-      }
-    }
-    return marks
-  }, [allSessions, selectedDate])
-
-  // Sessions for selected date
-  const sessionsForDate = useMemo(() =>
-    allSessions.filter(s => s.date === selectedDate),
-    [allSessions, selectedDate]
   )
 
   // Helper to get drink's rack size (defaults to 1 if not set)
@@ -200,14 +157,6 @@ export default function SessionScreen({ navigation }: any) {
         .order('date', { ascending: false })
         .limit(30)
       setPastSessions(history || [])
-
-      // Load all sessions for calendar marking
-      const { data: allSessionsData } = await supabase
-        .from('sessions')
-        .select('*')
-        .order('date', { ascending: false })
-        .limit(365)
-      setAllSessions(allSessionsData || [])
     } catch (error) {
       console.error('Error loading session:', error)
     } finally {
@@ -250,11 +199,7 @@ export default function SessionScreen({ navigation }: any) {
   const netProfit = grossProfit - totalExpenses
 
   const openJournal = async (session: Session) => {
-    if (isDesktop) {
-      setSelectedSessionId(session.id)
-    } else {
-      navigation.navigate('SessionDetail', { sessionId: session.id })
-    }
+    navigation.navigate('SessionDetail', { sessionId: session.id })
   }
 
   const savePurchases = async () => {
@@ -514,13 +459,12 @@ export default function SessionScreen({ navigation }: any) {
 
   const saleLines = filtered.filter(d => getSold(d.id) > 0)
 
-  // Desktop split view content
-  const sessionListContent = (
+  return (
     <View style={styles.container}>
       <ScreenHeader
         title="Session"
-        subtitle={dateLabel(selectedDate)}
-        right={!isDesktop && (
+        subtitle={dateLabel(todayStr)}
+        right={
           <TouchableOpacity
             onPress={() => {
               const s = closedToday ?? openSession ?? pastSessions[0]
@@ -530,39 +474,8 @@ export default function SessionScreen({ navigation }: any) {
           >
             <Ionicons name="journal-outline" size={22} color={COLORS.primary} />
           </TouchableOpacity>
-        )}
+        }
       />
-
-      {/* Calendar for date selection */}
-      {isDesktop && step === 'done' && (
-        <View style={styles.calendarContainer}>
-          <Calendar
-            current={selectedDate}
-            onDayPress={(day) => setSelectedDate(day.dateString)}
-            markedDates={markedDates}
-            theme={{
-              backgroundColor: COLORS.white,
-              calendarBackground: COLORS.white,
-              textSectionTitleColor: COLORS.slate,
-              selectedDayBackgroundColor: COLORS.primary,
-              selectedDayTextColor: COLORS.white,
-              todayTextColor: COLORS.primary,
-              dayTextColor: COLORS.slateDark,
-              textDisabledColor: COLORS.slateLight,
-              dotColor: COLORS.primary,
-              selectedDotColor: COLORS.white,
-              arrowColor: COLORS.primary,
-              monthTextColor: COLORS.slateDark,
-              textMonthFontFamily: FONT.bold,
-              textDayFontFamily: FONT.regular,
-              textDayHeaderFontFamily: FONT.semibold,
-              textDayFontSize: 14,
-              textMonthFontSize: 16,
-              textDayHeaderFontSize: 12,
-            }}
-          />
-        </View>
-      )}
 
       {step !== 'done' && (
         <StepIndicator steps={STEPS} current={step} onStepPress={openSession ? handleStepPress : undefined} />
@@ -626,34 +539,14 @@ export default function SessionScreen({ navigation }: any) {
       <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 12 }} keyboardShouldPersistTaps="handled">
         {step === 'done' && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {isDesktop ? `Sessions - ${dateLabel(selectedDate)}` : 'Historique'}
-            </Text>
-            {isDesktop ? (
-              sessionsForDate.length > 0 ? (
-                sessionsForDate.map(s => (
-                  <TouchableOpacity key={s.id} style={styles.historyRow} onPress={() => openJournal(s)}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.historyDate}>
-                        {s.closed ? 'Session clôturée' : 'Session ouverte'}
-                      </Text>
-                    </View>
-                    <Text style={styles.historyRevenue}>{fmt(s.total_revenue)}</Text>
-                    <Ionicons name="chevron-forward" size={16} color={COLORS.slate} />
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <Text style={styles.emptyText}>Aucune session pour cette date</Text>
-              )
-            ) : (
-              pastSessions.slice(0, 10).map(s => (
-                <TouchableOpacity key={s.id} style={styles.historyRow} onPress={() => openJournal(s)}>
-                  <Text style={styles.historyDate}>{dateLabel(s.date)}</Text>
-                  <Text style={styles.historyRevenue}>{fmt(s.total_revenue)}</Text>
-                  <Ionicons name="chevron-forward" size={16} color={COLORS.slate} />
-                </TouchableOpacity>
-              ))
-            )}
+            <Text style={styles.sectionTitle}>Historique</Text>
+            {pastSessions.slice(0, 10).map(s => (
+              <TouchableOpacity key={s.id} style={styles.historyRow} onPress={() => openJournal(s)}>
+                <Text style={styles.historyDate}>{dateLabel(s.date)}</Text>
+                <Text style={styles.historyRevenue}>{fmt(s.total_revenue)}</Text>
+                <Ionicons name="chevron-forward" size={16} color={COLORS.slate} />
+              </TouchableOpacity>
+            ))}
           </View>
         )}
 
@@ -776,35 +669,6 @@ export default function SessionScreen({ navigation }: any) {
 
     </View>
   )
-
-  // Desktop split view
-  if (isDesktop && step === 'done') {
-    return (
-      <FadeIn style={styles.desktopContainer}>
-        <View style={[styles.desktopLeft, !selectedSessionId && styles.desktopLeftFull]}>
-          {sessionListContent}
-        </View>
-        {selectedSessionId && (
-          <FadeIn style={styles.desktopRight} duration={300}>
-            <View style={styles.detailHeader}>
-              <TouchableOpacity onPress={() => setSelectedSessionId(null)} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={COLORS.slate} />
-              </TouchableOpacity>
-            </View>
-            <SessionDetailScreen
-              route={{ params: { sessionId: selectedSessionId } } as any}
-              navigation={{
-                ...navigation,
-                goBack: () => setSelectedSessionId(null)
-              } as any}
-            />
-          </FadeIn>
-        )}
-      </FadeIn>
-    )
-  }
-
-  return sessionListContent
 }
 
 const styles = StyleSheet.create({
@@ -1063,83 +927,8 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 14, color: COLORS.slate, textAlign: 'center', paddingVertical: 20 },
   footer: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: COLORS.white, borderTopWidth: 1, borderTopColor: COLORS.border },
   footerSkip: { paddingVertical: 10, paddingHorizontal: 14 },
-  footerSkipText: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.slate },
+  footerSkipText: { fontSize: 14, fontWeight: '600', color: COLORS.slate },
   footerPrimary: { flex: 1, backgroundColor: COLORS.primary, paddingVertical: 11, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  footerPrimaryText: { fontSize: 14, fontFamily: FONT.bold, color: COLORS.white },
+  footerPrimaryText: { fontSize: 14, fontWeight: '700', color: COLORS.white },
   footerDisabled: { opacity: 0.6 },
-  // Desktop split view styles
-  desktopContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-  },
-  desktopLeft: {
-    width: '50%',
-    backgroundColor: COLORS.surface,
-    borderRightWidth: 1,
-    borderRightColor: COLORS.border,
-  },
-  desktopLeftFull: {
-    width: '100%',
-  },
-  desktopRight: {
-    width: '50%',
-    backgroundColor: COLORS.white,
-    margin: 20,
-    marginLeft: 16,
-    borderRadius: 20,
-    overflow: 'hidden',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 2px 16px rgba(0, 0, 0, 0.08)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 16,
-        elevation: 5,
-      },
-    }),
-  },
-  detailHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.white,
-  },
-  closeButton: {
-    padding: 8,
-    borderRadius: 10,
-    backgroundColor: COLORS.surface,
-    ...Platform.select({
-      web: {
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-      },
-    }),
-  },
-  calendarContainer: {
-    backgroundColor: COLORS.white,
-    marginHorizontal: 12,
-    marginTop: 12,
-    borderRadius: 16,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border,
-    ...Platform.select({
-      web: {
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-      },
-    }),
-  },
 })

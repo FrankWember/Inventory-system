@@ -139,7 +139,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
-      <ScrollView style={styles.container}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         <Card>
           <Text style={styles.drinkName}>{drink.name}</Text>
           <Text style={styles.categoryBadge}>{drink.category}</Text>
@@ -243,14 +243,16 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.white,
+  },
+  scrollContent: {
     padding: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: COLORS.white,
   },
   drinkName: {
     fontSize: 22,

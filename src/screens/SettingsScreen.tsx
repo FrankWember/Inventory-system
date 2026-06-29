@@ -7,180 +7,119 @@ import {
   TouchableOpacity,
   Platform,
   Alert,
+  Switch,
   Share,
+  Modal,
   TextInput,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { Card } from '../components/Card'
-import { COLORS } from '../utils/helpers'
+import { COLORS, FONT } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
 import { clearCache, exportData } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 
 export default function SettingsScreen() {
-  const { user, signOut } = useAuth()
+  const { user, signOut, updateProfile } = useAuth()
   const { theme, language, notificationsEnabled, barInfo, setTheme, setLanguage, setNotificationsEnabled, updateBarInfo } = useSettings()
 
-  const handleBarInfo = () => {
-    Alert.prompt(
-      'Informations du bar',
-      'Nom de votre établissement',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Enregistrer',
-          onPress: async (name?: string) => {
-            if (name?.trim()) {
-              try {
-                await updateBarInfo({ name: name.trim() })
-                Alert.alert('Succès', 'Informations enregistrées')
-              } catch (error) {
-                Alert.alert('Erreur', 'Impossible de sauvegarder')
-              }
-            }
-          },
-        },
-      ],
-      'plain-text',
-      barInfo?.name || ''
-    )
+  const [editModal, setEditModal] = useState<null | 'barName' | 'displayName'>(null)
+  const [editValue, setEditValue] = useState('')
+  const [editLoading, setEditLoading] = useState(false)
+
+  const isPhoneAccount = user?.email?.includes('@phone.bartrack.app')
+  const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Utilisateur'
+  const phoneNumber = user?.user_metadata?.phone
+  const actualEmail = user?.user_metadata?.actual_email || (isPhoneAccount ? null : user?.email)
+
+  // Derived initials for avatar
+  const initials = displayName
+    .split(' ')
+    .map((w: string) => w[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
+  const openEdit = (type: 'barName' | 'displayName') => {
+    setEditModal(type)
+    setEditValue(type === 'barName' ? (barInfo?.name || '') : displayName)
   }
 
-  const handleNotifications = () => {
-    Alert.alert(
-      'Notifications',
-      'Voulez-vous activer les notifications ?',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: notificationsEnabled ? 'Désactiver' : 'Activer',
-          onPress: async () => {
-            try {
-              await setNotificationsEnabled(!notificationsEnabled)
-              Alert.alert('Succès', `Notifications ${!notificationsEnabled ? 'activées' : 'désactivées'}`)
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible de modifier les paramètres')
-            }
-          },
-        },
-      ]
-    )
+  const confirmEdit = async () => {
+    if (!editValue.trim()) return
+    setEditLoading(true)
+    try {
+      if (editModal === 'barName') {
+        await updateBarInfo({ name: editValue.trim() })
+      } else if (editModal === 'displayName') {
+        const { error } = await updateProfile(editValue.trim())
+        if (error) throw new Error(error.message)
+      }
+      setEditModal(null)
+    } catch {
+      Alert.alert('Erreur', 'Impossible de sauvegarder')
+    } finally {
+      setEditLoading(false)
+    }
   }
 
-  const handleLanguage = () => {
-    Alert.alert(
-      'Langue',
-      'Choisissez votre langue',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Français',
-          onPress: async () => {
-            try {
-              await setLanguage('fr')
-              Alert.alert('Succès', 'Langue changée en Français')
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible de changer la langue')
-            }
-          },
-        },
-        {
-          text: 'English',
-          onPress: async () => {
-            try {
-              await setLanguage('en')
-              Alert.alert('Success', 'Language changed to English')
-            } catch (error) {
-              Alert.alert('Error', 'Unable to change language')
-            }
-          },
-        },
-      ]
-    )
+  const handleNotificationsToggle = async (value: boolean) => {
+    try {
+      await setNotificationsEnabled(value)
+    } catch {
+      Alert.alert('Erreur', 'Impossible de modifier les notifications')
+    }
   }
 
-  const handleTheme = () => {
-    Alert.alert(
-      'Thème',
-      'Choisissez le thème de l\'application',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Clair',
-          onPress: async () => {
-            try {
-              await setTheme('light')
-              Alert.alert('Succès', 'Thème clair activé')
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible de changer le thème')
-            }
-          },
-        },
-        {
-          text: 'Sombre',
-          onPress: async () => {
-            try {
-              await setTheme('dark')
-              Alert.alert('Succès', 'Thème sombre activé (à venir)')
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible de changer le thème')
-            }
-          },
-        },
-      ]
-    )
+  const handleTheme = async (value: 'light' | 'dark') => {
+    try {
+      await setTheme(value)
+    } catch {
+      Alert.alert('Erreur', 'Impossible de changer le thème')
+    }
+  }
+
+  const handleLanguage = async (value: 'fr' | 'en') => {
+    try {
+      await setLanguage(value)
+    } catch {
+      Alert.alert('Erreur', 'Impossible de changer la langue')
+    }
   }
 
   const handleExportData = async () => {
     try {
       const data = await exportData()
-
       if (Platform.OS === 'web') {
-        // For web, download as JSON file
-        try {
-          const blob = new Blob([data])
-          const url = URL.createObjectURL(blob)
-          const a = (global as any).document?.createElement('a')
-          if (a) {
-            a.href = url
-            a.download = `bartrack-export-${new Date().toISOString().split('T')[0]}.json`
-            a.click()
-            URL.revokeObjectURL(url)
-          }
-        } catch (webError) {
-          // Fallback for web environments without document
-          console.error('Web export failed:', webError)
+        const blob = new Blob([data])
+        const url = URL.createObjectURL(blob)
+        const a = (global as any).document?.createElement('a')
+        if (a) {
+          a.href = url
+          a.download = `bartrack-export-${new Date().toISOString().split('T')[0]}.json`
+          a.click()
+          URL.revokeObjectURL(url)
         }
         Alert.alert('Succès', 'Données exportées avec succès')
       } else {
-        // For mobile, use share
-        await Share.share({
-          message: data,
-          title: 'Export BarTrack',
-        })
+        await Share.share({ message: data, title: 'Export BarTrack' })
       }
-    } catch (error) {
+    } catch {
       Alert.alert('Erreur', 'Impossible d\'exporter les données')
     }
   }
 
   const handleBackupData = async () => {
     try {
-      // Export drinks to Supabase
-      const { data: drinks, error } = await supabase
-        .from('drinks')
-        .select('*')
-
+      const { data: drinks, error } = await supabase.from('drinks').select('id')
       if (error) throw error
-
       Alert.alert(
-        'Sauvegarde cloud',
-        `${drinks?.length || 0} articles trouvés dans le cloud.\n\nLa synchronisation automatique est active.`,
+        '☁️ Sauvegarde cloud',
+        `Synchronisation active\n${drinks?.length || 0} articles synchronisés`,
         [{ text: 'OK' }]
       )
-    } catch (error) {
+    } catch {
       Alert.alert('Erreur', 'Impossible d\'accéder à la sauvegarde cloud')
     }
   }
@@ -188,17 +127,17 @@ export default function SettingsScreen() {
   const handleClearCache = () => {
     Alert.alert(
       'Vider le cache',
-      'Êtes-vous sûr de vouloir vider le cache de l\'application ?',
+      'Êtes-vous sûr ? Les données de l\'app seront rechargées depuis le cloud.',
       [
         { text: 'Annuler', style: 'cancel' },
         {
-          text: 'Confirmer',
+          text: 'Vider',
           style: 'destructive',
           onPress: async () => {
             try {
               await clearCache()
               Alert.alert('Succès', 'Cache vidé avec succès')
-            } catch (error) {
+            } catch {
               Alert.alert('Erreur', 'Impossible de vider le cache')
             }
           },
@@ -207,32 +146,26 @@ export default function SettingsScreen() {
     )
   }
 
-  const handleUserProfile = () => {
-    if (!user) return
-
-    Alert.alert(
-      'Profil utilisateur',
-      `Email: ${user.email}\nID: ${user.id}`,
-      [{ text: 'OK' }]
-    )
-  }
-
   const handleChangePassword = async () => {
-    if (!user?.email) return
-
+    if (!user) return
+    const emailToReset = user.user_metadata?.actual_email || (isPhoneAccount ? null : user.email)
+    if (!emailToReset) {
+      Alert.alert('Info', 'La réinitialisation par mot de passe nécessite une adresse email associée.')
+      return
+    }
     Alert.alert(
       'Changer le mot de passe',
-      'Un email de réinitialisation va être envoyé à votre adresse',
+      `Un email de réinitialisation sera envoyé à ${emailToReset}`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Envoyer',
           onPress: async () => {
             try {
-              const { error } = await supabase.auth.resetPasswordForEmail(user.email!)
+              const { error } = await supabase.auth.resetPasswordForEmail(emailToReset)
               if (error) throw error
               Alert.alert('Succès', 'Email de réinitialisation envoyé')
-            } catch (error) {
+            } catch {
               Alert.alert('Erreur', 'Impossible d\'envoyer l\'email')
             }
           },
@@ -251,251 +184,405 @@ export default function SettingsScreen() {
           text: 'Déconnexion',
           style: 'destructive',
           onPress: async () => {
-            try {
-              await signOut()
-            } catch (error) {
-              Alert.alert('Erreur', 'Impossible de se déconnecter')
-            }
+            try { await signOut() } catch { Alert.alert('Erreur', 'Impossible de se déconnecter') }
           },
         },
       ]
     )
   }
 
-  const handleAbout = () => {
-    Alert.alert(
-      'À propos',
-      'BarTrack - Gestion de bar\nVersion 1.0.0\n\nDéveloppé avec React Native et Supabase',
-      [{ text: 'OK' }]
-    )
-  }
-
   return (
     <View style={styles.wrapper}>
       <ScreenHeader title="Paramètres" />
-      <ScrollView style={styles.container} contentContainerStyle={styles.content}>
 
-        {/* General Settings */}
-        <Text style={styles.sectionTitle}>Général</Text>
-        <Card style={styles.card}>
-          <SettingItem
+      {/* Edit Modal */}
+      <Modal visible={editModal !== null} transparent animationType="fade" onRequestClose={() => setEditModal(null)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>
+              {editModal === 'barName' ? 'Nom de l\'établissement' : 'Nom d\'affichage'}
+            </Text>
+            <TextInput
+              style={styles.modalInput}
+              value={editValue}
+              onChangeText={setEditValue}
+              autoFocus
+              placeholder={editModal === 'barName' ? 'Ex: Le BarAfrika' : 'Votre nom'}
+              placeholderTextColor={COLORS.slate}
+              onSubmitEditing={confirmEdit}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancel}
+                onPress={() => setEditModal(null)}
+                disabled={editLoading}
+              >
+                <Text style={styles.modalCancelText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.modalConfirm, editLoading && { opacity: 0.6 }]}
+                onPress={confirmEdit}
+                disabled={editLoading}
+              >
+                <Text style={styles.modalConfirmText}>{editLoading ? 'Enregistrement...' : 'Enregistrer'}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <ScrollView style={styles.container} contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+
+        {/* Profile Card */}
+        {user && (
+          <View style={styles.profileCard}>
+            <View style={styles.avatarWrap}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>{initials}</Text>
+              </View>
+            </View>
+            <View style={styles.profileInfo}>
+              <TouchableOpacity
+                style={styles.profileNameRow}
+                onPress={() => openEdit('displayName')}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.profileName}>{displayName}</Text>
+                <Ionicons name="pencil" size={14} color={COLORS.slate} style={{ marginLeft: 6 }} />
+              </TouchableOpacity>
+              {phoneNumber ? (
+                <Text style={styles.profileSub}>{phoneNumber}</Text>
+              ) : null}
+              {actualEmail ? (
+                <Text style={styles.profileSub}>{actualEmail}</Text>
+              ) : null}
+            </View>
+          </View>
+        )}
+
+        {/* Bar Info */}
+        <SectionTitle label="Établissement" />
+        <SettingsCard>
+          <RowItem
             icon="business-outline"
-            label="Informations du bar"
-            value={barInfo?.name}
-            onPress={handleBarInfo}
+            label="Nom du bar"
+            value={barInfo?.name || 'Non défini'}
+            onPress={() => openEdit('barName')}
           />
-          <SettingItem
-            icon="notifications-outline"
-            label="Notifications"
-            value={notificationsEnabled ? 'Activées' : 'Désactivées'}
-            onPress={handleNotifications}
-            showDivider
-          />
-          <SettingItem
-            icon="globe-outline"
-            label="Langue"
-            value={language === 'fr' ? 'Français' : 'English'}
-            onPress={handleLanguage}
-            showDivider
-          />
-          <SettingItem
-            icon="color-palette-outline"
-            label="Thème"
-            value={theme === 'light' ? 'Clair' : 'Sombre'}
-            onPress={handleTheme}
-          />
-        </Card>
+        </SettingsCard>
 
-        {/* Data Management */}
-        <Text style={styles.sectionTitle}>Données</Text>
-        <Card style={styles.card}>
-          <SettingItem
-            icon="download-outline"
-            label="Exporter les données"
-            onPress={handleExportData}
-          />
-          <SettingItem
-            icon="cloud-upload-outline"
-            label="Sauvegarde cloud"
-            onPress={handleBackupData}
-            showDivider
-          />
-          <SettingItem
-            icon="trash-outline"
-            label="Vider le cache"
-            onPress={handleClearCache}
-            destructive
-          />
-        </Card>
+        {/* Preferences */}
+        <SectionTitle label="Préférences" />
+        <SettingsCard>
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#EEF2FF' }]}>
+                <Ionicons name="notifications-outline" size={19} color="#4F46E5" />
+              </View>
+              <Text style={styles.rowLabel}>Notifications</Text>
+            </View>
+            <Switch
+              value={notificationsEnabled}
+              onValueChange={handleNotificationsToggle}
+              trackColor={{ false: COLORS.border, true: COLORS.primary }}
+              thumbColor={COLORS.white}
+            />
+          </View>
+
+          <View style={styles.separator} />
+
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#F0FDF4' }]}>
+                <Ionicons name="globe-outline" size={19} color="#16A34A" />
+              </View>
+              <Text style={styles.rowLabel}>Langue</Text>
+            </View>
+            <View style={styles.segmented}>
+              <SegBtn label="FR" active={language === 'fr'} onPress={() => handleLanguage('fr')} />
+              <SegBtn label="EN" active={language === 'en'} onPress={() => handleLanguage('en')} />
+            </View>
+          </View>
+
+          <View style={styles.separator} />
+
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <View style={[styles.iconBox, { backgroundColor: '#FFFBEB' }]}>
+                <Ionicons name="color-palette-outline" size={19} color="#D97706" />
+              </View>
+              <Text style={styles.rowLabel}>Thème</Text>
+            </View>
+            <View style={styles.segmented}>
+              <SegBtn label="☀️ Clair" active={theme === 'light'} onPress={() => handleTheme('light')} />
+              <SegBtn label="🌙 Sombre" active={theme === 'dark'} onPress={() => handleTheme('dark')} />
+            </View>
+          </View>
+        </SettingsCard>
+
+        {/* Data */}
+        <SectionTitle label="Données" />
+        <SettingsCard>
+          <RowItem icon="download-outline" label="Exporter les données" iconBg="#F0F9FF" iconColor="#0369A1" onPress={handleExportData} />
+          <View style={styles.separator} />
+          <RowItem icon="cloud-upload-outline" label="Sauvegarde cloud" iconBg="#F0FDF4" iconColor="#16A34A" onPress={handleBackupData} />
+          <View style={styles.separator} />
+          <RowItem icon="trash-outline" label="Vider le cache" iconBg="#FFF1F2" iconColor={COLORS.rose} destructive onPress={handleClearCache} />
+        </SettingsCard>
 
         {/* Account */}
         {user && (
           <>
-            <Text style={styles.sectionTitle}>Compte</Text>
-            <Card style={styles.card}>
-              <SettingItem
-                icon="person-outline"
-                label="Profil utilisateur"
-                value={user.email?.split('@')[0]}
-                onPress={handleUserProfile}
-              />
-              <SettingItem
-                icon="key-outline"
-                label="Changer le mot de passe"
-                onPress={handleChangePassword}
-                showDivider
-              />
-              <SettingItem
-                icon="log-out-outline"
-                label="Déconnexion"
-                onPress={handleLogout}
-                destructive
-              />
-            </Card>
+            <SectionTitle label="Compte" />
+            <SettingsCard>
+              <RowItem icon="key-outline" label="Changer le mot de passe" iconBg="#F5F3FF" iconColor="#7C3AED" onPress={handleChangePassword} />
+              <View style={styles.separator} />
+              <RowItem icon="log-out-outline" label="Déconnexion" iconBg="#FFF1F2" iconColor={COLORS.rose} destructive onPress={handleLogout} />
+            </SettingsCard>
           </>
         )}
 
         {/* About */}
-        <Text style={styles.sectionTitle}>Application</Text>
-        <Card style={styles.card}>
-          <SettingItem
-            icon="information-circle-outline"
-            label="À propos"
-            onPress={handleAbout}
-          />
-          <SettingItem
-            icon="help-circle-outline"
-            label="Aide & Support"
-            onPress={() => Alert.alert('Info', 'Fonctionnalité à venir')}
-            showDivider
-          />
-          <SettingItem
-            icon="document-text-outline"
-            label="Conditions d'utilisation"
-            onPress={() => Alert.alert('Info', 'Fonctionnalité à venir')}
-            showDivider
-          />
-          <SettingItem
-            icon="shield-checkmark-outline"
-            label="Politique de confidentialité"
-            onPress={() => Alert.alert('Info', 'Fonctionnalité à venir')}
-          />
-        </Card>
+        <SectionTitle label="Application" />
+        <SettingsCard>
+          <View style={styles.aboutRow}>
+            <View style={[styles.iconBox, { backgroundColor: COLORS.primaryLight }]}>
+              <Ionicons name="information-circle-outline" size={19} color={COLORS.primary} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.rowLabel}>BarTrack</Text>
+              <Text style={styles.aboutSub}>Version 1.0.0 · Gestion de bar</Text>
+            </View>
+          </View>
+        </SettingsCard>
 
-        <Text style={styles.version}>Version 1.0.0</Text>
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   )
 }
 
-interface SettingItemProps {
+function SectionTitle({ label }: { label: string }) {
+  return <Text style={styles.sectionTitle}>{label}</Text>
+}
+
+function SettingsCard({ children }: { children: React.ReactNode }) {
+  return <View style={styles.card}>{children}</View>
+}
+
+function RowItem({
+  icon,
+  label,
+  value,
+  onPress,
+  destructive,
+  iconBg,
+  iconColor,
+}: {
   icon: keyof typeof Ionicons.glyphMap
   label: string
   value?: string
   onPress: () => void
-  showDivider?: boolean
   destructive?: boolean
+  iconBg?: string
+  iconColor?: string
+}) {
+  const bg = iconBg || (destructive ? '#FFF1F2' : COLORS.primaryLight)
+  const color = iconColor || (destructive ? COLORS.rose : COLORS.primary)
+
+  return (
+    <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
+      <View style={styles.rowLeft}>
+        <View style={[styles.iconBox, { backgroundColor: bg }]}>
+          <Ionicons name={icon} size={19} color={color} />
+        </View>
+        <Text style={[styles.rowLabel, destructive && { color: COLORS.rose }]}>{label}</Text>
+      </View>
+      <View style={styles.rowRight}>
+        {value ? <Text style={styles.rowValue} numberOfLines={1}>{value}</Text> : null}
+        <Ionicons name="chevron-forward" size={16} color={COLORS.slate} />
+      </View>
+    </TouchableOpacity>
+  )
 }
 
-function SettingItem({ icon, label, value, onPress, showDivider, destructive }: SettingItemProps) {
+function SegBtn({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
   return (
-    <>
-      <TouchableOpacity style={styles.settingItem} onPress={onPress} activeOpacity={0.7}>
-        <View style={styles.settingLeft}>
-          <View style={[styles.iconContainer, destructive && styles.iconContainerDestructive]}>
-            <Ionicons
-              name={icon}
-              size={20}
-              color={destructive ? COLORS.rose : COLORS.primary}
-            />
-          </View>
-          <Text style={[styles.settingLabel, destructive && styles.settingLabelDestructive]}>
-            {label}
-          </Text>
-        </View>
-        <View style={styles.settingRight}>
-          {value && <Text style={styles.settingValue}>{value}</Text>}
-          <Ionicons name="chevron-forward" size={18} color={COLORS.slate400} />
-        </View>
-      </TouchableOpacity>
-      {showDivider && <View style={styles.divider} />}
-    </>
+    <TouchableOpacity
+      style={[styles.segBtn, active && styles.segBtnActive]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <Text style={[styles.segBtnText, active && styles.segBtnTextActive]}>{label}</Text>
+    </TouchableOpacity>
   )
 }
 
 const styles = StyleSheet.create({
   wrapper: { flex: 1, backgroundColor: COLORS.surface },
   container: { flex: 1 },
-  content: {
+  content: { padding: 16, paddingBottom: 40 },
+
+  // Profile card
+  profileCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
     padding: 16,
-    paddingBottom: 40,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+    gap: 14,
   },
+  avatarWrap: {},
+  avatar: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.primaryLight,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+  },
+  avatarText: { fontSize: 20, fontFamily: FONT.bold, color: COLORS.primary },
+  profileInfo: { flex: 1 },
+  profileNameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
+  profileName: { fontSize: 16, fontFamily: FONT.semibold, color: COLORS.slateDark },
+  profileSub: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 1 },
+
+  // Section
   sectionTitle: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 11,
+    fontFamily: FONT.semibold,
     color: COLORS.slate,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
     marginBottom: 8,
     marginTop: 16,
-    marginLeft: 4,
+    marginLeft: 2,
   },
   card: {
-    padding: 0,
+    backgroundColor: COLORS.white,
+    borderRadius: 16,
     overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  settingItem: {
+
+  // Row
+  row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingVertical: 14,
     paddingHorizontal: 16,
+    minHeight: 56,
   },
-  settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    gap: 12,
-  },
-  iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: COLORS.primaryLight,
+  rowLeft: { flexDirection: 'row', alignItems: 'center', flex: 1, gap: 12 },
+  rowRight: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  iconBox: {
+    width: 34,
+    height: 34,
+    borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconContainerDestructive: {
-    backgroundColor: COLORS.roseLight,
+  rowLabel: { fontSize: 15, fontFamily: FONT.medium, color: COLORS.slateDark, flex: 1 },
+  rowValue: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.slate, maxWidth: 120 },
+  separator: { height: 1, backgroundColor: COLORS.border, marginLeft: 62 },
+
+  // Segmented control
+  segmented: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    borderRadius: 8,
+    padding: 2,
+    gap: 2,
   },
-  settingLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: COLORS.slateDark,
-    flex: 1,
+  segBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 6,
   },
-  settingLabelDestructive: {
-    color: COLORS.rose,
+  segBtnActive: {
+    backgroundColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
   },
-  settingRight: {
+  segBtnText: { fontSize: 12, fontFamily: FONT.semibold, color: COLORS.slate },
+  segBtnTextActive: { color: COLORS.white },
+
+  // About row
+  aboutRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    gap: 12,
   },
-  settingValue: {
-    fontSize: 14,
-    color: COLORS.slate,
+  aboutSub: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 1 },
+
+  // Modal
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 24,
   },
-  divider: {
-    height: 1,
-    backgroundColor: COLORS.border,
-    marginLeft: 64,
+  modalCard: {
+    width: '100%',
+    maxWidth: 360,
+    backgroundColor: COLORS.white,
+    borderRadius: 20,
+    padding: 24,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.2,
+    shadowRadius: 32,
+    elevation: 12,
   },
-  version: {
-    textAlign: 'center',
-    fontSize: 12,
-    color: COLORS.slate,
-    marginTop: 32,
-    marginBottom: 16,
+  modalTitle: { fontSize: 17, fontFamily: FONT.semibold, color: COLORS.slateDark, marginBottom: 16 },
+  modalInput: {
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontSize: 15,
+    fontFamily: FONT.regular,
+    color: COLORS.slateDark,
+    backgroundColor: COLORS.surface,
+    marginBottom: 20,
+    ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
+  modalActions: { flexDirection: 'row', gap: 10 },
+  modalCancel: {
+    flex: 1,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalCancelText: { fontSize: 15, fontFamily: FONT.medium, color: COLORS.slate },
+  modalConfirm: {
+    flex: 1,
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  modalConfirmText: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.white },
 })

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useRef, useCallback } from 'react'
 import {
   View,
   Text,
@@ -7,14 +7,11 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
-  ActivityIndicator,
-  Alert,
-  ImageBackground,
   Animated,
+  ImageBackground,
 } from 'react-native'
 import { Input } from '../components/Input'
 import { PhoneInput } from '../components/PhoneInput'
-import { Button } from '../components/Button'
 import { COLORS, FONT } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
 import { Ionicons } from '@expo/vector-icons'
@@ -23,157 +20,167 @@ interface SignInScreenProps {
   navigation: any
 }
 
-type AuthMethod = 'email' | 'phone'
+type AuthMethod = 'phone' | 'email'
+
+function getStoredAuthMethod(): AuthMethod {
+  if (Platform.OS === 'web') {
+    try {
+      return ((globalThis as any).sessionStorage?.getItem('authMethod') as AuthMethod) || 'phone'
+    } catch { return 'phone' }
+  }
+  return 'phone'
+}
+
+function setStoredAuthMethod(method: AuthMethod) {
+  if (Platform.OS === 'web') {
+    try { (globalThis as any).sessionStorage?.setItem('authMethod', method) } catch { /* ignore */ }
+  }
+}
 
 export default function SignInScreen({ navigation }: SignInScreenProps) {
   const { signIn, signInWithPhone } = useAuth()
-  const [authMethod, setAuthMethod] = useState<AuthMethod>('phone')
+  const [authMethod, setAuthMethod] = useState<AuthMethod>(getStoredAuthMethod)
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const fadeAnim = useRef(new Animated.Value(0)).current
-  const slideAnim = useRef(new Animated.Value(30)).current
+  const slideAnim = useRef(new Animated.Value(24)).current
+  const shakeAnim = useRef(new Animated.Value(0)).current
+  const hasAnimated = useRef(false)
 
-  useEffect(() => {
+  const startEntrance = useCallback(() => {
+    if (hasAnimated.current) return
+    hasAnimated.current = true
     Animated.parallel([
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 600,
-        useNativeDriver: true,
-      }),
-      Animated.spring(slideAnim, {
-        toValue: 0,
-        tension: 50,
-        friction: 7,
-        useNativeDriver: true,
-      }),
+      Animated.timing(fadeAnim, { toValue: 1, duration: 500, useNativeDriver: true }),
+      Animated.spring(slideAnim, { toValue: 0, tension: 60, friction: 9, useNativeDriver: true }),
     ]).start()
-  }, [])
+  }, [fadeAnim, slideAnim])
+
+  // Start entrance on mount
+  React.useEffect(() => { startEntrance() }, [startEntrance])
+
+  const shakeError = () => {
+    Animated.sequence([
+      Animated.timing(shakeAnim, { toValue: 8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -8, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 6, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: -6, duration: 60, useNativeDriver: true }),
+      Animated.timing(shakeAnim, { toValue: 0, duration: 60, useNativeDriver: true }),
+    ]).start()
+  }
+
+  const switchMethod = (method: AuthMethod) => {
+    setAuthMethod(method)
+    setStoredAuthMethod(method)
+    setError(null)
+  }
 
   const handleSignIn = async () => {
+    setError(null)
+
     if (authMethod === 'email') {
       if (!email.trim() || !password.trim()) {
-        Alert.alert('Erreur', 'Veuillez remplir tous les champs')
+        setError('Veuillez remplir tous les champs')
+        shakeError()
         return
       }
-
       setLoading(true)
       const { error } = await signIn(email.trim(), password)
       setLoading(false)
-
       if (error) {
-        const title = error.type === 'email_not_confirmed'
-          ? 'Email non confirmé'
-          : error.type === 'user_not_found'
-          ? 'Compte introuvable'
-          : 'Erreur de connexion'
-
-        Alert.alert(title, error.message)
+        setError(error.message)
+        shakeError()
       }
     } else {
-      if (phone.length !== 9 || !password.trim()) {
-        Alert.alert('Erreur', 'Veuillez entrer un numéro valide et un mot de passe')
+      if (phone.length < 9 || !password.trim()) {
+        setError('Numéro invalide ou mot de passe manquant')
+        shakeError()
         return
       }
-
       setLoading(true)
       const { error } = await signInWithPhone(phone, password)
       setLoading(false)
-
       if (error) {
-        const title = error.type === 'user_not_found'
-          ? 'Compte introuvable'
-          : 'Erreur de connexion'
-
-        Alert.alert(title, error.message)
+        setError(error.message)
+        shakeError()
       }
     }
-  }
-
-  const handleForgotPassword = () => {
-    navigation.navigate('ForgotPassword')
   }
 
   return (
     <ImageBackground
       source={require('../assets/images/auth-background.jpg')}
-      style={styles.backgroundImage}
+      style={styles.bg}
       resizeMode="cover"
     >
       <View style={styles.overlay} />
       <KeyboardAvoidingView
-        style={styles.container}
+        style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={styles.scroll}
           keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
         >
           <Animated.View
             style={[
-              styles.formContainer,
+              styles.card,
               {
                 opacity: fadeAnim,
-                transform: [{ translateY: slideAnim }],
+                transform: [
+                  { translateY: slideAnim },
+                  { translateX: shakeAnim },
+                ],
               },
             ]}
           >
-          <View style={styles.header}>
-            <View style={styles.iconContainer}>
-              <Ionicons name="beer" size={48} color={COLORS.primary} />
-            </View>
-            <Text style={styles.title}>BarTrack</Text>
-            <Text style={styles.subtitle}>Connectez-vous à votre compte</Text>
-          </View>
-
-          <View style={styles.form}>
-            <View style={styles.authMethodToggle}>
-              <TouchableOpacity
-                style={[styles.toggleButton, authMethod === 'phone' && styles.toggleButtonActive]}
-                onPress={() => setAuthMethod('phone')}
-                disabled={loading}
-              >
-                <Ionicons
-                  name="call"
-                  size={16}
-                  color={authMethod === 'phone' ? COLORS.white : COLORS.slate}
-                />
-                <Text style={[styles.toggleText, authMethod === 'phone' && styles.toggleTextActive]}>
-                  Téléphone
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.toggleButton, authMethod === 'email' && styles.toggleButtonActive]}
-                onPress={() => setAuthMethod('email')}
-                disabled={loading}
-              >
-                <Ionicons
-                  name="mail"
-                  size={16}
-                  color={authMethod === 'email' ? COLORS.white : COLORS.slate}
-                />
-                <Text style={[styles.toggleText, authMethod === 'email' && styles.toggleTextActive]}>
-                  Email
-                </Text>
-              </TouchableOpacity>
+            {/* Header */}
+            <View style={styles.header}>
+              <View style={styles.logoWrap}>
+                <Ionicons name="beer" size={28} color={COLORS.primary} />
+              </View>
+              <Text style={styles.appName}>BarTrack</Text>
+              <Text style={styles.tagline}>Gestion de bar simplifiée</Text>
             </View>
 
+            <View style={styles.divider} />
+
+            {/* Method toggle */}
+            <View style={styles.toggle}>
+              <ToggleBtn
+                label="Téléphone"
+                icon="call"
+                active={authMethod === 'phone'}
+                onPress={() => switchMethod('phone')}
+              />
+              <ToggleBtn
+                label="Email"
+                icon="mail"
+                active={authMethod === 'email'}
+                onPress={() => switchMethod('email')}
+              />
+            </View>
+
+            {/* Fields */}
             {authMethod === 'phone' ? (
               <PhoneInput
                 label="Numéro de téléphone"
                 value={phone}
-                onChangeText={setPhone}
-                placeholder="X XX XX XX XX"
+                onChangeText={t => { setPhone(t); setError(null) }}
+                placeholder="6 XX XX XX XX"
                 editable={!loading}
               />
             ) : (
               <Input
-                label="Email"
+                label="Adresse email"
                 value={email}
-                onChangeText={setEmail}
+                onChangeText={t => { setEmail(t); setError(null) }}
                 placeholder="votre@email.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
@@ -182,205 +189,238 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
               />
             )}
 
-            <View style={styles.passwordContainer}>
+            <View style={styles.passwordWrap}>
               <Input
                 label="Mot de passe"
                 value={password}
-                onChangeText={setPassword}
+                onChangeText={t => { setPassword(t); setError(null) }}
                 placeholder="••••••••"
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 editable={!loading}
               />
               <TouchableOpacity
-                style={styles.eyeIcon}
-                onPress={() => setShowPassword(!showPassword)}
-                disabled={loading}
+                style={styles.eyeBtn}
+                onPress={() => setShowPassword(v => !v)}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons
-                  name={showPassword ? 'eye-off' : 'eye'}
-                  size={20}
-                  color={COLORS.slate}
-                />
+                <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color={COLORS.slate} />
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity onPress={handleForgotPassword} disabled={loading}>
-              <Text style={styles.forgotPassword}>Mot de passe oublié ?</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('ForgotPassword')}
+              style={styles.forgotBtn}
+              disabled={loading}
+            >
+              <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
             </TouchableOpacity>
 
-            <Button
+            {/* Inline error */}
+            {error ? (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle" size={15} color={COLORS.rose} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            ) : null}
+
+            {/* Submit */}
+            <TouchableOpacity
+              style={[styles.submitBtn, loading && styles.submitBtnLoading]}
               onPress={handleSignIn}
               disabled={loading}
-              style={styles.button}
+              activeOpacity={0.85}
             >
-              {loading ? 'Connexion...' : 'Se connecter'}
-            </Button>
-
-            {loading && (
-              <ActivityIndicator
-                size="small"
-                color={COLORS.primary}
-                style={styles.loader}
-              />
-            )}
-          </View>
-
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Vous n'avez pas de compte ?</Text>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('SignUp')}
-              disabled={loading}
-            >
-              <Text style={styles.signUpLink}>Créer un compte</Text>
+              {loading ? (
+                <View style={styles.submitInner}>
+                  <LoadingDots />
+                </View>
+              ) : (
+                <Text style={styles.submitText}>Se connecter</Text>
+              )}
             </TouchableOpacity>
-          </View>
-        </Animated.View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+
+            {/* Footer */}
+            <View style={styles.footer}>
+              <Text style={styles.footerText}>Pas encore de compte ?</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('SignUp')} disabled={loading}>
+                <Text style={styles.footerLink}> Créer un compte</Text>
+              </TouchableOpacity>
+            </View>
+          </Animated.View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </ImageBackground>
   )
 }
 
+function ToggleBtn({ label, icon, active, onPress }: {
+  label: string
+  icon: keyof typeof Ionicons.glyphMap
+  active: boolean
+  onPress: () => void
+}) {
+  return (
+    <TouchableOpacity
+      style={[styles.toggleBtn, active && styles.toggleBtnActive]}
+      onPress={onPress}
+      activeOpacity={0.8}
+    >
+      <Ionicons name={icon} size={15} color={active ? COLORS.white : COLORS.slate} />
+      <Text style={[styles.toggleText, active && styles.toggleTextActive]}>{label}</Text>
+    </TouchableOpacity>
+  )
+}
+
+function LoadingDots() {
+  const dot1 = useRef(new Animated.Value(0.4)).current
+  const dot2 = useRef(new Animated.Value(0.4)).current
+  const dot3 = useRef(new Animated.Value(0.4)).current
+
+  React.useEffect(() => {
+    const pulse = (dot: Animated.Value, delay: number) =>
+      Animated.loop(
+        Animated.sequence([
+          Animated.delay(delay),
+          Animated.timing(dot, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.timing(dot, { toValue: 0.4, duration: 300, useNativeDriver: true }),
+          Animated.delay(600 - delay),
+        ])
+      )
+    const a1 = pulse(dot1, 0)
+    const a2 = pulse(dot2, 200)
+    const a3 = pulse(dot3, 400)
+    a1.start(); a2.start(); a3.start()
+    return () => { a1.stop(); a2.stop(); a3.stop() }
+  }, [dot1, dot2, dot3])
+
+  return (
+    <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
+      {[dot1, dot2, dot3].map((dot, i) => (
+        <Animated.View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.white, opacity: dot }} />
+      ))}
+    </View>
+  )
+}
+
 const styles = StyleSheet.create({
-  backgroundImage: {
-    flex: 1,
-    width: '100%',
-    height: '100%',
-  },
-  overlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.2)',
-  },
-  container: {
-    flex: 1,
-  },
-  scrollContent: {
+  bg: { flex: 1, width: '100%', height: '100%' },
+  flex: { flex: 1 },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,20,40,0.45)' },
+  scroll: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
     alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingVertical: 32,
   },
-  formContainer: {
+  card: {
     width: '100%',
-    maxWidth: 360,
-    alignSelf: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
-    borderRadius: 20,
-    padding: 18,
+    maxWidth: 380,
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderRadius: 24,
+    padding: 28,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.2,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.25,
+    shadowRadius: 32,
+    elevation: 16,
     ...Platform.select({
-      web: {
-        backdropFilter: 'blur(15px)',
-        maxWidth: 340,
-      },
+      web: { backdropFilter: 'blur(20px)', maxWidth: 360 } as any,
     }),
   },
-  header: {
-    alignItems: 'center',
-    marginBottom: 12,
-  },
-  iconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 12,
+  header: { alignItems: 'center', marginBottom: 20 },
+  logoWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 6,
+    marginBottom: 10,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  title: {
-    fontSize: 22,
+  appName: {
+    fontSize: 26,
     fontFamily: FONT.bold,
     color: COLORS.slateDark,
-    marginBottom: 2,
+    letterSpacing: -0.5,
   },
-  subtitle: {
-    fontSize: 12,
+  tagline: {
+    fontSize: 13,
     fontFamily: FONT.regular,
     color: COLORS.slate,
-    textAlign: 'center',
+    marginTop: 2,
   },
-  form: {
-    marginBottom: 8,
+  divider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginBottom: 20,
   },
-  authMethodToggle: {
+  toggle: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
-    borderRadius: 8,
+    borderRadius: 10,
     padding: 3,
-    marginBottom: 10,
+    marginBottom: 16,
+    gap: 3,
   },
-  toggleButton: {
+  toggleBtn: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 7,
-    paddingHorizontal: 10,
-    borderRadius: 6,
-    gap: 5,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
   },
-  toggleButtonActive: {
+  toggleBtnActive: {
     backgroundColor: COLORS.primary,
     shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
   },
-  toggleText: {
-    fontSize: 12,
-    fontFamily: FONT.semibold,
-    color: COLORS.slate,
-    letterSpacing: -0.2,
-  },
-  toggleTextActive: {
-    color: COLORS.white,
-  },
-  passwordContainer: {
-    position: 'relative',
-  },
-  eyeIcon: {
-    position: 'absolute',
-    right: 10,
-    top: 35,
-    padding: 5,
-  },
-  forgotPassword: {
-    fontSize: 11,
-    fontFamily: FONT.medium,
-    color: COLORS.primary,
-    textAlign: 'right',
-    marginTop: -8,
-    marginBottom: 12,
-  },
-  button: {
-    marginTop: 6,
-  },
-  loader: {
-    marginTop: 16,
-  },
-  footer: {
+  toggleText: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.slate },
+  toggleTextActive: { color: COLORS.white },
+  passwordWrap: { position: 'relative' },
+  eyeBtn: { position: 'absolute', right: 12, top: 34, padding: 4 },
+  forgotBtn: { alignSelf: 'flex-end', marginTop: -4, marginBottom: 16 },
+  forgotText: { fontSize: 12, fontFamily: FONT.medium, color: COLORS.primary },
+  errorBox: {
     flexDirection: 'row',
-    justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 16,
+    gap: 6,
+    backgroundColor: '#FEF2F2',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: '#FECACA',
   },
-  footerText: {
-    fontSize: 13,
-    fontFamily: FONT.regular,
-    color: COLORS.slate,
-    marginRight: 4,
+  errorText: { fontSize: 13, fontFamily: FONT.medium, color: COLORS.rose, flex: 1 },
+  submitBtn: {
+    backgroundColor: COLORS.primary,
+    borderRadius: 12,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 6,
   },
-  signUpLink: {
-    fontSize: 13,
-    fontFamily: FONT.semibold,
-    color: COLORS.primary,
-  },
+  submitBtnLoading: { opacity: 0.85 },
+  submitInner: { alignItems: 'center', justifyContent: 'center' },
+  submitText: { fontSize: 16, fontFamily: FONT.semibold, color: COLORS.white, letterSpacing: 0.2 },
+  footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
+  footerText: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.slate },
+  footerLink: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.primary },
 })

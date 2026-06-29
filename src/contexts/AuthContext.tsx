@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { getRedirectUrl } from '../utils/config'
@@ -18,77 +18,40 @@ interface AuthContextType {
   signUp: (email: string, password: string, name?: string, phone?: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>
+  updateProfile: (displayName: string) => Promise<{ error: AuthError | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-// Helper function to parse Supabase errors into user-friendly messages
 function parseAuthError(error: any): AuthError {
   if (!error) return { message: 'Une erreur inconnue est survenue', type: 'unknown' }
 
   const errorMessage = error.message?.toLowerCase() || ''
 
-  // Invalid credentials
   if (errorMessage.includes('invalid login credentials') ||
       errorMessage.includes('invalid password') ||
       errorMessage.includes('wrong password')) {
-    return {
-      message: 'Email/téléphone ou mot de passe incorrect',
-      type: 'invalid_credentials'
-    }
+    return { message: 'Email/téléphone ou mot de passe incorrect', type: 'invalid_credentials' }
   }
-
-  // User not found
-  if (errorMessage.includes('user not found') ||
-      errorMessage.includes('no user found')) {
-    return {
-      message: 'Aucun compte associé à ces identifiants',
-      type: 'user_not_found'
-    }
+  if (errorMessage.includes('user not found') || errorMessage.includes('no user found')) {
+    return { message: 'Aucun compte associé à ces identifiants', type: 'user_not_found' }
   }
-
-  // Email not confirmed
-  if (errorMessage.includes('email not confirmed') ||
-      errorMessage.includes('email address not confirmed')) {
-    return {
-      message: 'Veuillez confirmer votre email avant de vous connecter',
-      type: 'email_not_confirmed'
-    }
+  if (errorMessage.includes('email not confirmed') || errorMessage.includes('email address not confirmed')) {
+    return { message: 'Veuillez confirmer votre email avant de vous connecter', type: 'email_not_confirmed' }
   }
-
-  // Weak password
   if (errorMessage.includes('password') && errorMessage.includes('weak')) {
-    return {
-      message: 'Le mot de passe est trop faible',
-      type: 'weak_password'
-    }
+    return { message: 'Le mot de passe est trop faible', type: 'weak_password' }
   }
-
-  // User already exists
   if (errorMessage.includes('user already registered') ||
       errorMessage.includes('email already registered') ||
       errorMessage.includes('already exists')) {
-    return {
-      message: 'Un compte existe déjà avec ces identifiants',
-      type: 'email_exists'
-    }
+    return { message: 'Un compte existe déjà avec ces identifiants', type: 'email_exists' }
+  }
+  if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('timeout')) {
+    return { message: 'Erreur de connexion. Vérifiez votre connexion internet', type: 'network_error' }
   }
 
-  // Network errors
-  if (errorMessage.includes('network') ||
-      errorMessage.includes('fetch') ||
-      errorMessage.includes('timeout')) {
-    return {
-      message: 'Erreur de connexion. Vérifiez votre connexion internet',
-      type: 'network_error'
-    }
-  }
-
-  // Default error
-  return {
-    message: error.message || 'Une erreur est survenue',
-    type: 'unknown'
-  }
+  return { message: error.message || 'Une erreur est survenue', type: 'unknown' }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -96,28 +59,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [isWelcomeLoading, setIsWelcomeLoading] = useState(false)
+  // Tracks whether the app started with an existing session (page refresh vs fresh login)
+  const isRestoredSession = useRef(false)
 
   useEffect(() => {
-    // Get initial session
+    // Get initial session — if one exists, this is a page refresh, not a fresh login
     supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        isRestoredSession.current = true
+      }
       setSession(session)
       setUser(session?.user ?? null)
       setLoading(false)
     })
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (_event === 'SIGNED_IN' && session) {
-        // Show welcome screen for 2 seconds
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (_event === 'SIGNED_IN' && session && !isRestoredSession.current) {
+        // Fresh login (not a page refresh or token refresh)
+        isRestoredSession.current = true
         setIsWelcomeLoading(true)
         setTimeout(() => {
           setIsWelcomeLoading(false)
           setSession(session)
           setUser(session?.user ?? null)
-        }, 2000)
+        }, 1500)
       } else {
+        // Page refresh, token refresh, sign-out, etc.
+        if (_event === 'SIGNED_IN') {
+          isRestoredSession.current = true
+        }
+        if (_event === 'SIGNED_OUT') {
+          isRestoredSession.current = false
+        }
         setSession(session)
         setUser(session?.user ?? null)
       }
@@ -129,13 +102,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      })
-      if (error) {
-        return { error: parseAuthError(error) }
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email, password })
+      if (error) return { error: parseAuthError(error) }
       return { error: null }
     } catch (error) {
       return { error: parseAuthError(error) }
@@ -144,15 +112,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithPhone = async (phone: string, password: string) => {
     try {
-      // Format phone as email for Supabase (e.g., +237123456789@phone.bartrack.app)
       const phoneEmail = `+237${phone}@phone.bartrack.app`
-      const { error } = await supabase.auth.signInWithPassword({
-        email: phoneEmail,
-        password,
-      })
-      if (error) {
-        return { error: parseAuthError(error) }
-      }
+      const { error } = await supabase.auth.signInWithPassword({ email: phoneEmail, password })
+      if (error) return { error: parseAuthError(error) }
       return { error: null }
     } catch (error) {
       return { error: parseAuthError(error) }
@@ -161,10 +123,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, name?: string, phone?: string) => {
     try {
-      // If phone is provided, use phone-based email
       const authEmail = phone ? `+237${phone}@phone.bartrack.app` : email
-
-      // Get the correct redirect URL based on environment
       const redirectUrl = getRedirectUrl()
 
       const { error } = await supabase.auth.signUp({
@@ -179,9 +138,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           },
         },
       })
-      if (error) {
-        return { error: parseAuthError(error) }
-      }
+      if (error) return { error: parseAuthError(error) }
       return { error: null }
     } catch (error) {
       return { error: parseAuthError(error) }
@@ -194,15 +151,26 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      // Get the correct redirect URL based on environment
       const redirectUrl = getRedirectUrl()
-
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
         redirectTo: redirectUrl || undefined,
       })
-      if (error) {
-        return { error: parseAuthError(error) }
-      }
+      if (error) return { error: parseAuthError(error) }
+      return { error: null }
+    } catch (error) {
+      return { error: parseAuthError(error) }
+    }
+  }
+
+  const updateProfile = async (displayName: string) => {
+    try {
+      const { error } = await supabase.auth.updateUser({
+        data: { display_name: displayName },
+      })
+      if (error) return { error: parseAuthError(error) }
+      // Refresh user state
+      const { data: { user: updatedUser } } = await supabase.auth.getUser()
+      if (updatedUser) setUser(updatedUser)
       return { error: null }
     } catch (error) {
       return { error: parseAuthError(error) }
@@ -221,6 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signOut,
         resetPassword,
+        updateProfile,
       }}
     >
       {children}

@@ -18,18 +18,20 @@ import { Drink, Category } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { StockProgressBar } from '../components/StockProgressBar'
 import { ScreenSkeleton } from '../components/Skeleton'
+import { FadeIn } from '../components/FadeIn'
+import { SlideIn } from '../components/SlideIn'
 import EditDrinkScreen from './EditDrinkScreen'
 import {
   COLORS,
+  FONT,
   fmtShort,
   getStockStatus,
   getStockColor,
   formatWithCassiersShort,
 } from '../utils/helpers'
 
-const GRID_GAP = 10
-const GRID_PADDING = 12
-const NUM_COLUMNS = 2
+const GRID_GAP = 12
+const GRID_PADDING = 16
 const BREAKPOINT = 768
 
 export default function InventoryScreen({ navigation }: any) {
@@ -42,6 +44,18 @@ export default function InventoryScreen({ navigation }: any) {
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
 
   const isDesktop = Platform.OS === 'web' && windowWidth >= BREAKPOINT
+
+  // Calculate responsive columns: mobile 2, tablet 3, desktop 4+
+  const getNumColumns = () => {
+    if (!isDesktop) return 2
+    const availableWidth = selectedDrinkId ? windowWidth / 2 : windowWidth
+    if (availableWidth >= 1400) return 5
+    if (availableWidth >= 1100) return 4
+    if (availableWidth >= 900) return 3
+    return 2
+  }
+
+  const numColumns = getNumColumns()
 
   const categories: Array<Category | 'Tout'> = [
     'Tout', 'Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre',
@@ -203,7 +217,8 @@ export default function InventoryScreen({ navigation }: any) {
       <FlatList
         data={filtered}
         keyExtractor={d => d.id}
-        numColumns={NUM_COLUMNS}
+        numColumns={numColumns}
+        key={`grid-${numColumns}`}
         renderItem={renderItem}
         columnWrapperStyle={styles.gridRow}
         style={{ flex: 1 }}
@@ -227,15 +242,16 @@ export default function InventoryScreen({ navigation }: any) {
 
   if (isDesktop) {
     return (
-      <View style={styles.desktopContainer}>
-        <View style={styles.desktopLeft}>
+      <FadeIn style={styles.desktopContainer}>
+        <View style={[styles.desktopLeft, !selectedDrinkId && styles.desktopLeftFull]}>
           {drinkListContent}
         </View>
         {selectedDrinkId && (
-          <View style={styles.desktopRight}>
+          <SlideIn style={styles.desktopRight} duration={250}>
             <View style={styles.editHeader}>
+              <Text style={styles.editHeaderTitle}>Modifier le stock</Text>
               <TouchableOpacity onPress={() => setSelectedDrinkId(null)} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={COLORS.slate} />
+                <Ionicons name="close" size={20} color={COLORS.slate} />
               </TouchableOpacity>
             </View>
             <EditDrinkScreen
@@ -248,16 +264,16 @@ export default function InventoryScreen({ navigation }: any) {
                 }
               }}
             />
-          </View>
+          </SlideIn>
         )}
-      </View>
+      </FadeIn>
     )
   }
 
   return (
-    <View style={styles.container}>
+    <FadeIn style={styles.container}>
       {drinkListContent}
-    </View>
+    </FadeIn>
   )
 }
 
@@ -270,27 +286,60 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
   },
   desktopLeft: {
-    width: '45%',
+    width: '50%',
     backgroundColor: COLORS.surface,
-    borderRightWidth: 1,
-    borderRightColor: COLORS.border,
+    transition: Platform.OS === 'web' ? 'width 0.3s ease' : undefined,
+  },
+  desktopLeftFull: {
+    width: '100%',
   },
   desktopRight: {
-    flex: 1,
+    width: '50%',
     backgroundColor: COLORS.white,
+    borderLeftWidth: 1,
+    borderLeftColor: COLORS.border,
+    ...Platform.select({
+      web: {
+        boxShadow: '-4px 0 12px rgba(0, 0, 0, 0.04)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: -2, height: 0 },
+        shadowOpacity: 0.04,
+        shadowRadius: 12,
+        elevation: 3,
+      },
+    }),
   },
   editHeader: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
-    padding: 12,
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    paddingBottom: 16,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     backgroundColor: COLORS.white,
   },
+  editHeaderTitle: {
+    fontSize: 18,
+    fontFamily: FONT.bold,
+    color: COLORS.slateDark,
+    letterSpacing: -0.3,
+  },
   closeButton: {
-    padding: 8,
-    borderRadius: 8,
-    backgroundColor: COLORS.slateLight,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      },
+    }),
   },
   gridCardSelected: {
     borderWidth: 2,
@@ -316,8 +365,8 @@ const styles = StyleSheet.create({
     borderRightWidth: 1,
     borderColor: COLORS.border,
   },
-  summaryValue: { fontSize: 18, fontWeight: '800', color: COLORS.slateDark, fontVariant: ['tabular-nums'], letterSpacing: -0.3 },
-  summaryLabel: { fontSize: 11, color: COLORS.slate, fontWeight: '600', marginTop: 3 },
+  summaryValue: { fontSize: 18, fontFamily: FONT.extrabold, color: COLORS.slateDark, fontVariant: ['tabular-nums'], letterSpacing: -0.3 },
+  summaryLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.slate, marginTop: 3 },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -335,7 +384,7 @@ const styles = StyleSheet.create({
     elevation: 2,
     gap: 8,
   },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: 15, color: COLORS.slateDark },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 15, fontFamily: FONT.regular, color: COLORS.slateDark },
   categoryScroll: { maxHeight: 44, marginBottom: 12 },
   categoryScrollContent: { gap: 6, paddingBottom: 4, paddingHorizontal: GRID_PADDING },
   categoryTab: {
@@ -356,7 +405,7 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  categoryTabText: { fontSize: 12, fontWeight: '600', color: COLORS.slate },
+  categoryTabText: { fontSize: 12, fontFamily: FONT.semibold, color: COLORS.slate },
   categoryTabTextActive: { color: COLORS.white },
   gridRow: { gap: GRID_GAP, marginBottom: GRID_GAP },
   gridCard: {
@@ -371,16 +420,24 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 3,
+    borderWidth: 1,
+    borderColor: 'transparent',
+    ...Platform.select({
+      web: {
+        transition: 'all 0.2s ease',
+        cursor: 'pointer',
+      },
+    }),
   },
   gridBody: { padding: 12 },
   gridTop: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
-  gridCategory: { fontSize: 10, color: COLORS.slate, fontWeight: '600', textTransform: 'uppercase' },
-  gridName: { fontSize: 13, fontWeight: '600', color: COLORS.slateDark, marginBottom: 6, lineHeight: 17 },
-  gridStock: { fontSize: 16, fontWeight: '700', color: COLORS.primary, marginBottom: 6 },
-  gridAlert: { fontSize: 10, color: COLORS.rose, fontWeight: '600', marginTop: 2 },
+  gridCategory: { fontSize: 10, fontFamily: FONT.semibold, color: COLORS.slate, textTransform: 'uppercase' },
+  gridName: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.slateDark, marginBottom: 6, lineHeight: 17 },
+  gridStock: { fontSize: 16, fontFamily: FONT.bold, color: COLORS.primary, marginBottom: 6, fontVariant: ['tabular-nums'] },
+  gridAlert: { fontSize: 10, fontFamily: FONT.semibold, color: COLORS.rose, marginTop: 2 },
   emptyState: { alignItems: 'center', paddingVertical: 40, width: '100%' },
-  emptyText: { fontSize: 15, color: COLORS.slate },
+  emptyText: { fontSize: 15, fontFamily: FONT.regular, color: COLORS.slate },
   fab: {
     position: 'absolute',
     right: 16,
