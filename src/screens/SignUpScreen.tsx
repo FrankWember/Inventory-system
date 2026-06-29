@@ -9,6 +9,7 @@ import {
   ScrollView,
   ActivityIndicator,
   Alert,
+  ImageBackground,
 } from 'react-native'
 import { Input } from '../components/Input'
 import { PhoneInput } from '../components/PhoneInput'
@@ -93,15 +94,21 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <ImageBackground
+      source={require('../assets/images/auth-background.jpg')}
+      style={styles.backgroundImage}
+      resizeMode="cover"
     >
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
+      <View style={styles.overlay} />
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <View style={styles.formContainer}>
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+        >
+          <View style={styles.formContainer}>
           <View style={styles.header}>
             <View style={styles.iconContainer}>
               <Ionicons name="beer" size={48} color={COLORS.primary} />
@@ -239,13 +246,22 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
+    </ImageBackground>
   )
 }
 
 const styles = StyleSheet.create({
+  backgroundImage: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+  },
   container: {
     flex: 1,
-    backgroundColor: Platform.OS === 'web' ? COLORS.surface : COLORS.white,
   },
   scrollContent: {
     flexGrow: 1,
@@ -258,18 +274,17 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 440,
     alignSelf: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.95)',
+    borderRadius: 20,
+    padding: 32,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.3,
+    shadowRadius: 20,
+    elevation: 10,
     ...Platform.select({
       web: {
-        backgroundColor: COLORS.white,
-        borderRadius: 16,
-        padding: 32,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      default: {
-        paddingHorizontal: 0,
+        backdropFilter: 'blur(10px)',
       },
     }),
   },
