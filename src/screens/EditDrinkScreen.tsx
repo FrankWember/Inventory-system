@@ -9,16 +9,28 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native'
 import { supabase } from '../lib/supabase'
 import { Drink } from '../types'
 import { Card } from '../components/Card'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
+import { ScreenHeader } from '../components/ScreenHeader'
 import { COLORS, fmt, fmtNum } from '../utils/helpers'
 
+const BREAKPOINT = 768
+
 export default function EditDrinkScreen({ route, navigation }: any) {
-  const { drinkId } = route.params
+  const { drinkId, hideHeader } = route.params
+  const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setWindowWidth(window.width)
+    })
+    return () => subscription?.remove()
+  }, [])
   const [drink, setDrink] = useState<Drink | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -134,11 +146,21 @@ export default function EditDrinkScreen({ route, navigation }: any) {
     setDrink({ ...drink, [field]: units })
   }
 
+  // Show header with back button unless explicitly hidden (for desktop side panel)
+  const showHeader = !hideHeader
+
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      {showHeader && (
+        <ScreenHeader
+          title="Modifier"
+          subtitle={drink?.name}
+          onBack={() => navigation.goBack()}
+        />
+      )}
       <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
         <Card>
           <Text style={styles.drinkName}>{drink.name}</Text>

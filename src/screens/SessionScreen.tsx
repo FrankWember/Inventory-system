@@ -80,6 +80,7 @@ export default function SessionScreen({ navigation }: any) {
   const [selectedDate, setSelectedDate] = useState<string>(today())
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [allSessions, setAllSessions] = useState<Session[]>([])
+  const [selectedDateSession, setSelectedDateSession] = useState<{ closed: Session | null; open: Session | null }>({ closed: null, open: null })
 
   const categories: Array<Category | 'Tout'> = ['Tout', 'Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre']
   const todayStr = today()
@@ -139,6 +140,33 @@ export default function SessionScreen({ navigation }: any) {
     return data ?? []
   }
 
+  const loadDataForDate = async (date: string) => {
+    try {
+      const expenses = await loadExpensesForDate(date)
+      setTodayExpenses(expenses)
+
+      const { data: dateSessions, error: sessError } = await supabase
+        .from('sessions')
+        .select('*, session_lines (*)')
+        .eq('date', date)
+        .order('created_at', { ascending: false })
+      if (sessError) throw sessError
+
+      const closed = dateSessions?.find(s => s.closed) ?? null
+      const open = dateSessions?.find(s => !s.closed) ?? null
+
+      if (date === todayStr) {
+        setClosedToday(closed)
+        setOpenSession(open)
+      }
+
+      return { closed, open }
+    } catch (error) {
+      console.error('Error loading session for date:', error)
+      return { closed: null, open: null }
+    }
+  }
+
   const loadData = useCallback(async () => {
     try {
       const { data: drinksData, error: drinksError } = await supabase
@@ -149,19 +177,7 @@ export default function SessionScreen({ navigation }: any) {
       if (drinksError) throw drinksError
       setDrinks(drinksData || [])
 
-      const expenses = await loadExpensesForDate(todayStr)
-      setTodayExpenses(expenses)
-
-      const { data: todaySessions, error: sessError } = await supabase
-        .from('sessions')
-        .select('*, session_lines (*)')
-        .eq('date', todayStr)
-        .order('created_at', { ascending: false })
-      if (sessError) throw sessError
-
-      const closed = todaySessions?.find(s => s.closed) ?? null
-      const open = todaySessions?.find(s => !s.closed) ?? null
-
+      const { closed, open } = await loadDataForDate(todayStr)
       setClosedToday(closed)
       setOpenSession(open)
 
@@ -226,6 +242,17 @@ export default function SessionScreen({ navigation }: any) {
     return () => subscription?.remove()
   }, [])
 
+  // Load session data when selected date changes
+  useEffect(() => {
+    const loadSelectedDateSession = async () => {
+      const result = await loadDataForDate(selectedDate)
+      setSelectedDateSession(result)
+    }
+    if (selectedDate && step === 'done') {
+      loadSelectedDateSession()
+    }
+  }, [selectedDate, step])
+
   const getExpectedStock = (drinkId: string) => {
     const line = lineStates[drinkId]
     if (line) return line.openingStock + line.purchased
@@ -254,6 +281,18 @@ export default function SessionScreen({ navigation }: any) {
       setSelectedSessionId(session.id)
     } else {
       navigation.navigate('SessionDetail', { sessionId: session.id })
+    }
+  }
+
+  const startNewSession = async (date: string) => {
+    setSelectedDate(date)
+    setStep('purchases')
+    setPurchases({})
+    setClosingCounts({})
+    setLineStates({})
+    // If starting for a different date, we should load that date's data
+    if (date !== todayStr) {
+      await loadDataForDate(date)
     }
   }
 
@@ -568,36 +607,23 @@ export default function SessionScreen({ navigation }: any) {
         <StepIndicator steps={STEPS} current={step} onStepPress={openSession ? handleStepPress : undefined} />
       )}
 
-      {step === 'done' && closedToday && (
-        <View style={styles.doneBanner}>
-          <Ionicons name="checkmark-circle" size={24} color={COLORS.emerald} />
-          <View style={{ flex: 1 }}>
-            <Text style={styles.doneTitle}>Journée clôturée</Text>
-            <Text style={styles.doneSub} numberOfLines={2}>
-              {fmt(closedToday.total_revenue)} · Net {fmt(closedToday.total_profit)}
-            </Text>
-          </View>
-        </View>
-      )}
-
-      {step === 'done' && (
-        <View style={styles.doneActions}>
-          <TouchableOpacity style={styles.doneBtn} onPress={() => closedToday && openJournal(closedToday)}>
-            <Ionicons name="document-text-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.doneBtnText}>Voir le journal</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.doneBtn} onPress={reopenForEdit}>
-            <Ionicons name="create-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.doneBtnText}>Modifier</Text>
-          </TouchableOpacity>
-        </View>
-      )}
-
       {step === 'purchases' && (
         <Text style={styles.stepHint}>Enregistrez les livraisons reçues. Elles seront ajoutées au stock.</Text>
       )}
       {step === 'inventory' && (
-        <Text style={styles.stepHint}>Comptez le stock restant. Les ventes sont calculées automatiquement.</Text>
+        <View style={styles.inventoryHint}>
+          <Text style={styles.stepHint}>Comptez le stock restant en fin de journée. Les ventes seront calculées automatiquement.</Text>
+          <View style={styles.stockLegend}>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: COLORS.slate }]} />
+              <Text style={styles.legendText}>Stock initial</Text>
+            </View>
+            <View style={styles.legendItem}>
+              <View style={[styles.legendDot, { backgroundColor: COLORS.primary }]} />
+              <Text style={styles.legendText}>Vendus</Text>
+            </View>
+          </View>
+        </View>
       )}
       {step === 'summary' && (
         <Text style={styles.stepHint}>Vérifiez le récapitulatif et ajoutez les dépenses du jour.</Text>
@@ -624,49 +650,144 @@ export default function SessionScreen({ navigation }: any) {
       )}
 
       <ScrollView style={styles.content} contentContainerStyle={{ paddingBottom: 12 }} keyboardShouldPersistTaps="handled">
-        {step === 'done' && (
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>
-              {isDesktop ? `Sessions - ${dateLabel(selectedDate)}` : 'Historique'}
-            </Text>
-            {isDesktop ? (
-              sessionsForDate.length > 0 ? (
-                sessionsForDate.map(s => (
-                  <TouchableOpacity key={s.id} style={styles.historyRow} onPress={() => openJournal(s)}>
+        {step === 'done' && isDesktop && (
+          <>
+            {/* Session Status Card for Selected Date */}
+            <View style={styles.sessionStatusCard}>
+              <View style={styles.statusCardHeader}>
+                <Text style={styles.statusCardDate}>{dateLabelLong(selectedDate)}</Text>
+                {selectedDate === todayStr && (
+                  <View style={styles.todayBadge}>
+                    <Text style={styles.todayBadgeText}>Aujourd'hui</Text>
+                  </View>
+                )}
+              </View>
+
+              {selectedDateSession.closed ? (
+                // Closed session
+                <View style={styles.statusCardContent}>
+                  <View style={styles.statusRow}>
+                    <Ionicons name="checkmark-circle" size={24} color={COLORS.emerald} />
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.historyDate}>
-                        {s.closed ? 'Session clôturée' : 'Session ouverte'}
+                      <Text style={styles.statusTitle}>Session clôturée</Text>
+                      <Text style={styles.statusSubtitle}>
+                        Revenu: {fmt(selectedDateSession.closed.total_revenue)} •
+                        Net: {fmt(selectedDateSession.closed.total_profit)}
                       </Text>
                     </View>
-                    <Text style={styles.historyRevenue}>{fmt(s.total_revenue)}</Text>
-                    <Ionicons name="chevron-forward" size={16} color={COLORS.slate} />
+                  </View>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => openJournal(selectedDateSession.closed!)}
+                  >
+                    <Ionicons name="document-text" size={20} color={COLORS.white} />
+                    <Text style={styles.primaryButtonText}>Voir le journal</Text>
                   </TouchableOpacity>
-                ))
+                </View>
+              ) : selectedDateSession.open ? (
+                // Open session in progress
+                <View style={styles.statusCardContent}>
+                  <View style={styles.statusRow}>
+                    <Ionicons name="time" size={24} color={COLORS.amber} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.statusTitle}>Session en cours</Text>
+                      <Text style={styles.statusSubtitle}>Continuer où vous en étiez</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => {
+                      setOpenSession(selectedDateSession.open)
+                      setSelectedDate(selectedDate)
+                      setStep('inventory')
+                    }}
+                  >
+                    <Ionicons name="play" size={20} color={COLORS.white} />
+                    <Text style={styles.primaryButtonText}>Reprendre</Text>
+                  </TouchableOpacity>
+                </View>
               ) : (
-                <Text style={styles.emptyText}>Aucune session pour cette date</Text>
-              )
-            ) : (
-              pastSessions.slice(0, 10).map(s => (
+                // No session - show start button
+                <View style={styles.statusCardContent}>
+                  <View style={styles.statusRow}>
+                    <Ionicons name="add-circle-outline" size={24} color={COLORS.slate} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.statusTitle}>Aucune session</Text>
+                      <Text style={styles.statusSubtitle}>Démarrer une nouvelle session pour cette date</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => startNewSession(selectedDate)}
+                  >
+                    <Ionicons name="add" size={20} color={COLORS.white} />
+                    <Text style={styles.primaryButtonText}>Démarrer la session</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            {/* Recent Sessions List */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Sessions récentes</Text>
+              {pastSessions.slice(0, 10).map(s => (
                 <TouchableOpacity key={s.id} style={styles.historyRow} onPress={() => openJournal(s)}>
                   <Text style={styles.historyDate}>{dateLabel(s.date)}</Text>
                   <Text style={styles.historyRevenue}>{fmt(s.total_revenue)}</Text>
                   <Ionicons name="chevron-forward" size={16} color={COLORS.slate} />
                 </TouchableOpacity>
-              ))
+              ))}
+            </View>
+          </>
+        )}
+
+        {step === 'done' && !isDesktop && (
+          <>
+            {/* Start new session button for mobile */}
+            {!closedToday && !openSession && (
+              <TouchableOpacity
+                style={[styles.primaryButton, { marginHorizontal: 12, marginTop: 12 }]}
+                onPress={() => startNewSession(todayStr)}
+              >
+                <Ionicons name="add" size={20} color={COLORS.white} />
+                <Text style={styles.primaryButtonText}>Démarrer la session d'aujourd'hui</Text>
+              </TouchableOpacity>
             )}
-          </View>
+
+            {/* History list */}
+            <View style={styles.section}>
+              <Text style={styles.sectionTitle}>Historique</Text>
+              {pastSessions.slice(0, 10).map(s => (
+                <TouchableOpacity key={s.id} style={styles.historyRow} onPress={() => openJournal(s)}>
+                  <Text style={styles.historyDate}>{dateLabel(s.date)}</Text>
+                  <Text style={styles.historyRevenue}>{fmt(s.total_revenue)}</Text>
+                  <Ionicons name="chevron-forward" size={16} color={COLORS.slate} />
+                </TouchableOpacity>
+              ))}
+            </View>
+          </>
         )}
 
         {step === 'purchases' && filtered.map(drink => {
           const rackSize = getRackSize(drink.id)
           const displayValue = convertFromUnits(purchases[drink.id] ?? 0, drink.id)
+          const currentStock = drink.stock
           return (
             <View key={drink.id} style={styles.cardCompact}>
               <View style={styles.cardHeader}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardName} numberOfLines={1}>{drink.name}</Text>
-                  <Text style={styles.cardMeta}>Stock: {formatWithCassiers(drink.stock, drink.category)} • {rackSize}u/casier</Text>
+                  <Text style={styles.cardCategory}>{drink.category}</Text>
                 </View>
+                <View style={styles.stockBadge}>
+                  <Text style={styles.stockBadgeLabel}>Stock initial</Text>
+                  <Text style={styles.stockBadgeValue}>{formatWithCassiers(currentStock, drink.category)}</Text>
+                </View>
+              </View>
+              <View style={styles.purchaseInfo}>
+                <Text style={styles.purchaseInfoText}>
+                  {rackSize} unités/casier
+                </Text>
               </View>
               <View style={styles.stepperRow}>
                 <Text style={styles.stepperLabel}>Casiers reçus</Text>
@@ -678,6 +799,14 @@ export default function SessionScreen({ navigation }: any) {
                   />
                 </View>
               </View>
+              {displayValue > 0 && (
+                <View style={styles.purchaseSummary}>
+                  <Ionicons name="arrow-forward" size={14} color={COLORS.emerald} />
+                  <Text style={styles.purchaseSummaryText}>
+                    Stock après livraison: {formatWithCassiers(currentStock + convertToUnits(displayValue, drink.id), drink.category)}
+                  </Text>
+                </View>
+              )}
             </View>
           )
         })}
@@ -692,9 +821,11 @@ export default function SessionScreen({ navigation }: any) {
             columnWrapperStyle={numColumns > 1 ? { gap: GRID_GAP } : undefined}
             contentContainerStyle={{ gap: 6 }}
             renderItem={({ item: drink }) => {
-              const expected = getExpectedStock(drink.id)
+              const opening = lineStates[drink.id]?.openingStock ?? drink.stock - (purchases[drink.id] ?? 0)
+              const purchased = lineStates[drink.id]?.purchased ?? purchases[drink.id] ?? 0
+              const expected = opening + purchased
               const sold = getSold(drink.id)
-              const closing = closingCounts[drink.id] ?? drink.stock
+              const closing = closingCounts[drink.id] ?? expected
               return (
                 <View style={[
                   isDesktop ? styles.cardDesktop : styles.cardUltraCompact,
@@ -705,8 +836,9 @@ export default function SessionScreen({ navigation }: any) {
                     <View style={styles.drinkInfo}>
                       <Text style={isDesktop ? styles.drinkNameDesktop : styles.drinkNameCompact} numberOfLines={1}>{drink.name}</Text>
                       <Text style={isDesktop ? styles.drinkMetaDesktop : styles.drinkMetaCompact}>
-                        {formatWithCassiers(expected, drink.category)}
-                        {sold > 0 && <Text style={styles.soldCompact}> • {formatWithCassiers(sold, drink.category)}</Text>}
+                        Début: {formatWithCassiers(opening, drink.category)}
+                        {purchased > 0 && <Text> • Reçu: {formatWithCassiers(purchased, drink.category)}</Text>}
+                        {sold > 0 && <Text style={styles.soldCompact}> • Vendus: {formatWithCassiers(sold, drink.category)}</Text>}
                       </Text>
                     </View>
                     <View style={styles.stepperInline}>
@@ -811,13 +943,32 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.surface },
   historyBtn: { padding: 4 },
-  stepHint: { fontSize: 12, color: COLORS.slate, paddingHorizontal: 16, paddingVertical: 6, backgroundColor: COLORS.primaryLight, lineHeight: 16 },
-  doneBanner: { flexDirection: 'row', alignItems: 'center', gap: 12, margin: 12, marginBottom: 0, padding: 14, backgroundColor: COLORS.emeraldLight, borderRadius: 12, borderWidth: 1, borderColor: COLORS.emerald },
-  doneTitle: { fontSize: 15, fontWeight: '700', color: COLORS.slateDark },
-  doneSub: { fontSize: 13, color: COLORS.slate, marginTop: 2 },
-  doneActions: { flexDirection: 'row', gap: 10, margin: 12 },
-  doneBtn: { flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: COLORS.white, paddingVertical: 12, borderRadius: 10, borderWidth: 1, borderColor: COLORS.border },
-  doneBtnText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
+  stepHint: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.slate, paddingHorizontal: 16, paddingVertical: 6, backgroundColor: COLORS.primaryLight, lineHeight: 16 },
+  inventoryHint: {
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  stockLegend: {
+    flexDirection: 'row',
+    gap: 16,
+    marginTop: 8,
+  },
+  legendItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  legendDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  legendText: {
+    fontSize: 11,
+    fontFamily: FONT.medium,
+    color: COLORS.slateDark,
+  },
   toolbar: { paddingHorizontal: 12, paddingVertical: 8 },
   searchBox: {
     flexDirection: 'row',
@@ -892,14 +1043,71 @@ const styles = StyleSheet.create({
   },
   cardCompact: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 12,
-    marginBottom: 8,
+    borderRadius: 14,
+    padding: 16,
+    marginHorizontal: 12,
+    marginBottom: 10,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.04,
-    shadowRadius: 3,
-    elevation: 1,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+  },
+  cardHeader: { flexDirection: 'row', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 12 },
+  cardName: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.slateDark, marginBottom: 2 },
+  cardCategory: { fontSize: 11, fontFamily: FONT.medium, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.5 },
+  stockBadge: {
+    backgroundColor: COLORS.primaryLight,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    alignItems: 'center',
+    minWidth: 90,
+  },
+  stockBadgeLabel: {
+    fontSize: 10,
+    fontFamily: FONT.medium,
+    color: COLORS.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: 2,
+  },
+  stockBadgeValue: {
+    fontSize: 16,
+    fontFamily: FONT.bold,
+    color: COLORS.primary,
+    fontVariant: ['tabular-nums'],
+  },
+  purchaseInfo: {
+    backgroundColor: COLORS.slateLight,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    marginBottom: 12,
+    alignSelf: 'flex-start',
+  },
+  purchaseInfoText: {
+    fontSize: 11,
+    fontFamily: FONT.medium,
+    color: COLORS.slate,
+  },
+  purchaseSummary: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  purchaseSummaryText: {
+    fontSize: 13,
+    fontFamily: FONT.semibold,
+    color: COLORS.emerald,
   },
   cardUltraCompact: {
     backgroundColor: COLORS.white,
@@ -998,9 +1206,6 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   cardTop: { marginBottom: 8, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  cardHeader: { marginBottom: 6, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
-  cardName: { fontSize: 14, fontWeight: '600', color: COLORS.slateDark },
-  cardMeta: { fontSize: 11, color: COLORS.slate, marginTop: 2 },
   stepperRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   stepperLabel: { fontSize: 12, fontWeight: '500', color: COLORS.slate, minWidth: 100 },
   stepperWrapper: { flex: 1 },
@@ -1141,5 +1346,103 @@ const styles = StyleSheet.create({
         elevation: 2,
       },
     }),
+  },
+  sessionStatusCard: {
+    backgroundColor: COLORS.white,
+    marginHorizontal: 12,
+    marginTop: 12,
+    marginBottom: 16,
+    borderRadius: 16,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    ...Platform.select({
+      web: {
+        boxShadow: '0 2px 12px rgba(0, 0, 0, 0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 4,
+      },
+    }),
+  },
+  statusCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  statusCardDate: {
+    fontSize: 18,
+    fontFamily: FONT.bold,
+    color: COLORS.slateDark,
+    letterSpacing: -0.3,
+  },
+  todayBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+  },
+  todayBadgeText: {
+    fontSize: 11,
+    fontFamily: FONT.semibold,
+    color: COLORS.primary,
+    textTransform: 'uppercase',
+  },
+  statusCardContent: {
+    gap: 16,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  statusTitle: {
+    fontSize: 16,
+    fontFamily: FONT.bold,
+    color: COLORS.slateDark,
+  },
+  statusSubtitle: {
+    fontSize: 13,
+    fontFamily: FONT.regular,
+    color: COLORS.slate,
+    marginTop: 2,
+  },
+  primaryButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.primary,
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        boxShadow: '0 4px 12px rgba(24, 119, 242, 0.25)',
+      },
+      default: {
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.25,
+        shadowRadius: 12,
+        elevation: 4,
+      },
+    }),
+  },
+  primaryButtonText: {
+    fontSize: 15,
+    fontFamily: FONT.semibold,
+    color: COLORS.white,
   },
 })

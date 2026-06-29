@@ -25,6 +25,7 @@ applyGlobalFont()
 
 if (Platform.OS === 'web') {
   require('./src/styles/web.css')
+  require('./src/styles/print.css')
 }
 
 import DashboardScreen from './src/screens/DashboardScreen'
@@ -51,7 +52,7 @@ export type RootStackParamList = {
   ForgotPassword: undefined
   MainTabs: undefined
   AddDrink: undefined
-  EditDrink: { drinkId: string }
+  EditDrink: { drinkId: string; hideHeader?: boolean }
   SessionDetail: { sessionId: string }
   ChartDetail: {
     title: string
@@ -238,10 +239,10 @@ function RootNavigator() {
       ) : (
         <>
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-          <Stack.Screen name="AddDrink" component={AddDrinkScreen} options={{ title: 'Ajouter' }} />
-          <Stack.Screen name="EditDrink" component={EditDrinkScreen} options={{ title: 'Modifier' }} />
-          <Stack.Screen name="SessionDetail" component={SessionDetailScreen} options={{ title: 'Journal de caisse' }} />
-          <Stack.Screen name="ChartDetail" component={ChartDetailScreen} options={{ title: 'Détails' }} />
+          <Stack.Screen name="AddDrink" component={AddDrinkScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="EditDrink" component={EditDrinkScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="SessionDetail" component={SessionDetailScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="ChartDetail" component={ChartDetailScreen} options={{ headerShown: false }} />
         </>
       )}
     </Stack.Navigator>

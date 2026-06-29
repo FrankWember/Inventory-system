@@ -255,7 +255,7 @@ export default function InventoryScreen({ navigation }: any) {
               </TouchableOpacity>
             </View>
             <EditDrinkScreen
-              route={{ params: { drinkId: selectedDrinkId } }}
+              route={{ params: { drinkId: selectedDrinkId, hideHeader: true } }}
               navigation={{
                 ...navigation,
                 goBack: () => {

@@ -14,6 +14,7 @@ import { Category } from '../types'
 import { Card } from '../components/Card'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
+import { ScreenHeader } from '../components/ScreenHeader'
 import { COLORS, fmt, fmtNum, getCategoryColor } from '../utils/helpers'
 
 export default function AddDrinkScreen({ navigation }: any) {
@@ -87,6 +88,10 @@ export default function AddDrinkScreen({ navigation }: any) {
       style={{ flex: 1 }}
       behavior={Platform.OS === 'ios' ? 'padding' : undefined}
     >
+      <ScreenHeader
+        title="Ajouter une boisson"
+        onBack={() => navigation.goBack()}
+      />
       <ScrollView style={styles.container}>
         <Card>
           <Text style={styles.sectionTitle}>Identité</Text>

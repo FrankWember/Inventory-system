@@ -6,6 +6,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   ActivityIndicator,
+  Platform,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -13,7 +14,8 @@ import { RootStackParamList } from '../../App'
 import { supabase } from '../lib/supabase'
 import { Session, Expense } from '../types'
 import { SessionExpensesPanel } from '../components/SessionExpensesPanel'
-import { COLORS, fmt, fmtNum, dateLabelLong, formatWithCassiers } from '../utils/helpers'
+import { ScreenHeader } from '../components/ScreenHeader'
+import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers } from '../utils/helpers'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SessionDetail'>
 
@@ -23,6 +25,16 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [drinksCategoryMap, setDrinksCategoryMap] = useState<Record<string, string>>({})
+
+  const handlePrint = () => {
+    if (Platform.OS === 'web') {
+      // @ts-ignore - window.print() is available in web environment
+      const w = typeof window !== 'undefined' ? window : null
+      if (w && w.print) {
+        w.print()
+      }
+    }
+  }
 
   useEffect(() => {
     loadData()
@@ -94,16 +106,46 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.body}>
-        <View style={styles.dateHeader}>
-          <Text style={styles.dateText}>{dateLabelLong(session.date)}</Text>
+      <ScreenHeader
+        title="Journal de caisse"
+        subtitle={dateLabelLong(session.date)}
+        onBack={() => navigation.goBack()}
+        right={
+          Platform.OS === 'web' && (
+            <TouchableOpacity onPress={handlePrint} style={styles.printButton}>
+              <Ionicons name="print-outline" size={20} color={COLORS.primary} />
+              <Text style={styles.printText}>Imprimer</Text>
+            </TouchableOpacity>
+          )
+        }
+      />
+      <ScrollView
+        contentContainerStyle={styles.body}
+        // @ts-ignore - className is valid for web
+        className="session-detail-print"
+      >
+        {/* Print Header - Only visible when printing */}
+        <View
+          style={styles.printHeader}
+          // @ts-ignore - className is valid for web
+          className="print-only"
+        >
+          <View style={styles.printHeaderContent}>
+            <Text style={styles.printAppName}>BarTrack</Text>
+            <Text style={styles.printAppSubtitle}>Gestion d'inventaire</Text>
+            <Text style={styles.printDate}>{dateLabelLong(session.date)}</Text>
+          </View>
         </View>
 
-        <View style={[styles.statusBadge, session.closed ? styles.statusClosed : styles.statusOpen]}>
+        <View
+          style={styles.statusBadge}
+          // @ts-ignore - className is valid for web
+          className="no-print"
+        >
           <Ionicons
             name={session.closed ? 'checkmark-circle' : 'time'}
             size={16}
-            color={session.closed ? COLORS.primary : COLORS.primary}
+            color={COLORS.primary}
           />
           <Text style={styles.statusText}>
             {session.closed ? 'Journée clôturée' : 'Session en cours'}
@@ -277,14 +319,49 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: COLORS.surface,
   },
-  body: { padding: 16, paddingBottom: 40 },
-  dateHeader: {
-    marginBottom: 16,
+  printButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: COLORS.primaryLight,
   },
-  dateText: {
-    fontSize: 22,
-    fontWeight: '700',
+  printText: {
+    fontSize: 14,
+    fontFamily: FONT.semibold,
+    color: COLORS.primary,
+  },
+  body: { padding: 16, paddingBottom: 40 },
+  printHeader: {
+    display: 'none', // Hidden on screen, shown in print via CSS
+    alignItems: 'center',
+    paddingVertical: 24,
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.primary,
+    marginBottom: 24,
+  },
+  printHeaderContent: {
+    alignItems: 'center',
+  },
+  printAppName: {
+    fontSize: 28,
+    fontFamily: FONT.extrabold,
     color: COLORS.slateDark,
+    letterSpacing: -0.5,
+    marginBottom: 4,
+  },
+  printAppSubtitle: {
+    fontSize: 14,
+    fontFamily: FONT.semibold,
+    color: COLORS.slate,
+    marginBottom: 12,
+  },
+  printDate: {
+    fontSize: 18,
+    fontFamily: FONT.bold,
+    color: COLORS.primary,
     letterSpacing: -0.3,
   },
   statusBadge: {
@@ -293,27 +370,40 @@ const styles = StyleSheet.create({
     gap: 8,
     alignSelf: 'flex-start',
     paddingHorizontal: 12,
-    paddingVertical: 6,
+    paddingVertical: 8,
     borderRadius: 20,
-    marginBottom: 14,
+    marginBottom: 20,
+    backgroundColor: COLORS.primaryLight,
   },
-  statusClosed: { backgroundColor: COLORS.primaryLight },
-  statusOpen: { backgroundColor: COLORS.primaryLight },
-  statusText: { fontSize: 13, fontWeight: '600', color: COLORS.slateDark },
+  statusText: {
+    fontSize: 13,
+    fontFamily: FONT.semibold,
+    color: COLORS.slateDark
+  },
   plCard: {
     backgroundColor: COLORS.white,
     borderRadius: 14,
-    padding: 16,
+    padding: 18,
     borderWidth: 1,
     borderColor: COLORS.border,
-    marginBottom: 16,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  plTitle: { fontSize: 15, fontWeight: '700', color: COLORS.slateDark, marginBottom: 12 },
+  plTitle: {
+    fontSize: 16,
+    fontFamily: FONT.bold,
+    color: COLORS.slateDark,
+    marginBottom: 14
+  },
   jRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 7,
+    paddingVertical: 8,
   },
   jRowHighlight: {
     backgroundColor: COLORS.primaryLight + '50',
@@ -321,72 +411,190 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 8,
   },
-  jLabel: { fontSize: 14, color: COLORS.slate },
-  jMuted: { fontSize: 12, color: COLORS.slate },
-  jValue: { fontSize: 14, fontWeight: '600', color: COLORS.slateDark },
-  jBold: { fontSize: 16, fontWeight: '700' },
-  plDivider: { height: 1, backgroundColor: COLORS.border, marginVertical: 8 },
+  jLabel: {
+    fontSize: 14,
+    fontFamily: FONT.regular,
+    color: COLORS.slate
+  },
+  jMuted: {
+    fontSize: 12,
+    fontFamily: FONT.regular,
+    color: COLORS.slate
+  },
+  jValue: {
+    fontSize: 14,
+    fontFamily: FONT.semibold,
+    color: COLORS.slateDark
+  },
+  jBold: {
+    fontSize: 16,
+    fontFamily: FONT.bold
+  },
+  plDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 10
+  },
   section: {
     backgroundColor: COLORS.white,
     borderRadius: 14,
-    padding: 14,
+    padding: 16,
     borderWidth: 1,
     borderColor: COLORS.border,
-    marginBottom: 14,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
   },
   sectionHead: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 14,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: COLORS.slateDark },
+  sectionTitle: {
+    fontSize: 15,
+    fontFamily: FONT.bold,
+    color: COLORS.slateDark
+  },
   sectionCount: {
     fontSize: 12,
-    fontWeight: '700',
+    fontFamily: FONT.bold,
     color: COLORS.primary,
     backgroundColor: COLORS.primaryLight,
     paddingHorizontal: 8,
-    paddingVertical: 2,
+    paddingVertical: 3,
     borderRadius: 10,
   },
-  sectionEmpty: { fontSize: 13, color: COLORS.slate, fontStyle: 'italic' },
-  table: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, overflow: 'hidden' },
+  sectionEmpty: {
+    fontSize: 13,
+    fontFamily: FONT.regular,
+    color: COLORS.slate,
+    fontStyle: 'italic'
+  },
+  table: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    overflow: 'hidden'
+  },
   tableHeader: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  th: { fontSize: 11, fontWeight: '700', color: COLORS.slate, textTransform: 'uppercase' },
-  thRight: { width: 72, textAlign: 'right' },
+  th: {
+    fontSize: 11,
+    fontFamily: FONT.bold,
+    color: COLORS.slate,
+    textTransform: 'uppercase'
+  },
+  thRight: {
+    width: 72,
+    textAlign: 'right'
+  },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 10,
+    paddingVertical: 12,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     alignItems: 'center',
   },
-  td: { fontSize: 13, color: COLORS.slateDark, fontWeight: '500' },
-  tdRight: { width: 72, textAlign: 'right', fontWeight: '700' },
+  td: {
+    fontSize: 13,
+    fontFamily: FONT.medium,
+    color: COLORS.slateDark
+  },
+  tdRight: {
+    width: 72,
+    textAlign: 'right',
+    fontFamily: FONT.bold
+  },
   lineDetail: {
     fontSize: 11,
+    fontFamily: FONT.regular,
     color: COLORS.slate,
     paddingHorizontal: 12,
-    paddingBottom: 8,
+    paddingBottom: 10,
     backgroundColor: COLORS.surface,
   },
   movementRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     gap: 8,
   },
-  movementName: { flex: 1, fontSize: 13, fontWeight: '500', color: COLORS.slateDark },
-  movementFlow: { fontSize: 12, color: COLORS.slate },
+  movementName: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: FONT.medium,
+    color: COLORS.slateDark
+  },
+  movementFlow: {
+    fontSize: 12,
+    fontFamily: FONT.semibold,
+    color: COLORS.slate,
+    fontVariant: ['tabular-nums']
+  },
+  printButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        '@media print': {
+          display: 'none',
+        },
+      },
+    }),
+  },
+  printButtonText: {
+    fontSize: 14,
+    fontFamily: FONT.semibold,
+    color: COLORS.primary,
+  },
+  printHeader: {
+    display: 'none', // Hidden by default, shown only in print
+    ...Platform.select({
+      web: {
+        '@media print': {
+          display: 'flex',
+          marginBottom: 20,
+          paddingBottom: 16,
+          borderBottomWidth: 2,
+          borderBottomColor: COLORS.primary,
+        },
+      },
+    }),
+  },
+  printHeaderContent: {
+    alignItems: 'center',
+  },
+  printAppName: {
+    fontSize: 28,
+    fontFamily: FONT.bold,
+    color: COLORS.primary,
+    letterSpacing: -0.5,
+  },
+  printAppSubtitle: {
+    fontSize: 14,
+    fontFamily: FONT.regular,
+    color: COLORS.slate,
+    marginTop: 4,
+  },
 })

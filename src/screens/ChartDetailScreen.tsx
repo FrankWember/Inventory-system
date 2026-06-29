@@ -8,6 +8,7 @@ import {
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { RootStackParamList } from '../../App'
 import { SimpleBarChart, BarChartItem } from '../components/SimpleBarChart'
+import { ScreenHeader } from '../components/ScreenHeader'
 import { COLORS, fmt, fmtNum } from '../utils/helpers'
 
 export interface ChartDetailRow {
@@ -18,7 +19,7 @@ export interface ChartDetailRow {
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ChartDetail'>
 
-export default function ChartDetailScreen({ route }: Props) {
+export default function ChartDetailScreen({ route, navigation }: Props) {
   const { title, subtitle, chartData, rows, horizontal, formatValue, valueIsMoney } = route.params
 
   const format = (n: number) => (valueIsMoney ? fmt(n) : fmtNum(n))
@@ -27,11 +28,12 @@ export default function ChartDetailScreen({ route }: Props) {
 
   return (
     <View style={styles.container}>
+      <ScreenHeader
+        title={title}
+        subtitle={subtitle}
+        onBack={() => navigation.goBack()}
+      />
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
-        <View style={styles.header}>
-          <Text style={styles.title}>{title}</Text>
-          {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-        </View>
 
         <View style={styles.chartBox}>
           <SimpleBarChart
