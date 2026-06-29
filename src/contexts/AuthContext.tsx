@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
+import { getRedirectUrl } from '../utils/config'
 
 interface AuthError {
   message: string
@@ -163,10 +164,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // If phone is provided, use phone-based email
       const authEmail = phone ? `+237${phone}@phone.bartrack.app` : email
 
+      // Get the correct redirect URL based on environment
+      const redirectUrl = getRedirectUrl()
+
       const { error } = await supabase.auth.signUp({
         email: authEmail,
         password,
         options: {
+          emailRedirectTo: redirectUrl || undefined,
           data: {
             display_name: name,
             phone: phone ? `+237${phone}` : undefined,
@@ -189,7 +194,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const resetPassword = async (email: string) => {
     try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email)
+      // Get the correct redirect URL based on environment
+      const redirectUrl = getRedirectUrl()
+
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: redirectUrl || undefined,
+      })
       if (error) {
         return { error: parseAuthError(error) }
       }
