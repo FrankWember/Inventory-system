@@ -286,7 +286,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(74, 144, 226, 0.25)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
   },
   container: {
     flex: 1,
@@ -304,7 +304,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     backgroundColor: 'rgba(255, 255, 255, 0.75)',
     borderRadius: 20,
-    padding: 20,
+    padding: 18,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.2,
@@ -319,7 +319,7 @@ const styles = StyleSheet.create({
   },
   header: {
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 12,
   },
   iconContainer: {
     width: 50,
@@ -343,7 +343,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   form: {
-    marginBottom: 10,
+    marginBottom: 8,
   },
   authMethodToggle: {
     flexDirection: 'row',
@@ -384,9 +384,9 @@ const styles = StyleSheet.create({
   },
   eyeIcon: {
     position: 'absolute',
-    right: 12,
-    top: 38,
-    padding: 6,
+    right: 10,
+    top: 35,
+    padding: 5,
   },
   button: {
     marginTop: 6,

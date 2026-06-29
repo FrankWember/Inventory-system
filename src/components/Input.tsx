@@ -41,22 +41,22 @@ export function Input({
 
 const styles = StyleSheet.create({
   container: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   label: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: FONT.semibold,
     color: COLORS.slateDark,
-    marginBottom: 8,
+    marginBottom: 6,
     letterSpacing: -0.2,
   },
   input: {
-    height: 50,
+    height: 44,
     borderWidth: 1.5,
     borderColor: COLORS.border,
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    fontSize: 15,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    fontSize: 14,
     fontFamily: FONT.medium,
     color: COLORS.slateDark,
     backgroundColor: COLORS.white,
