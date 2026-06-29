@@ -13,11 +13,13 @@ import {
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ExpandableChartCard } from '../components/ExpandableChartCard'
 import { ChartDetailModal } from '../components/ChartDetailModal'
+import { CategoryShare } from '../components/CategoryShare'
+import { ScreenSkeleton } from '../components/Skeleton'
 import { supabase } from '../lib/supabase'
 import { Session, Drink } from '../types'
 import { Card, CardHeader, CardContent } from '../components/Card'
 import { Badge } from '../components/Badge'
-import { COLORS, fmt, fmtNum, dateLabel, dateLabelLong } from '../utils/helpers'
+import { COLORS, fmt, fmtNum, fmtShort, fmtShortBare, dateLabel, dateLabelLong, getCategoryColor } from '../utils/helpers'
 
 type ChartKey = 'revenue' | 'profit' | 'top5' | null
 
@@ -120,10 +122,10 @@ export default function TrendsScreen() {
       drinkPerformance
         .filter(d => d.revenue > 0)
         .slice(0, 5)
-        .map((d, i) => ({
+        .map(d => ({
           label: d.drink.name.length > 12 ? d.drink.name.slice(0, 11) + '…' : d.drink.name,
           value: d.revenue,
-          color: [COLORS.primary, COLORS.sky, COLORS.emerald, COLORS.amber, '#6B7280'][i],
+          color: COLORS.primary,
         })),
     [drinkPerformance]
   )
@@ -133,18 +135,25 @@ export default function TrendsScreen() {
       drinkPerformance
         .filter(d => d.revenue > 0)
         .slice(0, 10)
-        .map((d, i) => ({
-          label: d.drink.name,
-          value: d.revenue,
-          color: [COLORS.primary, COLORS.sky, COLORS.emerald, COLORS.amber, '#6B7280'][i % 5],
-        })),
+        .map(d => ({ label: d.drink.name, value: d.revenue, color: COLORS.primary })),
     [drinkPerformance]
   )
 
+  const categoryMix = useMemo(() => {
+    const byCat: Record<string, number> = {}
+    for (const { drink, revenue } of drinkPerformance) {
+      if (revenue > 0) byCat[drink.category] = (byCat[drink.category] ?? 0) + revenue
+    }
+    return Object.entries(byCat)
+      .map(([label, value]) => ({ label, value, color: getCategoryColor(label) }))
+      .sort((a, b) => b.value - a.value)
+  }, [drinkPerformance])
+
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={styles.wrapper}>
+        <ScreenHeader title="Stats" subtitle={`${period} derniers jours`} />
+        <ScreenSkeleton variant="list" />
       </View>
     )
   }
@@ -155,6 +164,7 @@ export default function TrendsScreen() {
     (sum, s) => sum + (s.session_lines?.reduce((ls, l) => ls + l.sold, 0) || 0),
     0
   )
+  const marginPct = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0
 
   const revenueRows = chartSessions.map(s => ({
     label: dateLabelLong(s.date),
@@ -200,19 +210,17 @@ export default function TrendsScreen() {
         <View style={styles.kpiRow}>
           <View style={styles.kpi}>
             <Text style={styles.kpiLabel}>Revenu</Text>
-            <Text style={styles.kpiValue} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.6}>
-              {fmt(totalRevenue)}
+            <Text style={styles.kpiValue} numberOfLines={1}>
+              {fmtShort(totalRevenue)}
             </Text>
           </View>
           <View style={styles.kpi}>
             <Text style={styles.kpiLabel}>Profit</Text>
             <Text
-              style={[styles.kpiValue, { color: COLORS.emerald }]}
+              style={[styles.kpiValue, { color: totalProfit >= 0 ? COLORS.emerald : COLORS.rose }]}
               numberOfLines={1}
-              adjustsFontSizeToFit
-              minimumFontScale={0.6}
             >
-              {fmt(totalProfit)}
+              {fmtShort(totalProfit)}
             </Text>
           </View>
           <View style={styles.kpi}>
@@ -223,26 +231,36 @@ export default function TrendsScreen() {
 
         <ExpandableChartCard
           title="Revenu par jour"
-          subtitle={`${chartSessions.length} journées`}
           data={revenueChartData}
-          height={isDesktop ? 200 : 150}
+          height={isDesktop ? 240 : 200}
+          formatValue={fmtShortBare}
           onExpand={isDesktop ? undefined : () => setExpandedChart('revenue')}
         />
 
         <ExpandableChartCard
           title="Profit par jour"
           data={profitChartData}
-          height={isDesktop ? 200 : 130}
+          height={isDesktop ? 240 : 200}
+          formatValue={fmtShortBare}
           onExpand={isDesktop ? undefined : () => setExpandedChart('profit')}
         />
 
         <ExpandableChartCard
           title="Top boissons"
-          subtitle="Par revenu"
           data={top5Chart}
           horizontal
+          formatValue={fmtShortBare}
           onExpand={isDesktop ? undefined : () => setExpandedChart('top5')}
         />
+
+        {categoryMix.length > 0 && (
+          <Card>
+            <CardHeader title="Par catégorie" />
+            <CardContent>
+              <CategoryShare data={categoryMix} />
+            </CardContent>
+          </Card>
+        )}
 
         <Card>
           <CardHeader title="Détail par boisson" />

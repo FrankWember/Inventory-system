@@ -1,57 +1,20 @@
 import { Category } from '../types'
 
-// Color Constants - Minimalist Professional Palette
-export const COLORS = {
-  // Primary - Modern Blue (professional, trustworthy)
-  primary: '#4A90E2',
-  primaryLight: '#E8F2FD',
-  primaryDark: '#3A78C2',
+// Design tokens live in src/styles/theme.ts — re-export here so every screen
+// that imports COLORS from '../utils/helpers' is themed from one source.
+export { COLORS, FONT, TYPE, SPACE, RADIUS, shadow, MAX_CONTENT } from '../styles/theme'
+import { COLORS } from '../styles/theme'
 
-  // Success - Green
-  emerald: '#059669',
-  emeraldLight: '#D1FAE5',
-
-  // Error/Danger - Red
-  rose: '#DC2626',
-  roseLight: '#FEE2E2',
-
-  // Warning - Orange
-  amber: '#EA580C',
-  amberLight: '#FFEDD5',
-  amberDark: '#9A3412',
-
-  // Info - Teal (replaces purple)
-  sky: '#0891B2',
-  skyLight: '#CFFAFE',
-
-  // Accent - Teal (replaces violet)
-  violet: '#0891B2',
-  violetLight: '#CFFAFE',
-
-  // Neutral/Gray
-  slate: '#64748B',
-  slateLight: '#F8FAFC',
-  slateDark: '#0F172A',
-  gray: '#6B7280',
-  grayLight: '#F3F4F6',
-
-  // Base
-  white: '#FFFFFF',
-  black: '#000000',
-  background: '#FFFFFF',
-  surface: '#F8FAFC',
-  border: '#E2E8F0',
-}
-
-// Category Colors - Updated for minimalist palette
+// Category colors — a single tonal indigo→slate ramp keeps charts minimal
+// and cohesive rather than rainbow.
 export const getCategoryColor = (cat: string): string => {
   const map: Record<string, string> = {
-    'Bière': '#EA580C',  // Amber/Orange
-    'Soda': '#0891B2',   // Teal
-    'Jus': '#059669',    // Emerald
-    'Eau': '#4A90E2',    // Modern Blue
-    'Vin': '#DC2626',    // Rose/Red
-    'Autre': '#64748B',  // Slate
+    'Bière': '#3730A3',
+    'Soda': '#4F46E5',
+    'Jus': '#6366F1',
+    'Eau': '#818CF8',
+    'Vin': '#A5B4FC',
+    'Autre': '#CBD5E1',
   }
   return map[cat] ?? COLORS.slate
 }
@@ -64,6 +27,29 @@ export const fmt = (n: number): string => {
 /** Full number with French locale — no abbreviation */
 export const fmtNum = (n: number): string => {
   return Math.round(n).toLocaleString('fr-FR')
+}
+
+/**
+ * Compact money for narrow KPI/stat tiles where the full number won't fit
+ * (react-native-web ignores adjustsFontSizeToFit). Abbreviates ≥10k to "k"
+ * and ≥1M to "M"; smaller amounts stay exact. Full values remain in heroes,
+ * ledgers and tables.
+ */
+export const fmtShort = (n: number): string => {
+  const a = Math.abs(n)
+  const sign = n < 0 ? '-' : ''
+  if (a >= 1_000_000) return `${sign}${(a / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} M FCFA`
+  if (a >= 10_000) return `${sign}${Math.round(a / 1000).toLocaleString('fr-FR')} k FCFA`
+  return fmt(n)
+}
+
+/** Compact number with no currency — for chart bar labels (currency implied). */
+export const fmtShortBare = (n: number): string => {
+  const a = Math.abs(n)
+  const sign = n < 0 ? '-' : ''
+  if (a >= 1_000_000) return `${sign}${(a / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} M`
+  if (a >= 1_000) return `${sign}${Math.round(a / 1000).toLocaleString('fr-FR')} k`
+  return `${sign}${Math.round(a)}`
 }
 
 /** @deprecated Use fmt() or fmtNum() for exact amounts */

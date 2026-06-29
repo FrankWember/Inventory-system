@@ -14,7 +14,8 @@ import { Session, Expense } from '../types'
 import { Card } from '../components/Card'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { SessionJournal } from '../components/SessionJournal'
-import { COLORS, fmt, fmtNum, dateLabel } from '../utils/helpers'
+import { ScreenSkeleton } from '../components/Skeleton'
+import { COLORS, fmt, fmtNum, fmtShort, dateLabel } from '../utils/helpers'
 
 type FeedItem =
   | { kind: 'session'; id: string; date: string; sortKey: string; session: Session; dayExpenses: number }
@@ -117,8 +118,9 @@ export default function FinancesScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={styles.wrapper}>
+        <ScreenHeader title="Finances" />
+        <ScreenSkeleton variant="list" />
       </View>
     )
   }
@@ -140,9 +142,9 @@ export default function FinancesScreen() {
         }
       >
         <View style={styles.hero}>
-          <Text style={styles.heroLabel}>Profit net</Text>
+          <Text style={styles.heroLabel}>Profit net cumulé</Text>
           <Text
-            style={[styles.heroValue, { color: netProfit >= 0 ? COLORS.emerald : COLORS.rose }]}
+            style={[styles.heroValue, { color: netProfit >= 0 ? '#86EFAC' : '#FCA5A5' }]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.65}
@@ -167,22 +169,22 @@ export default function FinancesScreen() {
           <View style={styles.kpi}>
             <Ionicons name="trending-up" size={16} color={COLORS.emerald} />
             <Text style={styles.kpiLabel}>Revenu</Text>
-            <Text style={[styles.kpiValue, { color: COLORS.emerald }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-              {fmt(totalRevenue)}
+            <Text style={[styles.kpiValue, { color: COLORS.emerald }]} numberOfLines={1}>
+              {fmtShort(totalRevenue)}
             </Text>
           </View>
           <View style={styles.kpi}>
             <Ionicons name="cart-outline" size={16} color={COLORS.amber} />
             <Text style={styles.kpiLabel}>Achats</Text>
-            <Text style={[styles.kpiValue, { color: COLORS.amber }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-              {fmt(totalSessionCost)}
+            <Text style={[styles.kpiValue, { color: COLORS.amber }]} numberOfLines={1}>
+              {fmtShort(totalSessionCost)}
             </Text>
           </View>
           <View style={styles.kpi}>
             <Ionicons name="receipt-outline" size={16} color={COLORS.rose} />
             <Text style={styles.kpiLabel}>Charges</Text>
-            <Text style={[styles.kpiValue, { color: COLORS.rose }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.7}>
-              {fmt(totalExpenses)}
+            <Text style={[styles.kpiValue, { color: COLORS.rose }]} numberOfLines={1}>
+              {fmtShort(totalExpenses)}
             </Text>
           </View>
         </View>
@@ -311,26 +313,33 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
   },
   hero: {
-    backgroundColor: COLORS.white,
-    borderRadius: 14,
-    padding: 20,
+    backgroundColor: COLORS.ink,
+    borderRadius: 18,
+    padding: 22,
     marginBottom: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderTopWidth: 3,
+    borderTopColor: COLORS.primary,
     alignItems: 'center',
   },
-  heroLabel: { fontSize: 13, color: COLORS.slate, fontWeight: '500', marginBottom: 4 },
-  heroValue: { fontSize: 34, fontWeight: '700', marginBottom: 14 },
+  heroLabel: {
+    fontSize: 11,
+    color: COLORS.primaryLight,
+    fontWeight: '700',
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+    marginBottom: 6,
+  },
+  heroValue: { fontSize: 34, fontWeight: '800', marginBottom: 14, fontVariant: ['tabular-nums'], letterSpacing: -0.5 },
   marginTrack: {
     width: '100%',
-    height: 5,
-    backgroundColor: COLORS.slateLight,
+    height: 6,
+    backgroundColor: 'rgba(255,255,255,0.12)',
     borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 6,
   },
   marginFill: { height: '100%', borderRadius: 3 },
-  marginHint: { fontSize: 12, color: COLORS.slate },
+  marginHint: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
   kpiRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   kpi: {
     flex: 1,

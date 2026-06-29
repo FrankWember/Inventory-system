@@ -15,7 +15,6 @@ import { Card } from '../components/Card'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
 import { COLORS, fmt, getCategoryColor } from '../utils/helpers'
-import { Picker } from '@react-native-picker/picker'
 
 export default function AddDrinkScreen({ navigation }: any) {
   const [saving, setSaving] = useState(false)
@@ -27,6 +26,7 @@ export default function AddDrinkScreen({ navigation }: any) {
     cost: '',
     stock: '',
     minStock: '',
+    rackSize: '12',
     supplier: '',
     notes: '',
   })
@@ -38,7 +38,8 @@ export default function AddDrinkScreen({ navigation }: any) {
   const getUnitsValue = (displayValue: string): number => {
     const numValue = parseInt(displayValue) || 0
     if (isBeer && unitMode === 'cassiers') {
-      return numValue * 12
+      const rackSize = parseInt(form.rackSize) || 12
+      return numValue * rackSize
     }
     return numValue
   }
@@ -58,7 +59,7 @@ export default function AddDrinkScreen({ navigation }: any) {
         cost: parseInt(form.cost) || 0,
         stock: getUnitsValue(form.stock),
         min_stock: getUnitsValue(form.minStock),
-        rack_size: 12, // Default rack size (can be edited later)
+        rack_size: parseInt(form.rackSize) || 12,
         supplier: form.supplier,
         notes: form.notes,
         active: true,
@@ -98,16 +99,24 @@ export default function AddDrinkScreen({ navigation }: any) {
           />
 
           <Text style={styles.label}>Catégorie *</Text>
-          <View style={styles.pickerContainer}>
-            <Picker
-              selectedValue={form.category}
-              onValueChange={(value) => setForm({ ...form, category: value as Category })}
-              style={styles.picker}
-            >
-              {categories.map(cat => (
-                <Picker.Item key={cat} label={cat} value={cat} />
-              ))}
-            </Picker>
+          <View style={styles.categoryGrid}>
+            {categories.map(cat => (
+              <TouchableOpacity
+                key={cat}
+                onPress={() => setForm({ ...form, category: cat })}
+                style={[
+                  styles.categoryButton,
+                  form.category === cat && styles.categoryButtonActive
+                ]}
+              >
+                <Text style={[
+                  styles.categoryButtonText,
+                  form.category === cat && styles.categoryButtonTextActive
+                ]}>
+                  {cat}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </View>
         </Card>
 
@@ -138,6 +147,23 @@ export default function AddDrinkScreen({ navigation }: any) {
         <Card>
           <Text style={styles.sectionTitle}>Stock</Text>
 
+          <View style={styles.rackSizeCard}>
+            <Text style={styles.rackSizeLabel}>Taille du casier d'achat</Text>
+            <Text style={styles.rackSizeHint}>
+              Nombre d'unités dans un casier/rack pour cet article
+            </Text>
+            <Input
+              label="Unités par casier *"
+              value={form.rackSize}
+              onChangeText={(text) => setForm({ ...form, rackSize: text })}
+              keyboardType="number-pad"
+              placeholder="12"
+            />
+            <Text style={styles.rackSizeExample}>
+              Ex: {parseInt(form.rackSize) || 12} unités/casier • 1 casier = {fmt((parseInt(form.rackSize) || 12) * (parseInt(form.cost) || 0))}
+            </Text>
+          </View>
+
           {isBeer && (
             <View style={styles.unitSelector}>
               <Text style={styles.unitSelectorLabel}>Unité de mesure:</Text>
@@ -160,7 +186,7 @@ export default function AddDrinkScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
               <Text style={styles.unitHint}>
-                {unitMode === 'units' ? '1 unité = 1 bouteille' : '1 cassier = 12 bouteilles'}
+                {unitMode === 'units' ? '1 unité = 1 bouteille' : `1 cassier = ${parseInt(form.rackSize) || 12} bouteilles`}
               </Text>
             </View>
           )}
@@ -243,15 +269,59 @@ const styles = StyleSheet.create({
     color: COLORS.slateDark,
     marginBottom: 6,
   },
-  pickerContainer: {
-    borderWidth: 1,
-    borderColor: COLORS.slateLight,
-    borderRadius: 8,
-    backgroundColor: COLORS.white,
+  categoryGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
     marginBottom: 16,
   },
-  picker: {
-    height: 50,
+  categoryButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    backgroundColor: COLORS.white,
+    borderWidth: 2,
+    borderColor: COLORS.slateLight,
+    minWidth: 90,
+    alignItems: 'center',
+  },
+  categoryButtonActive: {
+    backgroundColor: COLORS.primary,
+    borderColor: COLORS.primary,
+  },
+  categoryButtonText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: COLORS.slate,
+  },
+  categoryButtonTextActive: {
+    color: COLORS.white,
+  },
+  rackSizeCard: {
+    backgroundColor: COLORS.emeraldLight,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.emerald,
+  },
+  rackSizeLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.slateDark,
+    marginBottom: 4,
+  },
+  rackSizeHint: {
+    fontSize: 11,
+    color: COLORS.slate,
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  rackSizeExample: {
+    fontSize: 11,
+    color: COLORS.emerald,
+    fontWeight: '600',
+    marginTop: -8,
   },
   unitSelector: {
     backgroundColor: COLORS.skyLight,

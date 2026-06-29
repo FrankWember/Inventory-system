@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "bartrack-dist",
+      "runtimeExecutable": "node",
+      "runtimeArgs": [".claude/serve-dist.js"],
+      "port": 8088
+    }
+  ]
+}

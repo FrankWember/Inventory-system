@@ -17,9 +17,11 @@ import { supabase } from '../lib/supabase'
 import { Drink, Category } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { StockProgressBar } from '../components/StockProgressBar'
+import { ScreenSkeleton } from '../components/Skeleton'
 import EditDrinkScreen from './EditDrinkScreen'
 import {
   COLORS,
+  fmtShort,
   getStockStatus,
   getStockColor,
   formatWithCassiersShort,
@@ -78,19 +80,32 @@ export default function InventoryScreen({ navigation }: any) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={styles.container}>
+        <ScreenHeader title="Stock" subtitle="Chargement…" />
+        <ScreenSkeleton variant="grid" />
       </View>
     )
   }
 
-  const filtered = drinks.filter(d => {
-    if (!d.name.toLowerCase().includes(search.toLowerCase())) return false
-    if (categoryFilter !== 'Tout' && d.category !== categoryFilter) return false
-    return true
-  })
+  const statusRank: Record<string, number> = { rupture: 0, low: 1, medium: 2, ok: 3 }
+  const filtered = drinks
+    .filter(d => {
+      if (!d.name.toLowerCase().includes(search.toLowerCase())) return false
+      if (categoryFilter !== 'Tout' && d.category !== categoryFilter) return false
+      return true
+    })
+    // Most urgent first (rupture → low → medium → ok), then alphabetical.
+    .sort((a, b) => {
+      const ra = statusRank[getStockStatus(a.stock, a.min_stock)]
+      const rb = statusRank[getStockStatus(b.stock, b.min_stock)]
+      return ra !== rb ? ra - rb : a.name.localeCompare(b.name)
+    })
 
-  const alertCount = drinks.filter(d => d.stock <= d.min_stock).length
+  const ruptureCount = drinks.filter(d => d.stock === 0).length
+  const lowCount = drinks.filter(d => d.stock > 0 && d.stock <= d.min_stock).length
+  const alertCount = ruptureCount + lowCount
+  // Capital tied up in current stock (cost basis) — a number owners track.
+  const stockValue = drinks.reduce((sum, d) => sum + d.stock * d.cost, 0)
 
   const handleDrinkPress = (drinkId: string) => {
     if (isDesktop) {
@@ -134,8 +149,23 @@ export default function InventoryScreen({ navigation }: any) {
     <>
       <ScreenHeader
         title="Stock"
-        subtitle={`${drinks.length} boissons${alertCount > 0 ? ` · ${alertCount} alertes` : ''}`}
+        subtitle={`${drinks.length} références`}
       />
+
+      <View style={styles.summaryRow}>
+        <View style={styles.summaryTile}>
+          <Text style={styles.summaryValue}>{fmtShort(stockValue)}</Text>
+          <Text style={styles.summaryLabel}>Valeur stock</Text>
+        </View>
+        <View style={[styles.summaryTile, styles.summaryTileBordered]}>
+          <Text style={[styles.summaryValue, ruptureCount > 0 && { color: COLORS.rose }]}>{ruptureCount}</Text>
+          <Text style={styles.summaryLabel}>Ruptures</Text>
+        </View>
+        <View style={styles.summaryTile}>
+          <Text style={[styles.summaryValue, lowCount > 0 && { color: COLORS.amber }]}>{lowCount}</Text>
+          <Text style={styles.summaryLabel}>Stock bas</Text>
+        </View>
+      </View>
 
       <View style={styles.searchBox}>
         <Ionicons name="search" size={18} color={COLORS.slate} />
@@ -270,6 +300,24 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 4,
   },
+  summaryRow: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.white,
+    marginHorizontal: GRID_PADDING,
+    marginTop: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    paddingVertical: 14,
+  },
+  summaryTile: { flex: 1, alignItems: 'center' },
+  summaryTileBordered: {
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: COLORS.border,
+  },
+  summaryValue: { fontSize: 18, fontWeight: '800', color: COLORS.slateDark, fontVariant: ['tabular-nums'], letterSpacing: -0.3 },
+  summaryLabel: { fontSize: 11, color: COLORS.slate, fontWeight: '600', marginTop: 3 },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',

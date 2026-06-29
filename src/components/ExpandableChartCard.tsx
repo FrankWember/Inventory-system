@@ -12,7 +12,7 @@ interface ExpandableChartCardProps {
   height?: number
   horizontal?: boolean
   formatValue?: (n: number) => string
-  onExpand: () => void
+  onExpand?: () => void
 }
 
 export function ExpandableChartCard({
@@ -26,19 +26,29 @@ export function ExpandableChartCard({
 }: ExpandableChartCardProps) {
   if (data.length === 0) return null
 
+  const headerContent = (
+    <View style={styles.headerRow}>
+      <View style={{ flex: 1 }}>
+        <CardHeader title={title} subtitle={subtitle} style={{ marginBottom: 0 }} />
+      </View>
+      {onExpand && (
+        <View style={styles.expandBtn}>
+          <Ionicons name="expand" size={18} color={COLORS.primary} />
+          <Text style={styles.expandText}>Agrandir</Text>
+        </View>
+      )}
+    </View>
+  )
+
   return (
     <Card>
-      <TouchableOpacity onPress={onExpand} activeOpacity={0.85}>
-        <View style={styles.headerRow}>
-          <View style={{ flex: 1 }}>
-            <CardHeader title={title} subtitle={subtitle} style={{ marginBottom: 0 }} />
-          </View>
-          <View style={styles.expandBtn}>
-            <Ionicons name="expand" size={18} color={COLORS.primary} />
-            <Text style={styles.expandText}>Agrandir</Text>
-          </View>
-        </View>
-      </TouchableOpacity>
+      {onExpand ? (
+        <TouchableOpacity onPress={onExpand} activeOpacity={0.85}>
+          {headerContent}
+        </TouchableOpacity>
+      ) : (
+        headerContent
+      )}
       <CardContent>
         <SimpleBarChart data={data} height={height} horizontal={horizontal} formatValue={formatValue} />
       </CardContent>

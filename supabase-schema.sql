@@ -13,6 +13,7 @@ CREATE TABLE drinks (
   cost INTEGER NOT NULL DEFAULT 0,
   stock INTEGER NOT NULL DEFAULT 0,
   min_stock INTEGER NOT NULL DEFAULT 0,
+  rack_size INTEGER NOT NULL DEFAULT 12,  -- units per cassier (12 for beers)
   supplier TEXT DEFAULT '',
   notes TEXT DEFAULT '',
   active BOOLEAN DEFAULT true,

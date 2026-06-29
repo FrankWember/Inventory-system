@@ -20,6 +20,7 @@ import { StepIndicator } from '../components/StepIndicator'
 import { Stepper } from '../components/Stepper'
 import { SessionExpensesPanel } from '../components/SessionExpensesPanel'
 import { SessionJournal } from '../components/SessionJournal'
+import { ScreenSkeleton } from '../components/Skeleton'
 import {
   COLORS,
   fmt,
@@ -212,6 +213,8 @@ export default function SessionScreen() {
     setSaving(true)
     try {
       if (openSession) {
+        // Build all writes first, then run them concurrently (was N sequential round-trips).
+        const ops: any[] = []
         for (const drink of drinks) {
           const newPurchased = purchases[drink.id] ?? 0
           const oldLine = lineStates[drink.id]
@@ -220,22 +223,25 @@ export default function SessionScreen() {
           const delta = newPurchased - oldPurchased
           const expected = opening + newPurchased
 
-          await supabase
-            .from('session_lines')
-            .update({
-              purchased: newPurchased,
-              closing_stock: expected,
-              cost: newPurchased * drink.cost,
-            })
-            .eq('session_id', openSession.id)
-            .eq('drink_id', drink.id)
+          ops.push(
+            supabase
+              .from('session_lines')
+              .update({
+                purchased: newPurchased,
+                closing_stock: expected,
+                cost: newPurchased * drink.cost,
+              })
+              .eq('session_id', openSession.id)
+              .eq('drink_id', drink.id)
+          )
 
           if (delta !== 0) {
-            await supabase.from('drinks').update({ stock: drink.stock + delta }).eq('id', drink.id)
+            ops.push(supabase.from('drinks').update({ stock: drink.stock + delta }).eq('id', drink.id))
           }
 
           lineStates[drink.id] = { openingStock: opening, purchased: newPurchased, closingStock: expected }
         }
+        await Promise.all(ops)
         setLineStates({ ...lineStates })
         setStep('inventory')
         await loadData()
@@ -317,7 +323,8 @@ export default function SessionScreen() {
     if (!openSession) return
     setSaving(true)
     try {
-      const stockUpdates = []
+      // Collect every per-line and per-drink write, then fire them concurrently.
+      const ops: any[] = []
 
       for (const drink of drinks) {
         const line = lineStates[drink.id]
@@ -326,32 +333,36 @@ export default function SessionScreen() {
         const closing = closingCounts[drink.id] ?? drink.stock
         const sold = Math.max(0, opening + purchased - closing)
 
-        await supabase
-          .from('session_lines')
-          .update({
-            sold,
-            closing_stock: closing,
-            revenue: sold * drink.price,
-            cost: purchased * drink.cost,
-          })
-          .eq('session_id', openSession.id)
-          .eq('drink_id', drink.id)
+        ops.push(
+          supabase
+            .from('session_lines')
+            .update({
+              sold,
+              closing_stock: closing,
+              revenue: sold * drink.price,
+              cost: purchased * drink.cost,
+            })
+            .eq('session_id', openSession.id)
+            .eq('drink_id', drink.id)
+        )
 
-        stockUpdates.push(supabase.from('drinks').update({ stock: closing }).eq('id', drink.id))
+        ops.push(supabase.from('drinks').update({ stock: closing }).eq('id', drink.id))
       }
 
-      await supabase
-        .from('sessions')
-        .update({
-          total_purchase: totalPurchaseCost,
-          total_revenue: totalRevenue,
-          total_cost: totalPurchaseCost,
-          total_profit: netProfit,
-          closed: true,
-        })
-        .eq('id', openSession.id)
+      ops.push(
+        supabase
+          .from('sessions')
+          .update({
+            total_purchase: totalPurchaseCost,
+            total_revenue: totalRevenue,
+            total_cost: totalPurchaseCost,
+            total_profit: netProfit,
+            closed: true,
+          })
+          .eq('id', openSession.id)
+      )
 
-      await Promise.all(stockUpdates)
+      await Promise.all(ops)
 
       Alert.alert('Succès', 'Journée clôturée avec succès')
       await loadData()
@@ -406,8 +417,9 @@ export default function SessionScreen() {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={styles.container}>
+        <ScreenHeader title="Session" subtitle={dateLabel(todayStr)} />
+        <ScreenSkeleton variant="list" />
       </View>
     )
   }

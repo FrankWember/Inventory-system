@@ -1,13 +1,24 @@
 import React, { useState, useEffect } from 'react'
 import { StatusBar } from 'expo-status-bar'
-import { Platform, Dimensions } from 'react-native'
+import { Platform, Dimensions, View, ActivityIndicator } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { Ionicons } from '@expo/vector-icons'
 import { SafeAreaProvider, useSafeAreaInsets } from 'react-native-safe-area-context'
-import { COLORS } from './src/utils/helpers'
+import {
+  useFonts,
+  Manrope_400Regular,
+  Manrope_500Medium,
+  Manrope_600SemiBold,
+  Manrope_700Bold,
+  Manrope_800ExtraBold,
+} from '@expo-google-fonts/manrope'
+import { COLORS, FONT } from './src/utils/helpers'
+import { applyGlobalFont } from './src/styles/applyFonts'
 import { ResponsiveLayout } from './src/components/ResponsiveLayout'
+
+applyGlobalFont()
 
 // Import web-specific styles
 if (Platform.OS === 'web') {
@@ -90,7 +101,7 @@ function MainTabs() {
               },
           tabBarLabelStyle: {
             fontSize: 10,
-            fontWeight: '600',
+            fontFamily: FONT.semibold,
             marginTop: -2,
           },
         })}
@@ -126,6 +137,22 @@ function MainTabs() {
 }
 
 export default function App() {
+  const [fontsLoaded] = useFonts({
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
+  })
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    )
+  }
+
   return (
     <SafeAreaProvider>
       <StatusBar style="dark" />
@@ -137,7 +164,7 @@ export default function App() {
             },
             headerTintColor: COLORS.primary,
             headerTitleStyle: {
-              fontWeight: '700',
+              fontFamily: FONT.bold,
               fontSize: 17,
               color: COLORS.slateDark,
             },
