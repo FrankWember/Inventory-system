@@ -9,7 +9,6 @@ import {
   RefreshControl,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { LinearGradient } from 'expo-linear-gradient'
 import { supabase } from '../lib/supabase'
 import { Drink, Session } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
@@ -71,12 +70,8 @@ export default function DashboardScreen({ navigation }: any) {
 
   const todayStr = today()
   const todaySession = sessions.find(s => s.date === todayStr && s.closed)
-  const todayOpen = sessions.find(s => s.date === todayStr && !s.closed)
   const last7Sessions = sessions.slice(0, 7)
 
-  const todayRevenue = todaySession?.total_revenue || 0
-  const todayProfit = todaySession?.total_profit || 0
-  const todayMargin = todayRevenue > 0 ? (todayProfit / todayRevenue) * 100 : 0
   const last7Revenue = last7Sessions.reduce((sum, s) => sum + s.total_revenue, 0)
   const last7Profit = last7Sessions.reduce((sum, s) => sum + s.total_profit, 0)
   const last7Margin = last7Revenue > 0 ? (last7Profit / last7Revenue) * 100 : 0
@@ -97,14 +92,6 @@ export default function DashboardScreen({ navigation }: any) {
   const top5 = drinkSales.filter(d => d.sold > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 5)
   const topMax = top5[0]?.revenue || 1
 
-  // Session call-to-action reflects today's state.
-  const cta = todayOpen
-    ? { label: 'Continuer la session', icon: 'arrow-forward-circle' as const, primary: true }
-    : todaySession
-    ? { label: 'Voir la journée', icon: 'document-text' as const, primary: false }
-    : { label: 'Démarrer la session', icon: 'add-circle' as const, primary: true }
-  const statusText = todayOpen ? 'En cours' : todaySession ? 'Clôturée' : 'À démarrer'
-
   return (
     <View style={styles.container}>
       <ScreenHeader title="Accueil" subtitle={dateLabel(todayStr)} />
@@ -114,49 +101,6 @@ export default function DashboardScreen({ navigation }: any) {
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {/* ── 1. How did today go? ── */}
-        <LinearGradient
-          colors={[COLORS.inkSoft, COLORS.ink]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.heroCard}
-        >
-          <View style={styles.heroTop}>
-            <Text style={styles.heroLabel}>Aujourd'hui</Text>
-            <View style={styles.statusChip}>
-              <View style={[styles.statusPip, { backgroundColor: todayOpen ? COLORS.amber : todaySession ? COLORS.emerald : COLORS.slate400 }]} />
-              <Text style={styles.statusChipText}>{statusText}</Text>
-            </View>
-          </View>
-
-          <Text style={styles.heroRevenue} numberOfLines={1}>{fmt(todayRevenue)}</Text>
-          <Text style={styles.heroRevenueLabel}>Revenu du jour</Text>
-
-          <View style={styles.heroDivider} />
-
-          <View style={styles.heroSubRow}>
-            <View>
-              <Text style={styles.heroSubLabel}>Profit net</Text>
-              <Text style={[styles.heroSubValue, { color: todayProfit >= 0 ? '#34D399' : '#FB7185' }]}>
-                {todayProfit >= 0 ? '+' : ''}{fmt(todayProfit)}
-              </Text>
-            </View>
-            <View style={styles.marginChip}>
-              <Text style={styles.marginChipValue}>{todayMargin.toFixed(0)}%</Text>
-              <Text style={styles.marginChipLabel}>marge</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity
-            style={[styles.heroCta, cta.primary && styles.heroCtaPrimary]}
-            onPress={() => navigation.navigate('Session')}
-            activeOpacity={0.85}
-          >
-            <Ionicons name={cta.icon} size={18} color={cta.primary ? COLORS.white : COLORS.primaryLight} />
-            <Text style={[styles.heroCtaText, cta.primary && { color: COLORS.white }]}>{cta.label}</Text>
-          </TouchableOpacity>
-        </LinearGradient>
-
         {/* ── 7-day pulse ── */}
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
@@ -279,67 +223,6 @@ const styles = StyleSheet.create({
     padding: 16,
     paddingBottom: 24,
   },
-  heroCard: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 14,
-  },
-  heroTop: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 14,
-  },
-  heroLabel: {
-    fontSize: 11,
-    color: COLORS.slate400,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  statusChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 999,
-  },
-  statusPip: { width: 7, height: 7, borderRadius: 4 },
-  statusChipText: { fontSize: 11, fontWeight: '700', color: 'rgba(255,255,255,0.85)' },
-  heroRevenue: {
-    fontSize: 34,
-    fontWeight: '800',
-    color: COLORS.white,
-    letterSpacing: -1,
-    fontVariant: ['tabular-nums'],
-  },
-  heroRevenueLabel: { fontSize: 12, color: COLORS.slate400, fontWeight: '500', marginTop: 2 },
-  heroDivider: { height: 1, backgroundColor: 'rgba(255,255,255,0.1)', marginVertical: 16 },
-  heroSubRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  heroSubLabel: { fontSize: 12, color: COLORS.slate400, fontWeight: '500', marginBottom: 3 },
-  heroSubValue: { fontSize: 19, fontWeight: '800', fontVariant: ['tabular-nums'], letterSpacing: -0.3 },
-  marginChip: {
-    alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 12,
-  },
-  marginChipValue: { fontSize: 18, fontWeight: '800', color: COLORS.white, fontVariant: ['tabular-nums'] },
-  marginChipLabel: { fontSize: 10, color: COLORS.slate400, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.3 },
-  heroCta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    paddingVertical: 13,
-    borderRadius: 14,
-    backgroundColor: 'rgba(255,255,255,0.08)',
-  },
-  heroCtaPrimary: { backgroundColor: COLORS.primary },
-  heroCtaText: { fontSize: 14, fontWeight: '700', color: COLORS.primaryLight },
   statsRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
   statBox: {
     flex: 1,

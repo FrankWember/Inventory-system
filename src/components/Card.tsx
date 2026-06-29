@@ -39,31 +39,31 @@ export function CardContent({ children, style }: CardContentProps) {
 const styles = StyleSheet.create({
   card: {
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 14,
-    marginBottom: 12,
+    borderRadius: 14,
+    padding: 20,
+    marginBottom: 16,
     shadowColor: COLORS.black,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 3,
+    elevation: 1,
     borderWidth: 1,
     borderColor: COLORS.border,
   },
   cardHeader: {
-    marginBottom: 16,
+    marginBottom: 20,
   },
   cardTitle: {
     fontSize: 18,
     fontWeight: '700',
     color: COLORS.slateDark,
-    marginBottom: 4,
+    marginBottom: 6,
     letterSpacing: -0.3,
   },
   cardSubtitle: {
-    fontSize: 14,
-    color: COLORS.gray,
-    lineHeight: 20,
+    fontSize: 13,
+    color: COLORS.slate,
+    lineHeight: 18,
   },
   cardContent: {
     // Additional content styling if needed

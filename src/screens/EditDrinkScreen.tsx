@@ -15,7 +15,7 @@ import { Drink } from '../types'
 import { Card } from '../components/Card'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
-import { COLORS, fmt } from '../utils/helpers'
+import { COLORS, fmt, fmtNum } from '../utils/helpers'
 
 export default function EditDrinkScreen({ route, navigation }: any) {
   const { drinkId } = route.params
@@ -144,47 +144,32 @@ export default function EditDrinkScreen({ route, navigation }: any) {
           <Text style={styles.drinkName}>{drink.name}</Text>
           <Text style={styles.categoryBadge}>{drink.category}</Text>
 
-          <View style={styles.rackSizeCard}>
-            <Text style={styles.rackSizeLabel}>Taille du casier d'achat</Text>
-            <Text style={styles.rackSizeHint}>
-              Nombre d'unités dans un casier/rack pour cet article
-            </Text>
-            <Input
-              label="Unités par casier"
-              value={drink.rack_size.toString()}
-              onChangeText={(text) => setDrink({ ...drink, rack_size: parseInt(text) || 1 })}
-              keyboardType="number-pad"
-              placeholder="12"
-            />
-            <Text style={styles.rackSizeExample}>
-              Ex: {drink.rack_size} unités/casier • 1 casier = {fmt(drink.rack_size * drink.cost)}
-            </Text>
-          </View>
+          <Input
+            label="Unités par casier"
+            value={drink.rack_size.toString()}
+            onChangeText={(text) => setDrink({ ...drink, rack_size: parseInt(text) || 1 })}
+            keyboardType="number-pad"
+            placeholder="12"
+          />
 
           {isBeer && (
-            <View style={styles.unitSelector}>
-              <Text style={styles.unitSelectorLabel}>Unité de mesure:</Text>
-              <View style={styles.unitToggle}>
-                <TouchableOpacity
-                  style={[styles.unitToggleButton, unitMode === 'units' && styles.unitToggleButtonActive]}
-                  onPress={() => setUnitMode('units')}
-                >
-                  <Text style={[styles.unitToggleText, unitMode === 'units' && styles.unitToggleTextActive]}>
-                    Unités
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.unitToggleButton, unitMode === 'cassiers' && styles.unitToggleButtonActive]}
-                  onPress={() => setUnitMode('cassiers')}
-                >
-                  <Text style={[styles.unitToggleText, unitMode === 'cassiers' && styles.unitToggleTextActive]}>
-                    Cassiers
-                  </Text>
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.unitHint}>
-                {unitMode === 'units' ? '1 unité = 1 bouteille' : `1 cassier = ${drink.rack_size} bouteilles`}
-              </Text>
+            <View style={styles.unitToggle}>
+              <TouchableOpacity
+                style={[styles.unitToggleButton, unitMode === 'units' && styles.unitToggleButtonActive]}
+                onPress={() => setUnitMode('units')}
+              >
+                <Text style={[styles.unitToggleText, unitMode === 'units' && styles.unitToggleTextActive]}>
+                  Unités
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.unitToggleButton, unitMode === 'cassiers' && styles.unitToggleButtonActive]}
+                onPress={() => setUnitMode('cassiers')}
+              >
+                <Text style={[styles.unitToggleText, unitMode === 'cassiers' && styles.unitToggleTextActive]}>
+                  Cassiers
+                </Text>
+              </TouchableOpacity>
             </View>
           )}
 
@@ -194,19 +179,13 @@ export default function EditDrinkScreen({ route, navigation }: any) {
             onChangeText={(text) => setStockFromDisplay(text, 'stock')}
             keyboardType="number-pad"
           />
-          {isBeer && unitMode === 'cassiers' && (
-            <Text style={styles.conversionHint}>= {drink.stock} unités au total</Text>
-          )}
 
           <Input
-            label={`Stock minimum${isBeer ? ` (${unitMode === 'units' ? 'unités' : 'cassiers'})` : ''}`}
+            label={`Seuil minimum${isBeer ? ` (${unitMode === 'units' ? 'unités' : 'cassiers'})` : ''}`}
             value={getDisplayValue(drink.min_stock, 'min_stock')}
             onChangeText={(text) => setStockFromDisplay(text, 'min_stock')}
             keyboardType="number-pad"
           />
-          {isBeer && unitMode === 'cassiers' && (
-            <Text style={styles.conversionHint}>= {drink.min_stock} unités au total</Text>
-          )}
           <Input
             label="Prix de vente (FCFA)"
             value={drink.price.toString()}
@@ -220,10 +199,9 @@ export default function EditDrinkScreen({ route, navigation }: any) {
             keyboardType="number-pad"
           />
 
-          <View style={styles.marginCard}>
-            <Text style={styles.marginText}>
-              Marge: {margin}% · Profit/unité: {fmt(profitPerUnit)}
-            </Text>
+          <View style={styles.summary}>
+            <Text style={styles.summaryText}>Marge: {margin}%</Text>
+            <Text style={styles.summaryValue}>{fmt(profitPerUnit)}/unité</Text>
           </View>
         </Card>
 
@@ -265,140 +243,101 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.slateLight,
-    padding: 12,
+    backgroundColor: COLORS.surface,
+    padding: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.slateLight,
+    backgroundColor: COLORS.surface,
   },
   drinkName: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '700',
     color: COLORS.slateDark,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   categoryBadge: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '600',
-    color: COLORS.primary,
-    backgroundColor: COLORS.primaryLight,
+    color: COLORS.slate,
+    backgroundColor: COLORS.slateLight,
     paddingHorizontal: 10,
-    paddingVertical: 4,
+    paddingVertical: 5,
     borderRadius: 6,
     alignSelf: 'flex-start',
-    marginBottom: 16,
+    marginBottom: 24,
     textTransform: 'uppercase',
-  },
-  rackSizeCard: {
-    backgroundColor: COLORS.emeraldLight,
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.emerald,
-  },
-  rackSizeLabel: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: COLORS.slateDark,
-    marginBottom: 4,
-  },
-  rackSizeHint: {
-    fontSize: 11,
-    color: COLORS.slate,
-    marginBottom: 8,
-    fontStyle: 'italic',
-  },
-  rackSizeExample: {
-    fontSize: 11,
-    color: COLORS.emerald,
-    fontWeight: '600',
-    marginTop: -8,
-  },
-  unitSelector: {
-    backgroundColor: COLORS.skyLight,
-    padding: 12,
-    borderRadius: 10,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.sky,
-  },
-  unitSelectorLabel: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: COLORS.slateDark,
-    marginBottom: 8,
+    letterSpacing: 0.5,
   },
   unitToggle: {
     flexDirection: 'row',
-    backgroundColor: COLORS.white,
-    borderRadius: 8,
-    padding: 3,
-    marginBottom: 8,
+    backgroundColor: COLORS.slateLight,
+    borderRadius: 10,
+    padding: 4,
+    marginBottom: 20,
   },
   unitToggleButton: {
     flex: 1,
-    paddingVertical: 8,
+    paddingVertical: 10,
     paddingHorizontal: 12,
-    borderRadius: 6,
+    borderRadius: 8,
     alignItems: 'center',
   },
   unitToggleButtonActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: COLORS.white,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 1,
   },
   unitToggleText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
     color: COLORS.slate,
   },
   unitToggleTextActive: {
-    color: COLORS.white,
+    color: COLORS.slateDark,
   },
-  unitHint: {
-    fontSize: 11,
+  summary: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 16,
+    marginTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: COLORS.border,
+  },
+  summaryText: {
+    fontSize: 13,
+    fontWeight: '500',
     color: COLORS.slate,
-    fontStyle: 'italic',
   },
-  conversionHint: {
-    fontSize: 11,
-    color: COLORS.sky,
-    fontStyle: 'italic',
-    marginTop: -12,
-    marginBottom: 12,
-  },
-  marginCard: {
-    backgroundColor: COLORS.amberLight,
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: COLORS.amber,
-  },
-  marginText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.amberDark,
+  summaryValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.slateDark,
   },
   buttons: {
     flexDirection: 'row',
     gap: 12,
-    paddingVertical: 12,
+    paddingVertical: 16,
   },
   dangerCard: {
     borderColor: COLORS.rose,
-    borderWidth: 2,
+    borderWidth: 1.5,
   },
   dangerTitle: {
     fontSize: 16,
     fontWeight: '700',
     color: COLORS.rose,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   dangerText: {
     fontSize: 13,
     color: COLORS.slate,
-    marginBottom: 12,
+    marginBottom: 16,
   },
 })
