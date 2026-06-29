@@ -38,6 +38,7 @@ import SessionDetailScreen from './src/screens/SessionDetailScreen'
 import ChartDetailScreen, { ChartDetailRow } from './src/screens/ChartDetailScreen'
 import SignInScreen from './src/screens/SignInScreen'
 import SignUpScreen from './src/screens/SignUpScreen'
+import AuthScreen from './src/screens/AuthScreen'
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen'
 import { WelcomeLoadingScreen } from './src/components/WelcomeLoadingScreen'
 import { BarChartItem } from './src/components/SimpleBarChart'
@@ -45,8 +46,8 @@ import { BarChartItem } from './src/components/SimpleBarChart'
 const BREAKPOINT = 768
 
 export type RootStackParamList = {
-  SignIn: undefined
-  SignUp: undefined
+  SignIn: { mode?: 'signin' } | undefined
+  SignUp: { mode?: 'signup' } | undefined
   ForgotPassword: undefined
   MainTabs: undefined
   AddDrink: undefined
@@ -193,16 +194,35 @@ function RootNavigator() {
       {!user ? (
         // Auth screens
         <>
-          <Stack.Screen
-            name="SignIn"
-            component={SignInScreen}
-            options={{ headerShown: false }}
-          />
-          <Stack.Screen
-            name="SignUp"
-            component={SignUpScreen}
-            options={{ headerShown: false }}
-          />
+          {Platform.OS === 'web' ? (
+            <>
+              <Stack.Screen
+                name="SignIn"
+                component={SignInScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen
+                name="SignUp"
+                component={SignUpScreen}
+                options={{ headerShown: false }}
+              />
+            </>
+          ) : (
+            <>
+              <Stack.Screen
+                name="SignIn"
+                component={AuthScreen}
+                options={{ headerShown: false }}
+                initialParams={{ mode: 'signin' }}
+              />
+              <Stack.Screen
+                name="SignUp"
+                component={AuthScreen}
+                options={{ headerShown: false }}
+                initialParams={{ mode: 'signup' }}
+              />
+            </>
+          )}
           <Stack.Screen
             name="ForgotPassword"
             component={ForgotPasswordScreen}
