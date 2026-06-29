@@ -20,7 +20,7 @@ import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers } from '..
 type Props = NativeStackScreenProps<RootStackParamList, 'SessionDetail'>
 
 export default function SessionDetailScreen({ route, navigation }: Props) {
-  const { sessionId } = route.params
+  const { sessionId, isEmbedded: isEmbeddedParam } = route.params as { sessionId: string; isEmbedded?: boolean }
   const [session, setSession] = useState<Session | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
@@ -104,8 +104,8 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
   const grossProfit = session.total_revenue - session.total_cost
   const netProfit = session.total_revenue - session.total_cost - totalExpenses
 
-  // Check if we're in desktop split view by checking if navigation has canGoBack
-  const isEmbedded = Platform.OS === 'web' && navigation.canGoBack && !navigation.canGoBack()
+  // Check if we're in desktop split view from route params
+  const isEmbedded = isEmbeddedParam === true
 
   return (
     <View style={styles.container}>
@@ -128,7 +128,12 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
         <View style={styles.embeddedHeader}>
           <View style={styles.embeddedHeaderButtons}>
             <TouchableOpacity
-              onPress={() => navigation.navigate('SessionDetail', { sessionId })}
+              onPress={() => {
+                // @ts-ignore - navigate exists on parent navigation
+                if (navigation.navigate) {
+                  navigation.navigate('SessionDetail', { sessionId })
+                }
+              }}
               style={styles.expandButton}
             >
               <Ionicons name="expand-outline" size={18} color={COLORS.primary} />

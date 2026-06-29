@@ -954,7 +954,7 @@ export default function SessionScreen({ navigation }: any) {
           {selectedSessionId && (
             <FadeIn style={[styles.desktopRight, { flex: getRightPanelFlex() }]} duration={300}>
               <SessionDetailScreen
-                route={{ params: { sessionId: selectedSessionId } } as any}
+                route={{ params: { sessionId: selectedSessionId, isEmbedded: true } } as any}
                 navigation={{
                   ...navigation,
                   goBack: () => setSelectedSessionId(null)
