@@ -43,6 +43,8 @@
 
   /* Hide navigation and headers specifically by class/structure, not generic selectors */
   [class*="ScreenHeader"],
+  [class*="embeddedHeader"],
+  [class*="modalHeader"],
   [style*="position: absolute"][style*="top: 0"],
   header:not(.print-only),
   nav:not(.print-only) {
@@ -50,10 +52,29 @@
     visibility: hidden !important;
   }
 
-  /* Hide expand/modal buttons in print */
+  /* Hide expand/modal buttons and containers in print */
   button[class*="expand"],
-  button[class*="modal"] {
+  button[class*="modal"],
+  [class*="expandButton"],
+  [class*="modalCloseBtn"],
+  [class*="modalPrintBtn"],
+  [class*="modalOverlay"],
+  [class*="modalHeaderActions"] {
     display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Force modal content to display as normal content */
+  [class*="modalContent"] {
+    position: static !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
   }
 
   /* Optimize page layout for printing */
@@ -97,11 +118,39 @@
   h1, h2, h3, h4, h5, h6 {
     page-break-after: avoid;
     page-break-inside: avoid;
+    break-after: avoid;
+    break-inside: avoid;
   }
 
-  /* Ensure tables don't break across pages */
-  table {
+  /* Allow content to flow across pages */
+  .session-detail-print {
+    page-break-inside: auto;
+    break-inside: auto;
+  }
+
+  /* Prevent orphaned section headers */
+  [class*="sectionTitle"],
+  [class*="plTitle"],
+  [class*="plSectionTitle"] {
+    page-break-after: avoid;
+    break-after: avoid;
+    orphans: 3;
+    widows: 3;
+  }
+
+  /* Smart page breaks for cards and sections */
+  [class*="plCard"],
+  [class*="section"],
+  [class*="table"] {
     page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Allow table rows to break if necessary for very long tables */
+  [class*="stockFlowRow"],
+  [class*="movementRow"] {
+    page-break-inside: avoid;
+    break-inside: avoid;
   }
 
   /* Remove shadows and unnecessary decorations */
@@ -135,10 +184,9 @@
     border-bottom: 2px solid #4A90E2;
   }
 
-  /* Better spacing for sections */
+  /* Better spacing for sections - allow page breaks for long content */
   .session-detail-print > div {
     margin-bottom: 12px;
-    page-break-inside: avoid;
     display: block !important;
   }
 
@@ -161,10 +209,9 @@
     display: block !important;
   }
 
-  /* Optimize profit/loss breakdown for print */
+  /* Optimize profit/loss breakdown for print - allow breaks for long lists */
   .session-detail-print [class*="plBreakdown"] {
     margin-top: 8px !important;
-    page-break-inside: avoid;
   }
 
   /* Ensure tables are readable in print */
@@ -172,13 +219,11 @@
   .session-detail-print [class*="table"] {
     width: 100% !important;
     border-collapse: collapse !important;
-    page-break-inside: avoid;
   }
 
-  /* Better spacing for detail sections */
+  /* Better spacing for detail sections - allow breaks */
   .session-detail-print [class*="plSection"] {
     margin-bottom: 16px !important;
-    page-break-inside: avoid;
   }
 }
 

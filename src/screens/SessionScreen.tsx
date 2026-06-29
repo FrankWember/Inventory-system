@@ -11,6 +11,7 @@ import {
   FlatList,
   Dimensions,
   Platform,
+  Modal,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Calendar, LocaleConfig } from 'react-native-calendars'
@@ -33,6 +34,74 @@ import {
   dateLabelLong,
   formatWithCassiers,
 } from '../utils/helpers'
+import { printJournal } from '../utils/printJournal'
+
+// Session Print Button Component
+function SessionPrintButton({ sessionId }: { sessionId: string }) {
+  const [loading, setLoading] = useState(false)
+
+  const handlePrint = async () => {
+    setLoading(true)
+    try {
+      // Load session data
+      const { data: session, error: sessionError } = await supabase
+        .from('sessions')
+        .select('*, session_lines(*)')
+        .eq('id', sessionId)
+        .single()
+
+      if (sessionError) throw sessionError
+
+      // Load expenses
+      const { data: expenses, error: expensesError } = await supabase
+        .from('expenses')
+        .select('*')
+        .eq('session_id', sessionId)
+        .order('created_at', { ascending: true })
+
+      if (expensesError) throw expensesError
+
+      // Load drinks category map
+      const { data: drinks, error: drinksError } = await supabase
+        .from('drinks')
+        .select('id, category')
+
+      if (drinksError) throw drinksError
+
+      const drinksCategoryMap = Object.fromEntries(drinks?.map(d => [d.id, d.category]) ?? [])
+
+      // Print
+      printJournal({
+        session,
+        lines: session.session_lines ?? [],
+        expenses: expenses ?? [],
+        drinksCategoryMap,
+      })
+    } catch (error) {
+      console.error('Error loading session data for print:', error)
+      Alert.alert('Erreur', 'Impossible de charger les données pour l\'impression')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  return (
+    <TouchableOpacity
+      onPress={handlePrint}
+      disabled={loading}
+      style={[styles.modalPrintBtn, loading && { opacity: 0.6 }]}
+    >
+      {loading ? (
+        <ActivityIndicator size="small" color={COLORS.primary} />
+      ) : (
+        <>
+          <Ionicons name="print-outline" size={20} color={COLORS.primary} />
+          <Text style={styles.modalPrintText}>Imprimer</Text>
+        </>
+      )}
+    </TouchableOpacity>
+  )
+}
 
 // Configure French locale for calendar
 LocaleConfig.locales['fr'] = {
@@ -83,6 +152,7 @@ export default function SessionScreen({ navigation }: any) {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [allSessions, setAllSessions] = useState<Session[]>([])
   const [selectedDateSession, setSelectedDateSession] = useState<{ closed: Session | null; open: Session | null }>({ closed: null, open: null })
+  const [modalSessionId, setModalSessionId] = useState<string | null>(null)
 
   const categories: Array<Category | 'Tout'> = ['Tout', 'Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre']
   const todayStr = today()
@@ -994,7 +1064,7 @@ export default function SessionScreen({ navigation }: any) {
   )
 
   // Desktop split view
-  if (isDesktop && step === 'done') {
+  const desktopView = isDesktop && step === 'done' ? (() => {
     // Get the selected session to show its date
     const selectedSession = allSessions.find(s => s.id === selectedSessionId)
 
@@ -1018,7 +1088,7 @@ export default function SessionScreen({ navigation }: any) {
           {selectedSessionId && (
             <FadeIn style={[styles.desktopRight, { flex: getRightPanelFlex() }]} duration={300}>
               <SessionDetailScreen
-                route={{ params: { sessionId: selectedSessionId, isEmbedded: true } } as any}
+                route={{ params: { sessionId: selectedSessionId, isEmbedded: true, onExpandModal: () => setModalSessionId(selectedSessionId) } } as any}
                 navigation={{
                   ...navigation,
                   goBack: () => setSelectedSessionId(null)
@@ -1029,9 +1099,43 @@ export default function SessionScreen({ navigation }: any) {
         </View>
       </FadeIn>
     )
-  }
+  })() : null
 
-  return sessionListContent
+  return (
+    <>
+      {desktopView || sessionListContent}
+
+      {/* Modal for expanded journal view */}
+      <Modal
+        visible={modalSessionId !== null}
+        animationType="fade"
+        transparent={true}
+        onRequestClose={() => setModalSessionId(null)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Journal de caisse</Text>
+              <View style={styles.modalHeaderActions}>
+                {Platform.OS === 'web' && modalSessionId && (
+                  <SessionPrintButton sessionId={modalSessionId} />
+                )}
+                <TouchableOpacity onPress={() => setModalSessionId(null)} style={styles.modalCloseBtn}>
+                  <Ionicons name="close" size={28} color={COLORS.slateDark} />
+                </TouchableOpacity>
+              </View>
+            </View>
+            {modalSessionId && (
+              <SessionDetailScreen
+                route={{ params: { sessionId: modalSessionId, hideHeader: true } } as any}
+                navigation={navigation as any}
+              />
+            )}
+          </View>
+        </View>
+      </Modal>
+    </>
+  )
 }
 
 const styles = StyleSheet.create({
@@ -1533,5 +1637,88 @@ const styles = StyleSheet.create({
     fontSize: 15,
     fontFamily: FONT.semibold,
     color: COLORS.white,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: COLORS.white,
+    borderRadius: 24,
+    width: '100%',
+    maxWidth: 1200,
+    maxHeight: '90%',
+    overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 20 },
+        shadowOpacity: 0.3,
+        shadowRadius: 30,
+        elevation: 20,
+      },
+    }),
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingVertical: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.white,
+  },
+  modalTitle: {
+    fontSize: 24,
+    fontFamily: FONT.bold,
+    color: COLORS.slateDark,
+  },
+  modalHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modalPrintBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      },
+    }),
+  },
+  modalPrintText: {
+    fontSize: 14,
+    fontFamily: FONT.semibold,
+    color: COLORS.primary,
+  },
+  modalCloseBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      },
+    }),
   },
 })

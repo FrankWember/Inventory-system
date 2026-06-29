@@ -16,23 +16,25 @@ import { Session, Expense } from '../types'
 import { SessionExpensesPanel } from '../components/SessionExpensesPanel'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers } from '../utils/helpers'
+import { printJournal } from '../utils/printJournal'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SessionDetail'>
 
 export default function SessionDetailScreen({ route, navigation }: Props) {
-  const { sessionId, isEmbedded: isEmbeddedParam } = route.params as { sessionId: string; isEmbedded?: boolean }
+  const { sessionId, isEmbedded: isEmbeddedParam, onExpandModal, hideHeader } = route.params as { sessionId: string; isEmbedded?: boolean; onExpandModal?: () => void; hideHeader?: boolean }
   const [session, setSession] = useState<Session | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
   const [drinksCategoryMap, setDrinksCategoryMap] = useState<Record<string, string>>({})
 
   const handlePrint = () => {
-    if (Platform.OS === 'web') {
-      // @ts-ignore - window.print() is available in web environment
-      const w = typeof window !== 'undefined' ? window : null
-      if (w && w.print) {
-        w.print()
-      }
+    if (Platform.OS === 'web' && session) {
+      printJournal({
+        session,
+        lines: session.session_lines ?? [],
+        expenses,
+        drinksCategoryMap,
+      })
     }
   }
 
@@ -109,7 +111,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
 
   return (
     <View style={styles.container}>
-      {!isEmbedded && (
+      {!hideHeader && !isEmbedded && (
         <ScreenHeader
           title="Journal de caisse"
           subtitle={dateLabelLong(session.date)}
@@ -124,26 +126,26 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
           }
         />
       )}
-      {isEmbedded && (
+      {!hideHeader && isEmbedded && session && (
         <View style={styles.embeddedHeader}>
-          <View style={styles.embeddedHeaderButtons}>
-            <TouchableOpacity
-              onPress={() => {
-                // @ts-ignore - navigate exists on parent navigation
-                if (navigation.navigate) {
-                  navigation.navigate('SessionDetail', { sessionId })
-                }
-              }}
-              style={styles.expandButton}
-            >
-              <Ionicons name="expand-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.expandText}>Plein écran</Text>
-            </TouchableOpacity>
-            <TouchableOpacity onPress={handlePrint} style={styles.printButtonEmbedded}>
-              <Ionicons name="print-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.printText}>Imprimer</Text>
-            </TouchableOpacity>
+          <View style={styles.embeddedTitleContainer}>
+            <Text style={styles.embeddedTitle}>Journal de caisse</Text>
+            <Text style={styles.embeddedDate}>{dateLabelLong(session.date)}</Text>
           </View>
+          <TouchableOpacity
+            onPress={() => {
+              if (onExpandModal) {
+                onExpandModal()
+              } else if (navigation.navigate) {
+                // @ts-ignore - navigate exists on parent navigation
+                navigation.navigate('SessionDetail', { sessionId })
+              }
+            }}
+            style={styles.expandButton}
+          >
+            <Ionicons name="expand-outline" size={18} color={COLORS.primary} />
+            <Text style={styles.expandText}>Plein écran</Text>
+          </TouchableOpacity>
         </View>
       )}
       <ScrollView
@@ -800,16 +802,27 @@ const styles = StyleSheet.create({
   },
   embeddedHeader: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     backgroundColor: COLORS.white,
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  embeddedHeaderButtons: {
-    flexDirection: 'row',
-    gap: 8,
+  embeddedTitleContainer: {
+    flex: 1,
+  },
+  embeddedTitle: {
+    fontSize: 18,
+    fontFamily: FONT.bold,
+    color: COLORS.slateDark,
+  },
+  embeddedDate: {
+    fontSize: 13,
+    fontFamily: FONT.regular,
+    color: COLORS.slate,
+    marginTop: 2,
   },
   expandButton: {
     flexDirection: 'row',
@@ -817,10 +830,11 @@ const styles = StyleSheet.create({
     gap: 6,
     paddingVertical: 10,
     paddingHorizontal: 14,
-    backgroundColor: COLORS.slateLight,
+    backgroundColor: COLORS.primaryLight,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.slate,
+    borderColor: COLORS.primary,
+    marginLeft: 12,
     ...Platform.select({
       web: {
         cursor: 'pointer',
@@ -831,27 +845,7 @@ const styles = StyleSheet.create({
   expandText: {
     fontSize: 13,
     fontFamily: FONT.semibold,
-    color: COLORS.slateDark,
-  },
-  printButtonEmbedded: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 10,
-    paddingHorizontal: 14,
-    backgroundColor: COLORS.primaryLight,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    ...Platform.select({
-      web: {
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        '@media print': {
-          display: 'none',
-        },
-      },
-    }),
+    color: COLORS.primary,
   },
   plSection: {
     marginBottom: 8,
