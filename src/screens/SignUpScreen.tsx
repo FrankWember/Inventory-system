@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   View,
   Text,
@@ -10,6 +10,7 @@ import {
   ActivityIndicator,
   Alert,
   ImageBackground,
+  Animated,
 } from 'react-native'
 import { Input } from '../components/Input'
 import { PhoneInput } from '../components/PhoneInput'
@@ -34,6 +35,25 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const slideAnim = useRef(new Animated.Value(30)).current
+
+  useEffect(() => {
+    Animated.parallel([
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 600,
+        useNativeDriver: true,
+      }),
+      Animated.spring(slideAnim, {
+        toValue: 0,
+        tension: 50,
+        friction: 7,
+        useNativeDriver: true,
+      }),
+    ]).start()
+  }, [])
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -108,7 +128,15 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.formContainer}>
+          <Animated.View
+            style={[
+              styles.formContainer,
+              {
+                opacity: fadeAnim,
+                transform: [{ translateY: slideAnim }],
+              },
+            ]}
+          >
           <View style={styles.header}>
             <View style={styles.iconContainer}>
               <Ionicons name="beer" size={48} color={COLORS.primary} />
@@ -243,7 +271,7 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
               <Text style={styles.signInLink}>Se connecter</Text>
             </TouchableOpacity>
           </View>
-        </View>
+        </Animated.View>
       </ScrollView>
     </KeyboardAvoidingView>
     </ImageBackground>
@@ -258,7 +286,7 @@ const styles = StyleSheet.create({
   },
   overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    backgroundColor: 'rgba(0, 0, 0, 0.3)',
   },
   container: {
     flex: 1,
@@ -272,64 +300,64 @@ const styles = StyleSheet.create({
   },
   formContainer: {
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 400,
     alignSelf: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.95)',
-    borderRadius: 20,
-    padding: 32,
+    backgroundColor: 'rgba(255, 255, 255, 0.88)',
+    borderRadius: 24,
+    padding: 24,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.3,
-    shadowRadius: 20,
-    elevation: 10,
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.25,
+    shadowRadius: 24,
+    elevation: 12,
     ...Platform.select({
       web: {
-        backdropFilter: 'blur(10px)',
+        backdropFilter: 'blur(12px)',
       },
     }),
   },
   header: {
     alignItems: 'center',
-    marginBottom: 20,
+    marginBottom: 16,
   },
   iconContainer: {
-    width: 64,
-    height: 64,
-    borderRadius: 16,
+    width: 56,
+    height: 56,
+    borderRadius: 14,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 10,
+    marginBottom: 8,
   },
   title: {
-    fontSize: 26,
+    fontSize: 24,
     fontFamily: FONT.bold,
     color: COLORS.slateDark,
-    marginBottom: 4,
+    marginBottom: 3,
   },
   subtitle: {
-    fontSize: 14,
+    fontSize: 13,
     fontFamily: FONT.regular,
     color: COLORS.slate,
     textAlign: 'center',
   },
   form: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   authMethodToggle: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
     borderRadius: 10,
     padding: 4,
-    marginBottom: 16,
+    marginBottom: 12,
   },
   toggleButton: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
     borderRadius: 8,
     gap: 6,
   },
@@ -366,18 +394,18 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   terms: {
-    fontSize: 11,
+    fontSize: 10,
     fontFamily: FONT.regular,
     color: COLORS.slate,
     textAlign: 'center',
-    marginTop: 12,
-    lineHeight: 16,
+    marginTop: 10,
+    lineHeight: 14,
   },
   footer: {
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 24,
+    marginTop: 16,
   },
   footerText: {
     fontSize: 14,
