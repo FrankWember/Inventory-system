@@ -11,6 +11,7 @@ import {
   Alert,
 } from 'react-native'
 import { Input } from '../components/Input'
+import { PhoneInput } from '../components/PhoneInput'
 import { Button } from '../components/Button'
 import { COLORS, FONT } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
@@ -20,10 +21,14 @@ interface SignUpScreenProps {
   navigation: any
 }
 
+type AuthMethod = 'email' | 'phone'
+
 export default function SignUpScreen({ navigation }: SignUpScreenProps) {
   const { signUp } = useAuth()
+  const [authMethod, setAuthMethod] = useState<AuthMethod>('phone')
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
@@ -35,13 +40,18 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
   }
 
   const handleSignUp = async () => {
-    if (!name.trim() || !email.trim() || !password.trim() || !confirmPassword.trim()) {
+    if (!name.trim() || !password.trim() || !confirmPassword.trim()) {
       Alert.alert('Erreur', 'Veuillez remplir tous les champs')
       return
     }
 
-    if (!validateEmail(email.trim())) {
+    if (authMethod === 'email' && !validateEmail(email.trim())) {
       Alert.alert('Erreur', 'Veuillez entrer une adresse email valide')
+      return
+    }
+
+    if (authMethod === 'phone' && phone.length !== 9) {
+      Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone valide (9 chiffres)')
       return
     }
 
@@ -56,7 +66,12 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
     }
 
     setLoading(true)
-    const { error } = await signUp(email.trim(), password, name.trim())
+    const { error } = await signUp(
+      email.trim(),
+      password,
+      name.trim(),
+      authMethod === 'phone' ? phone : undefined
+    )
     setLoading(false)
 
     if (error) {
@@ -64,7 +79,9 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
     } else {
       Alert.alert(
         'Inscription réussie',
-        'Vérifiez votre email pour confirmer votre compte',
+        authMethod === 'email'
+          ? 'Vérifiez votre email pour confirmer votre compte'
+          : 'Votre compte a été créé avec succès',
         [
           {
             text: 'OK',
@@ -94,6 +111,37 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
           </View>
 
           <View style={styles.form}>
+            <View style={styles.authMethodToggle}>
+              <TouchableOpacity
+                style={[styles.toggleButton, authMethod === 'phone' && styles.toggleButtonActive]}
+                onPress={() => setAuthMethod('phone')}
+                disabled={loading}
+              >
+                <Ionicons
+                  name="call"
+                  size={16}
+                  color={authMethod === 'phone' ? COLORS.white : COLORS.slate}
+                />
+                <Text style={[styles.toggleText, authMethod === 'phone' && styles.toggleTextActive]}>
+                  Téléphone
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.toggleButton, authMethod === 'email' && styles.toggleButtonActive]}
+                onPress={() => setAuthMethod('email')}
+                disabled={loading}
+              >
+                <Ionicons
+                  name="mail"
+                  size={16}
+                  color={authMethod === 'email' ? COLORS.white : COLORS.slate}
+                />
+                <Text style={[styles.toggleText, authMethod === 'email' && styles.toggleTextActive]}>
+                  Email
+                </Text>
+              </TouchableOpacity>
+            </View>
+
             <Input
               label="Nom complet"
               value={name}
@@ -103,16 +151,26 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
               editable={!loading}
             />
 
-            <Input
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="votre@email.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!loading}
-            />
+            {authMethod === 'phone' ? (
+              <PhoneInput
+                label="Numéro de téléphone"
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="6 XX XX XX XX"
+                editable={!loading}
+              />
+            ) : (
+              <Input
+                label="Email"
+                value={email}
+                onChangeText={setEmail}
+                placeholder="votre@email.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+            )}
 
             <View style={styles.passwordContainer}>
               <Input
@@ -187,7 +245,7 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: Platform.OS === 'web' ? COLORS.surface : COLORS.white,
   },
   scrollContent: {
     flexGrow: 1,
@@ -238,6 +296,40 @@ const styles = StyleSheet.create({
   },
   form: {
     marginBottom: 20,
+  },
+  authMethodToggle: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    borderRadius: 10,
+    padding: 4,
+    marginBottom: 20,
+  },
+  toggleButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    gap: 6,
+  },
+  toggleButtonActive: {
+    backgroundColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  toggleText: {
+    fontSize: 13,
+    fontFamily: FONT.semibold,
+    color: COLORS.slate,
+    letterSpacing: -0.2,
+  },
+  toggleTextActive: {
+    color: COLORS.white,
   },
   passwordContainer: {
     position: 'relative',

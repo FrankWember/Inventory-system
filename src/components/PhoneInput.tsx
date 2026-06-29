@@ -1,0 +1,101 @@
+import React from 'react'
+import { View, Text, TextInput, StyleSheet, TextInputProps } from 'react-native'
+import { COLORS, FONT } from '../utils/helpers'
+
+interface PhoneInputProps extends Omit<TextInputProps, 'value' | 'onChangeText'> {
+  label?: string
+  value: string
+  onChangeText: (text: string) => void
+  error?: string
+}
+
+export function PhoneInput({ label, value, onChangeText, error, ...props }: PhoneInputProps) {
+  const handleChange = (text: string) => {
+    // Only allow numbers
+    const cleaned = text.replace(/[^0-9]/g, '')
+    // Limit to 9 digits (Cameroon phone without country code)
+    if (cleaned.length <= 9) {
+      onChangeText(cleaned)
+    }
+  }
+
+  const formatDisplay = (val: string) => {
+    // Format as XXX XXX XXX for better readability
+    if (val.length <= 3) return val
+    if (val.length <= 6) return `${val.slice(0, 3)} ${val.slice(3)}`
+    return `${val.slice(0, 3)} ${val.slice(3, 6)} ${val.slice(6)}`
+  }
+
+  return (
+    <View style={styles.container}>
+      {label && <Text style={styles.label}>{label}</Text>}
+      <View style={[styles.inputWrapper, error && styles.inputWrapperError]}>
+        <View style={styles.countryCode}>
+          <Text style={styles.countryCodeText}>🇨🇲 +237</Text>
+        </View>
+        <TextInput
+          style={styles.input}
+          value={formatDisplay(value)}
+          onChangeText={handleChange}
+          keyboardType="phone-pad"
+          placeholderTextColor={COLORS.slate400}
+          {...props}
+        />
+      </View>
+      {error && <Text style={styles.errorText}>{error}</Text>}
+    </View>
+  )
+}
+
+const styles = StyleSheet.create({
+  container: {
+    marginBottom: 16,
+  },
+  label: {
+    fontSize: 14,
+    fontFamily: FONT.semibold,
+    color: COLORS.slateDark,
+    marginBottom: 8,
+    letterSpacing: -0.2,
+  },
+  inputWrapper: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    borderRadius: 12,
+    backgroundColor: COLORS.white,
+  },
+  inputWrapperError: {
+    borderColor: COLORS.rose,
+  },
+  countryCode: {
+    paddingLeft: 16,
+    paddingRight: 12,
+    borderRightWidth: 1,
+    borderRightColor: COLORS.border,
+    height: '100%',
+    justifyContent: 'center',
+  },
+  countryCodeText: {
+    fontSize: 15,
+    fontFamily: FONT.medium,
+    color: COLORS.slateDark,
+  },
+  input: {
+    flex: 1,
+    height: 50,
+    paddingHorizontal: 16,
+    fontSize: 15,
+    fontFamily: FONT.medium,
+    color: COLORS.slateDark,
+    letterSpacing: 0.5,
+  },
+  errorText: {
+    fontSize: 12,
+    fontFamily: FONT.medium,
+    color: COLORS.rose,
+    marginTop: 4,
+    marginLeft: 4,
+  },
+})

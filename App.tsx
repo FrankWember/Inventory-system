@@ -39,6 +39,7 @@ import ChartDetailScreen, { ChartDetailRow } from './src/screens/ChartDetailScre
 import SignInScreen from './src/screens/SignInScreen'
 import SignUpScreen from './src/screens/SignUpScreen'
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen'
+import { WelcomeLoadingScreen } from './src/components/WelcomeLoadingScreen'
 import { BarChartItem } from './src/components/SimpleBarChart'
 
 const BREAKPOINT = 768
@@ -158,7 +159,7 @@ function MainTabs() {
 }
 
 function RootNavigator() {
-  const { user, loading } = useAuth()
+  const { user, loading, isWelcomeLoading } = useAuth()
 
   if (loading) {
     return (
@@ -166,6 +167,11 @@ function RootNavigator() {
         <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     )
+  }
+
+  if (isWelcomeLoading && user) {
+    const displayName = user.user_metadata?.display_name || user.email?.split('@')[0]
+    return <WelcomeLoadingScreen name={displayName} isReturningUser />
   }
 
   return (

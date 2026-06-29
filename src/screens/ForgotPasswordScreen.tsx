@@ -122,7 +122,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: Platform.OS === 'web' ? COLORS.surface : COLORS.white,
   },
   scrollContent: {
     flexGrow: 1,
