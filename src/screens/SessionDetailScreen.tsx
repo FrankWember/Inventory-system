@@ -104,21 +104,43 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
   const grossProfit = session.total_revenue - session.total_cost
   const netProfit = session.total_revenue - session.total_cost - totalExpenses
 
+  // Check if we're in desktop split view by checking if navigation has canGoBack
+  const isEmbedded = Platform.OS === 'web' && navigation.canGoBack && !navigation.canGoBack()
+
   return (
     <View style={styles.container}>
-      <ScreenHeader
-        title="Journal de caisse"
-        subtitle={dateLabelLong(session.date)}
-        onBack={() => navigation.goBack()}
-        right={
-          Platform.OS === 'web' ? (
-            <TouchableOpacity onPress={handlePrint} style={styles.printButton}>
+      {!isEmbedded && (
+        <ScreenHeader
+          title="Journal de caisse"
+          subtitle={dateLabelLong(session.date)}
+          onBack={() => navigation.goBack()}
+          right={
+            Platform.OS === 'web' ? (
+              <TouchableOpacity onPress={handlePrint} style={styles.printButton}>
+                <Ionicons name="print-outline" size={18} color={COLORS.primary} />
+                <Text style={styles.printText}>Imprimer</Text>
+              </TouchableOpacity>
+            ) : null
+          }
+        />
+      )}
+      {isEmbedded && (
+        <View style={styles.embeddedHeader}>
+          <View style={styles.embeddedHeaderButtons}>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('SessionDetail', { sessionId })}
+              style={styles.expandButton}
+            >
+              <Ionicons name="expand-outline" size={18} color={COLORS.primary} />
+              <Text style={styles.expandText}>Plein écran</Text>
+            </TouchableOpacity>
+            <TouchableOpacity onPress={handlePrint} style={styles.printButtonEmbedded}>
               <Ionicons name="print-outline" size={18} color={COLORS.primary} />
               <Text style={styles.printText}>Imprimer</Text>
             </TouchableOpacity>
-          ) : null
-        }
-      />
+          </View>
+        </View>
+      )}
       <ScrollView
         contentContainerStyle={styles.body}
         // @ts-ignore - className is valid for web
@@ -154,19 +176,132 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
 
         <View style={styles.plCard}>
           <Text style={styles.plTitle}>Compte de résultat</Text>
-          <JournalRow label="Revenu des ventes" value={fmt(session.total_revenue)} positive />
-          <JournalRow label={`Unités vendues (${fmtNum(totalUnits)})`} value="" muted />
-          <JournalRow label="Coût des achats" value={`-${fmt(session.total_cost)}`} negative />
-          <JournalRow label="Marge brute" value={fmt(grossProfit)} highlight />
-          <JournalRow label="Dépenses opérationnelles" value={`-${fmt(totalExpenses)}`} negative />
+
+          {/* Revenue Section */}
+          <View style={styles.plSection}>
+            <Text style={styles.plSectionTitle}>Revenus</Text>
+            <JournalRow label="Ventes totales" value={fmt(session.total_revenue)} positive />
+            <JournalRow label={`Unités vendues (${fmtNum(totalUnits)})`} value="" muted />
+            {saleLines.length > 0 && (
+              <View style={styles.plBreakdown}>
+                <Text style={styles.plBreakdownTitle}>Détail par article:</Text>
+                {saleLines.slice(0, 5).map(line => (
+                  <JournalRow
+                    key={line.id}
+                    label={`  ${line.drink_name}`}
+                    value={fmt(line.revenue)}
+                    muted
+                  />
+                ))}
+                {saleLines.length > 5 && (
+                  <Text style={styles.plMore}>...et {saleLines.length - 5} autres</Text>
+                )}
+              </View>
+            )}
+          </View>
+
           <View style={styles.plDivider} />
+
+          {/* Costs Section */}
+          <View style={styles.plSection}>
+            <Text style={styles.plSectionTitle}>Coûts et dépenses</Text>
+            <JournalRow label="Coût des achats" value={`-${fmt(session.total_cost)}`} negative />
+            {purchaseLines.length > 0 && (
+              <View style={styles.plBreakdown}>
+                <Text style={styles.plBreakdownTitle}>Détail des achats:</Text>
+                {purchaseLines.map(line => (
+                  <JournalRow
+                    key={line.id}
+                    label={`  ${line.drink_name} (${fmtNum(line.purchased)})`}
+                    value={`-${fmt(line.cost)}`}
+                    muted
+                  />
+                ))}
+              </View>
+            )}
+            <JournalRow label="Dépenses opérationnelles" value={`-${fmt(totalExpenses)}`} negative />
+            {expenses.length > 0 && (
+              <View style={styles.plBreakdown}>
+                <Text style={styles.plBreakdownTitle}>Détail des dépenses:</Text>
+                {expenses.map(exp => (
+                  <JournalRow
+                    key={exp.id}
+                    label={`  ${exp.label}`}
+                    value={`-${fmt(exp.amount)}`}
+                    muted
+                  />
+                ))}
+              </View>
+            )}
+          </View>
+
+          <View style={styles.plDivider} />
+
+          {/* Summary Section */}
+          <View style={styles.plSection}>
+            <JournalRow label="Marge brute" value={fmt(grossProfit)} highlight />
+            <JournalRow label="Taux de marge" value={`${session.total_revenue > 0 ? ((grossProfit / session.total_revenue) * 100).toFixed(1) : 0}%`} muted />
+          </View>
+
+          <View style={styles.plDivider} />
+
           <JournalRow
             label="Résultat net"
             value={fmt(netProfit)}
             bold
             valueColor={netProfit >= 0 ? COLORS.primary : COLORS.rose}
           />
+          <JournalRow
+            label="Rentabilité nette"
+            value={`${session.total_revenue > 0 ? ((netProfit / session.total_revenue) * 100).toFixed(1) : 0}%`}
+            muted
+          />
         </View>
+
+        <Section title="Flux de stock détaillé" count={lines.filter(l => l.opening_stock > 0 || l.purchased > 0 || l.sold > 0).length}>
+          {lines.filter(l => l.opening_stock > 0 || l.purchased > 0 || l.sold > 0).length === 0 ? (
+            <Text style={styles.sectionEmpty}>Aucun mouvement de stock</Text>
+          ) : (
+            <View style={styles.table}>
+              <View style={styles.stockFlowHeader}>
+                <Text style={[styles.stockFlowHeaderText, { flex: 2, textAlign: 'left' }]}>Article</Text>
+                <Text style={styles.stockFlowHeaderText}>Départ</Text>
+                <Text style={styles.stockFlowHeaderText}>Achats</Text>
+                <Text style={styles.stockFlowHeaderText}>Après achats</Text>
+                <Text style={styles.stockFlowHeaderText}>Vendus</Text>
+                <Text style={styles.stockFlowHeaderText}>Final</Text>
+              </View>
+              {lines
+                .filter(l => l.opening_stock > 0 || l.purchased > 0 || l.sold > 0)
+                .map(line => {
+                  const cat = drinksCategoryMap[line.drink_id] ?? 'Autre'
+                  const afterPurchase = line.opening_stock + line.purchased
+                  return (
+                    <View key={line.id} style={styles.stockFlowRow}>
+                      <Text style={[styles.stockFlowCell, styles.stockFlowCellName, { flex: 2 }]} numberOfLines={2}>{line.drink_name}</Text>
+                      <Text style={styles.stockFlowCell}>{formatWithCassiers(line.opening_stock, cat)}</Text>
+                      <Text style={[styles.stockFlowCell, line.purchased > 0 && { color: COLORS.emerald, fontFamily: FONT.bold }]}>
+                        {line.purchased > 0 ? `+${formatWithCassiers(line.purchased, cat)}` : '-'}
+                      </Text>
+                      <Text style={styles.stockFlowCell}>{formatWithCassiers(afterPurchase, cat)}</Text>
+                      <Text style={[styles.stockFlowCell, line.sold > 0 && { color: COLORS.primary, fontFamily: FONT.bold }]}>
+                        {line.sold > 0 ? formatWithCassiers(line.sold, cat) : '-'}
+                      </Text>
+                      <Text style={styles.stockFlowCell}>{formatWithCassiers(line.closing_stock, cat)}</Text>
+                    </View>
+                  )
+                })}
+              <View style={styles.stockFlowTotals}>
+                <Text style={[styles.stockFlowTotalLabel, { flex: 2, textAlign: 'left' }]}>Totaux</Text>
+                <Text style={styles.stockFlowTotalValue}>{fmtNum(lines.reduce((s, l) => s + l.opening_stock, 0))}</Text>
+                <Text style={[styles.stockFlowTotalValue, { color: COLORS.emerald }]}>+{fmtNum(lines.reduce((s, l) => s + l.purchased, 0))}</Text>
+                <Text style={styles.stockFlowTotalValue}>{fmtNum(lines.reduce((s, l) => s + l.opening_stock + l.purchased, 0))}</Text>
+                <Text style={[styles.stockFlowTotalValue, { color: COLORS.primary }]}>{fmtNum(lines.reduce((s, l) => s + l.sold, 0))}</Text>
+                <Text style={styles.stockFlowTotalValue}>{fmtNum(lines.reduce((s, l) => s + l.closing_stock, 0))}</Text>
+              </View>
+            </View>
+          )}
+        </Section>
 
         <Section title="Réceptions / Achats" count={purchaseLines.length}>
           {purchaseLines.length === 0 ? (
@@ -312,7 +447,12 @@ function TableRow({ cols }: { cols: string[] }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surface },
+  container: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+    overflow: 'hidden',
+    maxWidth: '100%',
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -342,7 +482,12 @@ const styles = StyleSheet.create({
     fontFamily: FONT.semibold,
     color: COLORS.primary,
   },
-  body: { padding: 16, paddingBottom: 40 },
+  body: {
+    padding: 16,
+    paddingBottom: 40,
+    maxWidth: '100%',
+    overflow: 'auto',
+  },
   printHeader: {
     display: 'none', // Hidden on screen, shown in print via CSS
     alignItems: 'center',
@@ -389,6 +534,70 @@ const styles = StyleSheet.create({
     fontFamily: FONT.semibold,
     color: COLORS.slateDark
   },
+  stockFlowHeader: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderBottomWidth: 2,
+    borderBottomColor: COLORS.primary,
+    gap: 6,
+  },
+  stockFlowHeaderText: {
+    fontSize: 10,
+    fontFamily: FONT.bold,
+    color: COLORS.slateDark,
+    textTransform: 'uppercase',
+    textAlign: 'center',
+    flex: 1,
+    minWidth: 0,
+  },
+  stockFlowRow: {
+    flexDirection: 'row',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    alignItems: 'center',
+    gap: 6,
+  },
+  stockFlowCell: {
+    fontSize: 12,
+    fontFamily: FONT.medium,
+    color: COLORS.slateDark,
+    textAlign: 'center',
+    flex: 1,
+    minWidth: 0,
+    fontVariant: ['tabular-nums'],
+  },
+  stockFlowCellName: {
+    fontFamily: FONT.bold,
+    textAlign: 'left',
+  },
+  stockFlowTotals: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.primaryLight + '80',
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    gap: 6,
+    alignItems: 'center',
+  },
+  stockFlowTotalLabel: {
+    fontSize: 12,
+    fontFamily: FONT.bold,
+    color: COLORS.slateDark,
+    flex: 1,
+    minWidth: 0,
+  },
+  stockFlowTotalValue: {
+    fontSize: 13,
+    fontFamily: FONT.bold,
+    color: COLORS.slateDark,
+    textAlign: 'center',
+    flex: 1,
+    minWidth: 0,
+    fontVariant: ['tabular-nums'],
+  },
   plCard: {
     backgroundColor: COLORS.white,
     borderRadius: 14,
@@ -401,6 +610,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 3,
     elevation: 1,
+    maxWidth: '100%',
+    overflow: 'hidden',
   },
   plTitle: {
     fontSize: 16,
@@ -456,6 +667,8 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.03,
     shadowRadius: 3,
     elevation: 1,
+    maxWidth: '100%',
+    overflow: 'hidden',
   },
   sectionHead: {
     flexDirection: 'row',
@@ -487,7 +700,8 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 10,
-    overflow: 'hidden'
+    overflow: 'hidden',
+    maxWidth: '100%',
   },
   tableHeader: {
     flexDirection: 'row',
@@ -540,12 +754,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     gap: 8,
+    maxWidth: '100%',
   },
   movementName: {
     flex: 1,
     fontSize: 13,
     fontFamily: FONT.medium,
-    color: COLORS.slateDark
+    color: COLORS.slateDark,
+    minWidth: 0,
   },
   movementFlow: {
     fontSize: 12,
@@ -576,6 +792,92 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: FONT.semibold,
     color: COLORS.primary,
+  },
+  embeddedHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.white,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  embeddedHeaderButtons: {
+    flexDirection: 'row',
+    gap: 8,
+  },
+  expandButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.slateLight,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.slate,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      },
+    }),
+  },
+  expandText: {
+    fontSize: 13,
+    fontFamily: FONT.semibold,
+    color: COLORS.slateDark,
+  },
+  printButtonEmbedded: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    backgroundColor: COLORS.primaryLight,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        '@media print': {
+          display: 'none',
+        },
+      },
+    }),
+  },
+  plSection: {
+    marginBottom: 8,
+  },
+  plSectionTitle: {
+    fontSize: 14,
+    fontFamily: FONT.bold,
+    color: COLORS.slateDark,
+    marginBottom: 8,
+    marginTop: 4,
+  },
+  plBreakdown: {
+    marginTop: 8,
+    marginLeft: 8,
+    paddingLeft: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: COLORS.primaryLight,
+  },
+  plBreakdownTitle: {
+    fontSize: 12,
+    fontFamily: FONT.semibold,
+    color: COLORS.slate,
+    marginBottom: 4,
+  },
+  plMore: {
+    fontSize: 11,
+    fontFamily: FONT.regular,
+    color: COLORS.slate,
+    fontStyle: 'italic',
+    marginTop: 4,
+    marginLeft: 8,
   },
   printHeader: {
     display: 'none', // Hidden by default, shown only in print

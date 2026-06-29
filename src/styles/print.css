@@ -1,14 +1,16 @@
 /* Print Styles for Session Detail */
 @media print {
-  /* Hide everything by default */
-  body > div:not([class*="session-detail"]) {
-    display: none !important;
-  }
-
   /* Show only the printable content */
   body {
     margin: 0 !important;
     padding: 0 !important;
+    background: white !important;
+    overflow: visible !important;
+  }
+
+  /* Ensure root container is visible */
+  #root,
+  #root > div {
     background: white !important;
     overflow: visible !important;
   }
@@ -34,11 +36,24 @@
   .no-print,
   button,
   .print-hide,
-  [role="button"],
-  header,
-  nav {
+  [role="button"] {
     display: none !important;
     visibility: hidden !important;
+  }
+
+  /* Hide navigation and headers specifically by class/structure, not generic selectors */
+  [class*="ScreenHeader"],
+  [style*="position: absolute"][style*="top: 0"],
+  header:not(.print-only),
+  nav:not(.print-only) {
+    display: none !important;
+    visibility: hidden !important;
+  }
+
+  /* Hide expand/modal buttons in print */
+  button[class*="expand"],
+  button[class*="modal"] {
+    display: none !important;
   }
 
   /* Optimize page layout for printing */
@@ -144,6 +159,26 @@
   .session-detail-print > div,
   .session-detail-print div {
     display: block !important;
+  }
+
+  /* Optimize profit/loss breakdown for print */
+  .session-detail-print [class*="plBreakdown"] {
+    margin-top: 8px !important;
+    page-break-inside: avoid;
+  }
+
+  /* Ensure tables are readable in print */
+  .session-detail-print table,
+  .session-detail-print [class*="table"] {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    page-break-inside: avoid;
+  }
+
+  /* Better spacing for detail sections */
+  .session-detail-print [class*="plSection"] {
+    margin-bottom: 16px !important;
+    page-break-inside: avoid;
   }
 }
 

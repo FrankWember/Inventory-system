@@ -94,6 +94,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 20,
+    ...Platform.select({
+      web: {
+        zIndex: 1000,
+      },
+      default: {
+        zIndex: 1000,
+      },
+    }),
   },
   dialog: {
     backgroundColor: COLORS.white,
@@ -104,6 +112,7 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         boxShadow: '0 10px 40px rgba(0,0,0,0.2)',
+        zIndex: 1001,
       },
       default: {
         shadowColor: '#000',

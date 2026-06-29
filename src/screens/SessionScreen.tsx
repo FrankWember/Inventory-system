@@ -91,18 +91,18 @@ export default function SessionScreen({ navigation }: any) {
   const isXLScreen = Platform.OS === 'web' && windowWidth >= BREAKPOINT_XL
   const numColumns = isDesktop ? 2 : 1
 
-  // Calculate responsive widths for split view
-  const getLeftPanelWidth = () => {
-    if (!selectedSessionId) return '100%'
-    if (isXLScreen) return '40%' // More space for detail on XL screens
-    if (isLargeScreen) return '45%'
-    return '50%'
+  // Calculate responsive flex values for split view
+  const getLeftPanelFlex = () => {
+    if (!selectedSessionId) return 1
+    if (isXLScreen) return 0.4 // More space for detail on XL screens
+    if (isLargeScreen) return 0.45
+    return 0.5
   }
 
-  const getRightPanelWidth = () => {
-    if (isXLScreen) return '60%'
-    if (isLargeScreen) return '55%'
-    return '50%'
+  const getRightPanelFlex = () => {
+    if (isXLScreen) return 0.6
+    if (isLargeScreen) return 0.55
+    return 0.5
   }
 
   const drinksCategoryMap = useMemo(
@@ -574,21 +574,23 @@ export default function SessionScreen({ navigation }: any) {
   // Desktop split view content
   const sessionListContent = (
     <View style={styles.container}>
-      <ScreenHeader
-        title="Session"
-        subtitle={dateLabel(selectedDate)}
-        right={!isDesktop && (
-          <TouchableOpacity
-            onPress={() => {
-              const s = closedToday ?? openSession ?? pastSessions[0]
-              if (s) openJournal(s)
-            }}
-            style={styles.historyBtn}
-          >
-            <Ionicons name="journal-outline" size={22} color={COLORS.primary} />
-          </TouchableOpacity>
-        )}
-      />
+      {(!isDesktop || step !== 'done' || !selectedSessionId) && (
+        <ScreenHeader
+          title="Session"
+          subtitle={dateLabel(selectedDate)}
+          right={!isDesktop && (
+            <TouchableOpacity
+              onPress={() => {
+                const s = closedToday ?? openSession ?? pastSessions[0]
+                if (s) openJournal(s)
+              }}
+              style={styles.historyBtn}
+            >
+              <Ionicons name="journal-outline" size={22} color={COLORS.primary} />
+            </TouchableOpacity>
+          )}
+        />
+      )}
 
       {/* Calendar for date selection */}
       {isDesktop && step === 'done' && (
@@ -929,27 +931,38 @@ export default function SessionScreen({ navigation }: any) {
 
   // Desktop split view
   if (isDesktop && step === 'done') {
+    // Get the selected session to show its date
+    const selectedSession = allSessions.find(s => s.id === selectedSessionId)
+
     return (
-      <FadeIn style={styles.desktopContainer}>
-        <View style={[styles.desktopLeft, { width: getLeftPanelWidth() }]}>
-          {sessionListContent}
-        </View>
-        {selectedSessionId && (
-          <FadeIn style={[styles.desktopRight, { width: getRightPanelWidth() }]} duration={300}>
-            <View style={styles.detailHeader}>
-              <TouchableOpacity onPress={() => setSelectedSessionId(null)} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={COLORS.slate} />
+      <FadeIn style={styles.desktopMainContainer}>
+        {selectedSessionId && selectedSession && (
+          <ScreenHeader
+            title="Session"
+            subtitle={dateLabelLong(selectedSession.date)}
+            left={
+              <TouchableOpacity onPress={() => setSelectedSessionId(null)} style={styles.closeJournalBtn}>
+                <Ionicons name="close" size={24} color={COLORS.slateDark} />
               </TouchableOpacity>
-            </View>
-            <SessionDetailScreen
-              route={{ params: { sessionId: selectedSessionId } } as any}
-              navigation={{
-                ...navigation,
-                goBack: () => setSelectedSessionId(null)
-              } as any}
-            />
-          </FadeIn>
+            }
+          />
         )}
+        <View style={styles.desktopContainer}>
+          <View style={[styles.desktopLeft, { flex: getLeftPanelFlex() }]}>
+            {sessionListContent}
+          </View>
+          {selectedSessionId && (
+            <FadeIn style={[styles.desktopRight, { flex: getRightPanelFlex() }]} duration={300}>
+              <SessionDetailScreen
+                route={{ params: { sessionId: selectedSessionId } } as any}
+                navigation={{
+                  ...navigation,
+                  goBack: () => setSelectedSessionId(null)
+                } as any}
+              />
+            </FadeIn>
+          )}
+        </View>
       </FadeIn>
     )
   }
@@ -1291,22 +1304,46 @@ const styles = StyleSheet.create({
   footerPrimaryText: { fontSize: 14, fontFamily: FONT.bold, color: COLORS.white },
   footerDisabled: { opacity: 0.6 },
   // Desktop split view styles
+  desktopMainContainer: {
+    flex: 1,
+    backgroundColor: COLORS.surface,
+  },
+  closeJournalBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: COLORS.surface,
+    alignItems: 'center',
+    justifyContent: 'center',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+      },
+    }),
+  },
   desktopContainer: {
     flex: 1,
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
+    overflow: 'hidden',
   },
   desktopLeft: {
     backgroundColor: COLORS.surface,
-    transition: Platform.OS === 'web' ? 'width 0.3s ease' : undefined,
+    minWidth: 0,
+    overflow: 'hidden',
+    transition: Platform.OS === 'web' ? 'flex 0.3s ease' : undefined,
   },
   desktopRight: {
     backgroundColor: COLORS.white,
-    margin: 20,
+    marginTop: 16,
+    marginRight: 20,
+    marginBottom: 20,
     marginLeft: 16,
     borderRadius: 20,
     overflow: 'hidden',
-    transition: Platform.OS === 'web' ? 'width 0.3s ease' : undefined,
+    minWidth: 0,
+    transition: Platform.OS === 'web' ? 'flex 0.3s ease' : undefined,
     ...Platform.select({
       web: {
         boxShadow: '0 2px 16px rgba(0, 0, 0, 0.08)',
@@ -1320,25 +1357,6 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  detailHeader: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    padding: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.white,
-  },
-  closeButton: {
-    padding: 8,
-    borderRadius: 10,
-    backgroundColor: COLORS.surface,
-    ...Platform.select({
-      web: {
-        cursor: 'pointer',
-        transition: 'all 0.2s ease',
-      },
-    }),
-  },
   calendarContainer: {
     backgroundColor: COLORS.white,
     marginHorizontal: 16,
@@ -1346,12 +1364,13 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 20,
     overflow: 'hidden',
-    aspectRatio: 1.2,
     ...Platform.select({
       web: {
+        maxHeight: 400,
         boxShadow: '0 2px 16px rgba(0, 0, 0, 0.08)',
       },
       default: {
+        aspectRatio: 1.2,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.08,
