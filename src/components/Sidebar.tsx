@@ -69,6 +69,8 @@ export function Sidebar({ currentRoute, onNavigate }: SidebarProps) {
 const styles = StyleSheet.create({
   container: {
     width: 280,
+    minWidth: 240,
+    maxWidth: 320,
     backgroundColor: COLORS.white,
     height: '100%',
     flexDirection: 'column',
@@ -80,6 +82,13 @@ const styles = StyleSheet.create({
     ...Platform.select({
       web: {
         boxShadow: '2px 0 12px rgba(0, 0, 0, 0.06)',
+        // Responsive width
+        '@media (max-width: 1024px)': {
+          width: 240,
+        },
+        '@media (min-width: 1600px)': {
+          width: 300,
+        },
       },
       default: {
         shadowColor: '#000',

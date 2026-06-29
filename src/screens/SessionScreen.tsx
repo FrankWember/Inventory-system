@@ -53,6 +53,8 @@ const STEPS = [
 ]
 
 const BREAKPOINT = 768
+const BREAKPOINT_LARGE = 1280
+const BREAKPOINT_XL = 1600
 const GRID_GAP = 8
 const GRID_PADDING = 12
 
@@ -85,7 +87,23 @@ export default function SessionScreen({ navigation }: any) {
   const categories: Array<Category | 'Tout'> = ['Tout', 'Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre']
   const todayStr = today()
   const isDesktop = Platform.OS === 'web' && windowWidth >= BREAKPOINT
+  const isLargeScreen = Platform.OS === 'web' && windowWidth >= BREAKPOINT_LARGE
+  const isXLScreen = Platform.OS === 'web' && windowWidth >= BREAKPOINT_XL
   const numColumns = isDesktop ? 2 : 1
+
+  // Calculate responsive widths for split view
+  const getLeftPanelWidth = () => {
+    if (!selectedSessionId) return '100%'
+    if (isXLScreen) return '40%' // More space for detail on XL screens
+    if (isLargeScreen) return '45%'
+    return '50%'
+  }
+
+  const getRightPanelWidth = () => {
+    if (isXLScreen) return '60%'
+    if (isLargeScreen) return '55%'
+    return '50%'
+  }
 
   const drinksCategoryMap = useMemo(
     () => Object.fromEntries(drinks.map(d => [d.id, d.category])),
@@ -913,11 +931,11 @@ export default function SessionScreen({ navigation }: any) {
   if (isDesktop && step === 'done') {
     return (
       <FadeIn style={styles.desktopContainer}>
-        <View style={[styles.desktopLeft, !selectedSessionId && styles.desktopLeftFull]}>
+        <View style={[styles.desktopLeft, { width: getLeftPanelWidth() }]}>
           {sessionListContent}
         </View>
         {selectedSessionId && (
-          <FadeIn style={styles.desktopRight} duration={300}>
+          <FadeIn style={[styles.desktopRight, { width: getRightPanelWidth() }]} duration={300}>
             <View style={styles.detailHeader}>
               <TouchableOpacity onPress={() => setSelectedSessionId(null)} style={styles.closeButton}>
                 <Ionicons name="close" size={24} color={COLORS.slate} />
@@ -1279,21 +1297,16 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
   },
   desktopLeft: {
-    width: '50%',
     backgroundColor: COLORS.surface,
-    borderRightWidth: 1,
-    borderRightColor: COLORS.border,
-  },
-  desktopLeftFull: {
-    width: '100%',
+    transition: Platform.OS === 'web' ? 'width 0.3s ease' : undefined,
   },
   desktopRight: {
-    width: '50%',
     backgroundColor: COLORS.white,
     margin: 20,
     marginLeft: 16,
     borderRadius: 20,
     overflow: 'hidden',
+    transition: Platform.OS === 'web' ? 'width 0.3s ease' : undefined,
     ...Platform.select({
       web: {
         boxShadow: '0 2px 16px rgba(0, 0, 0, 0.08)',
@@ -1328,20 +1341,20 @@ const styles = StyleSheet.create({
   },
   calendarContainer: {
     backgroundColor: COLORS.white,
-    marginHorizontal: 12,
-    marginTop: 12,
-    borderRadius: 16,
+    marginHorizontal: 16,
+    marginTop: 16,
+    marginBottom: 16,
+    borderRadius: 20,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    aspectRatio: 1.2,
     ...Platform.select({
       web: {
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+        boxShadow: '0 2px 16px rgba(0, 0, 0, 0.08)',
       },
       default: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
+        shadowOpacity: 0.08,
         shadowRadius: 8,
         elevation: 2,
       },
@@ -1349,7 +1362,7 @@ const styles = StyleSheet.create({
   },
   sessionStatusCard: {
     backgroundColor: COLORS.white,
-    marginHorizontal: 12,
+    marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 16,
     borderRadius: 16,

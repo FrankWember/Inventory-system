@@ -1,22 +1,27 @@
 /* Print Styles for Session Detail */
 @media print {
   /* Hide everything by default */
-  body * {
-    visibility: hidden;
+  body > div:not([class*="session-detail"]) {
+    display: none !important;
   }
 
-  /* Only show the session detail container and its children */
-  .session-detail-print,
-  .session-detail-print * {
-    visibility: visible;
+  /* Show only the printable content */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: white !important;
+    overflow: visible !important;
   }
 
-  /* Position the printable content at the top of the page */
+  /* Position the printable content */
   .session-detail-print {
-    position: absolute;
-    left: 0;
-    top: 0;
-    width: 100%;
+    display: block !important;
+    position: static !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 16px !important;
+    overflow: visible !important;
+    background: white !important;
   }
 
   /* Show elements that should only appear in print */
@@ -30,9 +35,8 @@
   button,
   .print-hide,
   [role="button"],
-  nav,
   header,
-  footer {
+  nav {
     display: none !important;
     visibility: hidden !important;
   }
@@ -59,8 +63,13 @@
     margin: 0;
     padding: 0;
     background: white !important;
-    height: auto;
-    overflow: visible;
+    height: auto !important;
+    overflow: visible !important;
+    width: 100% !important;
+  }
+
+  body {
+    display: block !important;
   }
 
   /* Ensure content fits on page */
@@ -94,8 +103,10 @@
 
   /* Print-specific adjustments */
   .session-detail-print {
-    padding: 0 !important;
+    padding: 16px !important;
     background: white !important;
+    overflow: visible !important;
+    display: block !important;
   }
 
   /* Show print header */
@@ -111,17 +122,28 @@
 
   /* Better spacing for sections */
   .session-detail-print > div {
-    margin-bottom: 16px;
-  }
-
-  /* Ensure proper page breaks */
-  .session-detail-print > div:nth-child(n+3) {
+    margin-bottom: 12px;
     page-break-inside: avoid;
+    display: block !important;
   }
 
   /* Hide icons in print */
-  svg {
+  .no-print svg,
+  button svg,
+  header svg {
     display: none !important;
+  }
+
+  /* Ensure all content is visible */
+  .session-detail-print,
+  .session-detail-print * {
+    visibility: visible !important;
+  }
+
+  /* Force display of View elements */
+  .session-detail-print > div,
+  .session-detail-print div {
+    display: block !important;
   }
 }
 

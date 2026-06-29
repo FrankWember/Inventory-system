@@ -111,12 +111,12 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
         subtitle={dateLabelLong(session.date)}
         onBack={() => navigation.goBack()}
         right={
-          Platform.OS === 'web' && (
+          Platform.OS === 'web' ? (
             <TouchableOpacity onPress={handlePrint} style={styles.printButton}>
-              <Ionicons name="print-outline" size={20} color={COLORS.primary} />
+              <Ionicons name="print-outline" size={18} color={COLORS.primary} />
               <Text style={styles.printText}>Imprimer</Text>
             </TouchableOpacity>
-          )
+          ) : null
         }
       />
       <ScrollView
@@ -324,12 +324,21 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     paddingHorizontal: 12,
-    paddingVertical: 8,
+    paddingVertical: 7,
     borderRadius: 8,
     backgroundColor: COLORS.primaryLight,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        ':hover': {
+          backgroundColor: COLORS.primary,
+        },
+      },
+    }),
   },
   printText: {
-    fontSize: 14,
+    fontSize: 12,
     fontFamily: FONT.semibold,
     color: COLORS.primary,
   },
