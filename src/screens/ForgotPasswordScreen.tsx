@@ -70,48 +70,50 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="key" size={48} color={COLORS.primary} />
+        <View style={styles.formContainer}>
+          <View style={styles.header}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="key" size={48} color={COLORS.primary} />
+            </View>
+            <Text style={styles.title}>Mot de passe oublié</Text>
+            <Text style={styles.subtitle}>
+              Entrez votre email pour recevoir un lien de réinitialisation
+            </Text>
           </View>
-          <Text style={styles.title}>Mot de passe oublié</Text>
-          <Text style={styles.subtitle}>
-            Entrez votre email pour recevoir un lien de réinitialisation
-          </Text>
-        </View>
 
-        <View style={styles.form}>
-          <Input
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="votre@email.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!loading}
-          />
-
-          <Button
-            onPress={handleResetPassword}
-            disabled={loading}
-            style={styles.button}
-          >
-            {loading ? 'Envoi...' : 'Envoyer le lien'}
-          </Button>
-
-          {loading && (
-            <ActivityIndicator
-              size="small"
-              color={COLORS.primary}
-              style={styles.loader}
+          <View style={styles.form}>
+            <Input
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="votre@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!loading}
             />
-          )}
-        </View>
 
-        <TouchableOpacity onPress={() => navigation.goBack()} disabled={loading}>
-          <Text style={styles.backLink}>Retour à la connexion</Text>
-        </TouchableOpacity>
+            <Button
+              onPress={handleResetPassword}
+              disabled={loading}
+              style={styles.button}
+            >
+              {loading ? 'Envoi...' : 'Envoyer le lien'}
+            </Button>
+
+            {loading && (
+              <ActivityIndicator
+                size="small"
+                color={COLORS.primary}
+                style={styles.loader}
+              />
+            )}
+          </View>
+
+          <TouchableOpacity onPress={() => navigation.goBack()} disabled={loading}>
+            <Text style={styles.backLink}>Retour à la connexion</Text>
+          </TouchableOpacity>
+        </View>
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -126,36 +128,53 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
+    alignItems: 'center',
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: 440,
+    ...Platform.select({
+      web: {
+        backgroundColor: COLORS.white,
+        borderRadius: 16,
+        padding: 32,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
+      default: {},
+    }),
   },
   header: {
     alignItems: 'center',
-    marginBottom: 40,
+    marginBottom: 32,
   },
   iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
+    width: 72,
+    height: 72,
+    borderRadius: 18,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontFamily: FONT.bold,
     color: COLORS.slateDark,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: FONT.regular,
     color: COLORS.slate,
     textAlign: 'center',
-    paddingHorizontal: 20,
-    lineHeight: 22,
+    paddingHorizontal: 0,
+    lineHeight: 20,
   },
   form: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   button: {
     marginTop: 16,

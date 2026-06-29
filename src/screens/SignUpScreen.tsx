@@ -84,98 +84,100 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <View style={styles.header}>
-          <View style={styles.iconContainer}>
-            <Ionicons name="beer" size={48} color={COLORS.primary} />
+        <View style={styles.formContainer}>
+          <View style={styles.header}>
+            <View style={styles.iconContainer}>
+              <Ionicons name="beer" size={48} color={COLORS.primary} />
+            </View>
+            <Text style={styles.title}>Créer un compte</Text>
+            <Text style={styles.subtitle}>Rejoignez BarTrack aujourd'hui</Text>
           </View>
-          <Text style={styles.title}>Créer un compte</Text>
-          <Text style={styles.subtitle}>Rejoignez BarTrack aujourd'hui</Text>
-        </View>
 
-        <View style={styles.form}>
-          <Input
-            label="Nom complet"
-            value={name}
-            onChangeText={setName}
-            placeholder="John Doe"
-            autoCapitalize="words"
-            editable={!loading}
-          />
-
-          <Input
-            label="Email"
-            value={email}
-            onChangeText={setEmail}
-            placeholder="votre@email.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            autoCorrect={false}
-            editable={!loading}
-          />
-
-          <View style={styles.passwordContainer}>
+          <View style={styles.form}>
             <Input
-              label="Mot de passe"
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Au moins 6 caractères"
+              label="Nom complet"
+              value={name}
+              onChangeText={setName}
+              placeholder="John Doe"
+              autoCapitalize="words"
+              editable={!loading}
+            />
+
+            <Input
+              label="Email"
+              value={email}
+              onChangeText={setEmail}
+              placeholder="votre@email.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              editable={!loading}
+            />
+
+            <View style={styles.passwordContainer}>
+              <Input
+                label="Mot de passe"
+                value={password}
+                onChangeText={setPassword}
+                placeholder="Au moins 6 caractères"
+                secureTextEntry={!showPassword}
+                autoCapitalize="none"
+                editable={!loading}
+              />
+              <TouchableOpacity
+                style={styles.eyeIcon}
+                onPress={() => setShowPassword(!showPassword)}
+                disabled={loading}
+              >
+                <Ionicons
+                  name={showPassword ? 'eye-off' : 'eye'}
+                  size={20}
+                  color={COLORS.slate}
+                />
+              </TouchableOpacity>
+            </View>
+
+            <Input
+              label="Confirmer le mot de passe"
+              value={confirmPassword}
+              onChangeText={setConfirmPassword}
+              placeholder="Répétez votre mot de passe"
               secureTextEntry={!showPassword}
               autoCapitalize="none"
               editable={!loading}
             />
-            <TouchableOpacity
-              style={styles.eyeIcon}
-              onPress={() => setShowPassword(!showPassword)}
+
+            <Button
+              onPress={handleSignUp}
               disabled={loading}
+              style={styles.button}
             >
-              <Ionicons
-                name={showPassword ? 'eye-off' : 'eye'}
-                size={20}
-                color={COLORS.slate}
+              {loading ? 'Création...' : 'Créer mon compte'}
+            </Button>
+
+            {loading && (
+              <ActivityIndicator
+                size="small"
+                color={COLORS.primary}
+                style={styles.loader}
               />
-            </TouchableOpacity>
+            )}
+
+            <Text style={styles.terms}>
+              En créant un compte, vous acceptez nos conditions d'utilisation et notre
+              politique de confidentialité
+            </Text>
           </View>
 
-          <Input
-            label="Confirmer le mot de passe"
-            value={confirmPassword}
-            onChangeText={setConfirmPassword}
-            placeholder="Répétez votre mot de passe"
-            secureTextEntry={!showPassword}
-            autoCapitalize="none"
-            editable={!loading}
-          />
-
-          <Button
-            onPress={handleSignUp}
-            disabled={loading}
-            style={styles.button}
-          >
-            {loading ? 'Création...' : 'Créer mon compte'}
-          </Button>
-
-          {loading && (
-            <ActivityIndicator
-              size="small"
-              color={COLORS.primary}
-              style={styles.loader}
-            />
-          )}
-
-          <Text style={styles.terms}>
-            En créant un compte, vous acceptez nos conditions d'utilisation et notre
-            politique de confidentialité
-          </Text>
-        </View>
-
-        <View style={styles.footer}>
-          <Text style={styles.footerText}>Vous avez déjà un compte ?</Text>
-          <TouchableOpacity
-            onPress={() => navigation.navigate('SignIn')}
-            disabled={loading}
-          >
-            <Text style={styles.signInLink}>Se connecter</Text>
-          </TouchableOpacity>
+          <View style={styles.footer}>
+            <Text style={styles.footerText}>Vous avez déjà un compte ?</Text>
+            <TouchableOpacity
+              onPress={() => navigation.navigate('SignIn')}
+              disabled={loading}
+            >
+              <Text style={styles.signInLink}>Se connecter</Text>
+            </TouchableOpacity>
+          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -191,34 +193,51 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     justifyContent: 'center',
     padding: 24,
+    alignItems: 'center',
+  },
+  formContainer: {
+    width: '100%',
+    maxWidth: 440,
+    ...Platform.select({
+      web: {
+        backgroundColor: COLORS.white,
+        borderRadius: 16,
+        padding: 32,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+      },
+      default: {},
+    }),
   },
   header: {
     alignItems: 'center',
-    marginBottom: 32,
+    marginBottom: 28,
   },
   iconContainer: {
-    width: 80,
-    height: 80,
-    borderRadius: 20,
+    width: 72,
+    height: 72,
+    borderRadius: 18,
     backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 16,
+    marginBottom: 12,
   },
   title: {
-    fontSize: 32,
+    fontSize: 28,
     fontFamily: FONT.bold,
     color: COLORS.slateDark,
-    marginBottom: 8,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 15,
+    fontSize: 14,
     fontFamily: FONT.regular,
     color: COLORS.slate,
     textAlign: 'center',
   },
   form: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   passwordContainer: {
     position: 'relative',
@@ -236,12 +255,12 @@ const styles = StyleSheet.create({
     marginTop: 16,
   },
   terms: {
-    fontSize: 12,
+    fontSize: 11,
     fontFamily: FONT.regular,
     color: COLORS.slate,
     textAlign: 'center',
-    marginTop: 16,
-    lineHeight: 18,
+    marginTop: 12,
+    lineHeight: 16,
   },
   footer: {
     flexDirection: 'row',
