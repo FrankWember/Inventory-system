@@ -70,8 +70,8 @@ function SessionPrintButton({ sessionId }: { sessionId: string }) {
 
       const drinksCategoryMap = Object.fromEntries(drinks?.map(d => [d.id, d.category]) ?? [])
 
-      // Print
-      printJournal({
+      // Print - wait for print to complete
+      await printJournal({
         session,
         lines: session.session_lines ?? [],
         expenses: expenses ?? [],

@@ -25,16 +25,24 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
   const [session, setSession] = useState<Session | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
+  const [printing, setPrinting] = useState(false)
   const [drinksCategoryMap, setDrinksCategoryMap] = useState<Record<string, string>>({})
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (Platform.OS === 'web' && session) {
-      printJournal({
-        session,
-        lines: session.session_lines ?? [],
-        expenses,
-        drinksCategoryMap,
-      })
+      setPrinting(true)
+      try {
+        await printJournal({
+          session,
+          lines: session.session_lines ?? [],
+          expenses,
+          drinksCategoryMap,
+        })
+      } catch (error) {
+        console.error('Print failed:', error)
+      } finally {
+        setPrinting(false)
+      }
     }
   }
 
@@ -118,9 +126,19 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
           onBack={() => navigation.goBack()}
           right={
             Platform.OS === 'web' ? (
-              <TouchableOpacity onPress={handlePrint} style={styles.printButton}>
-                <Ionicons name="print-outline" size={18} color={COLORS.primary} />
-                <Text style={styles.printText}>Imprimer</Text>
+              <TouchableOpacity
+                onPress={handlePrint}
+                disabled={printing}
+                style={[styles.printButton, printing && { opacity: 0.6 }]}
+              >
+                {printing ? (
+                  <ActivityIndicator size="small" color={COLORS.primary} />
+                ) : (
+                  <>
+                    <Ionicons name="print-outline" size={18} color={COLORS.primary} />
+                    <Text style={styles.printText}>Imprimer</Text>
+                  </>
+                )}
               </TouchableOpacity>
             ) : null
           }

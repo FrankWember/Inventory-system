@@ -20,17 +20,25 @@ interface PrintData {
   drinksCategoryMap: Record<string, string>
 }
 
-export function printJournal(data: PrintData) {
-  const { session, lines, expenses, drinksCategoryMap } = data
+export function printJournal(data: PrintData): Promise<void> {
+  return new Promise((resolve, reject) => {
+    // Only run in browser environment
+    if (typeof window === 'undefined') {
+      console.warn('Print function can only run in browser environment')
+      reject(new Error('Not in browser environment'))
+      return
+    }
 
-  const purchaseLines = lines.filter(l => l.purchased > 0)
-  const saleLines = lines.filter(l => l.sold > 0).sort((a, b) => b.revenue - a.revenue)
-  const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0)
-  const totalUnits = lines.reduce((s, l) => s + l.sold, 0)
-  const grossProfit = session.total_revenue - session.total_cost
-  const netProfit = session.total_revenue - session.total_cost - totalExpenses
+    const { session, lines, expenses, drinksCategoryMap } = data
 
-  const html = `
+    const purchaseLines = lines.filter(l => l.purchased > 0)
+    const saleLines = lines.filter(l => l.sold > 0).sort((a, b) => b.revenue - a.revenue)
+    const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0)
+    const totalUnits = lines.reduce((s, l) => s + l.sold, 0)
+    const grossProfit = session.total_revenue - session.total_cost
+    const netProfit = session.total_revenue - session.total_cost - totalExpenses
+
+    const html = `
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -516,21 +524,94 @@ export function printJournal(data: PrintData) {
 </html>
   `
 
-  // Open print window
-  const printWindow = window.open('', '_blank', 'width=800,height=600')
-  if (printWindow) {
-    printWindow.document.write(html)
-    printWindow.document.close()
+    // Open print window
+    const printWindow = window.open('', '_blank', 'width=800,height=600')
 
-    // Wait for content to load, then print
-    printWindow.onload = () => {
-      setTimeout(() => {
-        printWindow.print()
-        // Close window after printing or if user cancels
-        printWindow.onafterprint = () => {
-          printWindow.close()
-        }
-      }, 250)
+    if (!printWindow) {
+      window.alert('Impossible d\'ouvrir la fenêtre d\'impression. Veuillez autoriser les popups pour ce site.')
+      reject(new Error('Failed to open print window'))
+      return
     }
-  }
+
+    try {
+      printWindow.document.write(html)
+      printWindow.document.close()
+
+      // Improved font loading detection using document.fonts API
+      const waitForFontsAndPrint = () => {
+        // Modern browsers support document.fonts.ready
+        if (printWindow.document.fonts && typeof printWindow.document.fonts.ready !== 'undefined') {
+          printWindow.document.fonts.ready
+            .then(() => {
+              // Fonts are loaded, wait a bit more for layout to settle
+              setTimeout(() => {
+                triggerPrint()
+              }, 300)
+            })
+            .catch((error: unknown) => {
+              console.warn('Font loading error, proceeding with print anyway:', error)
+              // Proceed with printing even if font loading fails
+              setTimeout(() => {
+                triggerPrint()
+              }, 300)
+            })
+        } else {
+          // Fallback for browsers without document.fonts API
+          // Just wait for document ready state
+          waitForDocumentReady()
+        }
+      }
+
+      // Fallback method: wait for document readyState
+      const waitForDocumentReady = () => {
+        if (printWindow.document.readyState === 'complete') {
+          // Additional delay for fonts to render (fallback)
+          setTimeout(() => {
+            triggerPrint()
+          }, 500)
+        } else {
+          // Keep checking until ready
+          setTimeout(waitForDocumentReady, 100)
+        }
+      }
+
+      // Trigger the actual print
+      const triggerPrint = () => {
+        try {
+          printWindow.focus()
+          printWindow.print()
+
+          // Close window after printing or if user cancels
+          printWindow.onafterprint = () => {
+            printWindow.close()
+            resolve() // Resolve promise when printing is complete
+          }
+
+          // Fallback: close after some time if onafterprint doesn't fire
+          // This handles cases where the user cancels the print dialog
+          setTimeout(() => {
+            if (!printWindow.closed) {
+              printWindow.close()
+            }
+            resolve() // Resolve promise after timeout
+          }, 2000)
+        } catch (printError) {
+          console.error('Error triggering print:', printError)
+          window.alert('Erreur lors du lancement de l\'impression.')
+          printWindow.close()
+          reject(printError)
+        }
+      }
+
+      // Start the loading and printing process
+      waitForFontsAndPrint()
+    } catch (error) {
+      console.error('Erreur lors de l\'impression:', error)
+      window.alert('Erreur lors de la génération du document d\'impression.')
+      if (printWindow && !printWindow.closed) {
+        printWindow.close()
+      }
+      reject(error)
+    }
+  })
 }
