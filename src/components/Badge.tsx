@@ -30,13 +30,13 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.slateLight,
   },
   badge_success: {
-    backgroundColor: COLORS.emeraldLight,
+    backgroundColor: COLORS.primaryLight,
   },
   badge_danger: {
     backgroundColor: COLORS.roseLight,
   },
   badge_warning: {
-    backgroundColor: COLORS.amberLight,
+    backgroundColor: COLORS.primaryLight,
   },
   badge_info: {
     backgroundColor: COLORS.skyLight,
@@ -50,13 +50,13 @@ const styles = StyleSheet.create({
     color: COLORS.slate,
   },
   badgeText_success: {
-    color: COLORS.emerald,
+    color: COLORS.primary,
   },
   badgeText_danger: {
     color: COLORS.rose,
   },
   badgeText_warning: {
-    color: COLORS.amberDark,
+    color: COLORS.primaryDark,
   },
   badgeText_info: {
     color: COLORS.sky,

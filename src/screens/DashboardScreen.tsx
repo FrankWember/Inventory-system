@@ -110,7 +110,7 @@ export default function DashboardScreen({ navigation }: any) {
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Profit 7j</Text>
             <Text
-              style={[styles.statValue, { color: last7Profit >= 0 ? COLORS.emerald : COLORS.rose }]}
+              style={[styles.statValue, { color: last7Profit >= 0 ? COLORS.primary : COLORS.rose }]}
               numberOfLines={1}
             >
               {fmtShort(last7Profit)}
@@ -118,7 +118,7 @@ export default function DashboardScreen({ navigation }: any) {
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Marge 7j</Text>
-            <Text style={[styles.statValue, { color: last7Margin >= 15 ? COLORS.emerald : last7Margin >= 0 ? COLORS.amber : COLORS.rose }]}>
+            <Text style={[styles.statValue, { color: last7Margin >= 0 ? COLORS.primary : COLORS.rose }]}>
               {last7Margin.toFixed(0)}%
             </Text>
           </View>
@@ -138,13 +138,13 @@ export default function DashboardScreen({ navigation }: any) {
               const isOut = d.stock === 0
               return (
                 <TouchableOpacity key={d.id} style={styles.alertRow} onPress={() => navigation.navigate('Inventory')} activeOpacity={0.7}>
-                  <View style={[styles.alertBar, { backgroundColor: isOut ? COLORS.rose : COLORS.amber }]} />
+                  <View style={[styles.alertBar, { backgroundColor: isOut ? COLORS.rose : COLORS.primary }]} />
                   <View style={styles.alertMain}>
                     <Text style={styles.alertName} numberOfLines={1}>{d.name}</Text>
                     <Text style={styles.alertSub}>Seuil {d.min_stock} · {d.category}</Text>
                   </View>
                   <View style={styles.alertRight}>
-                    <Text style={[styles.alertStock, { color: isOut ? COLORS.rose : COLORS.amber }]}>
+                    <Text style={[styles.alertStock, { color: isOut ? COLORS.rose : COLORS.primary }]}>
                       {isOut ? 'Rupture' : formatWithCassiers(d.stock, d.category)}
                     </Text>
                   </View>
@@ -161,7 +161,7 @@ export default function DashboardScreen({ navigation }: any) {
         ) : (
           <View style={styles.healthyCard}>
             <View style={styles.healthyIcon}>
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.emerald} />
+              <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
             </View>
             <Text style={styles.healthyText}>Tout le stock est au-dessus du seuil.</Text>
           </View>
@@ -273,10 +273,10 @@ const styles = StyleSheet.create({
     gap: 12,
     padding: 14,
     marginBottom: 12,
-    backgroundColor: COLORS.emeraldLight,
+    backgroundColor: COLORS.primaryLight,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: '#A7F3D0',
+    borderColor: COLORS.primary,
   },
   healthyIcon: {
     width: 34, height: 34, borderRadius: 10,

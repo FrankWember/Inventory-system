@@ -31,24 +31,24 @@ export function StockProgressBar({ stock, minStock }: StockProgressBarProps) {
 
 const styles = StyleSheet.create({
   track: {
-    height: 6,
+    height: 3,
     backgroundColor: COLORS.grayLight,
-    borderRadius: 3,
+    borderRadius: 1.5,
     overflow: 'hidden',
-    marginTop: 8,
+    marginTop: 6,
     position: 'relative',
   },
   fill: {
     height: '100%',
-    borderRadius: 3,
+    borderRadius: 1.5,
   },
   marker: {
     position: 'absolute',
-    top: -1,
-    width: 2,
-    height: 8,
+    top: -0.5,
+    width: 1.5,
+    height: 4,
     backgroundColor: COLORS.slateDark,
-    opacity: 0.45,
-    marginLeft: -1,
+    opacity: 0.4,
+    marginLeft: -0.75,
   },
 })

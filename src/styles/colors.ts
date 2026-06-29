@@ -1,16 +1,16 @@
 export const colors = {
-  // Primary palette - Modern Blue/Indigo
+  // Primary palette - Facebook Blue
   primary: {
-    50: '#EEF2FF',
-    100: '#E0E7FF',
-    200: '#C7D2FE',
-    300: '#A5B4FC',
-    400: '#818CF8',
-    500: '#6366F1',  // Main primary
-    600: '#4F46E5',
-    700: '#4338CA',
-    800: '#3730A3',
-    900: '#312E81',
+    50: '#F0F8FF',
+    100: '#E7F3FF',
+    200: '#CCE5FF',
+    300: '#99CCFF',
+    400: '#66B3FF',
+    500: '#1877F2',  // Main primary - Facebook Blue
+    600: '#0866FF',
+    700: '#0554D1',
+    800: '#0442A3',
+    900: '#033075',
   },
 
   // Success - Green

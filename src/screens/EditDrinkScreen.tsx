@@ -101,7 +101,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.amber} />
+        <ActivityIndicator size="large" color={COLORS.primary} />
       </View>
     )
   }

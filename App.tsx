@@ -32,6 +32,9 @@ import TrendsScreen from './src/screens/TrendsScreen'
 import FinancesScreen from './src/screens/FinancesScreen'
 import AddDrinkScreen from './src/screens/AddDrinkScreen'
 import EditDrinkScreen from './src/screens/EditDrinkScreen'
+import SessionDetailScreen from './src/screens/SessionDetailScreen'
+import ChartDetailScreen, { ChartDetailRow } from './src/screens/ChartDetailScreen'
+import { BarChartItem } from './src/components/SimpleBarChart'
 
 const BREAKPOINT = 768
 
@@ -39,6 +42,16 @@ export type RootStackParamList = {
   MainTabs: undefined
   AddDrink: undefined
   EditDrink: { drinkId: string }
+  SessionDetail: { sessionId: string }
+  ChartDetail: {
+    title: string
+    subtitle?: string
+    chartData: BarChartItem[]
+    rows: ChartDetailRow[]
+    horizontal?: boolean
+    formatValue?: (n: number) => string
+    valueIsMoney?: boolean
+  }
 }
 
 export type TabParamList = {
@@ -186,6 +199,16 @@ export default function App() {
             name="EditDrink"
             component={EditDrinkScreen}
             options={{ title: 'Modifier' }}
+          />
+          <Stack.Screen
+            name="SessionDetail"
+            component={SessionDetailScreen}
+            options={{ title: 'Journal de caisse' }}
+          />
+          <Stack.Screen
+            name="ChartDetail"
+            component={ChartDetailScreen}
+            options={{ title: 'Détails' }}
           />
         </Stack.Navigator>
       </NavigationContainer>

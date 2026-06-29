@@ -135,8 +135,8 @@ export const getStockColor = (status: 'rupture' | 'low' | 'medium' | 'ok'): stri
     case 'low':
       return COLORS.rose
     case 'medium':
-      return COLORS.amber
+      return COLORS.primary
     case 'ok':
-      return COLORS.emerald
+      return COLORS.primary
   }
 }

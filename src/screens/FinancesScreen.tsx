@@ -144,7 +144,7 @@ export default function FinancesScreen() {
         <View style={styles.hero}>
           <Text style={styles.heroLabel}>Profit net cumulé</Text>
           <Text
-            style={[styles.heroValue, { color: netProfit >= 0 ? '#86EFAC' : '#FCA5A5' }]}
+            style={[styles.heroValue, { color: netProfit >= 0 ? COLORS.primary : COLORS.rose }]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.65}
@@ -157,7 +157,7 @@ export default function FinancesScreen() {
                 styles.marginFill,
                 {
                   width: `${Math.min(100, Math.max(0, margin))}%`,
-                  backgroundColor: margin >= 20 ? COLORS.emerald : margin >= 10 ? COLORS.amber : COLORS.rose,
+                  backgroundColor: COLORS.primary,
                 },
               ]}
             />
@@ -167,16 +167,16 @@ export default function FinancesScreen() {
 
         <View style={styles.kpiRow}>
           <View style={styles.kpi}>
-            <Ionicons name="trending-up" size={16} color={COLORS.emerald} />
+            <Ionicons name="trending-up" size={16} color={COLORS.primary} />
             <Text style={styles.kpiLabel}>Revenu</Text>
-            <Text style={[styles.kpiValue, { color: COLORS.emerald }]} numberOfLines={1}>
+            <Text style={[styles.kpiValue, { color: COLORS.primary }]} numberOfLines={1}>
               {fmtShort(totalRevenue)}
             </Text>
           </View>
           <View style={styles.kpi}>
-            <Ionicons name="cart-outline" size={16} color={COLORS.amber} />
+            <Ionicons name="cart-outline" size={16} color={COLORS.slate} />
             <Text style={styles.kpiLabel}>Achats</Text>
-            <Text style={[styles.kpiValue, { color: COLORS.amber }]} numberOfLines={1}>
+            <Text style={[styles.kpiValue, { color: COLORS.slate600 }]} numberOfLines={1}>
               {fmtShort(totalSessionCost)}
             </Text>
           </View>
@@ -212,8 +212,8 @@ export default function FinancesScreen() {
                     onPress={() => toggleExpand(item.id)}
                     activeOpacity={0.85}
                   >
-                    <View style={[styles.txIcon, { backgroundColor: COLORS.emeraldLight }]}>
-                      <Ionicons name="calendar" size={18} color={COLORS.emerald} />
+                    <View style={[styles.txIcon, { backgroundColor: COLORS.primaryLight }]}>
+                      <Ionicons name="calendar" size={18} color={COLORS.primary} />
                     </View>
                     <View style={styles.txMain}>
                       <Text style={styles.txTitle}>{dateLabel(session.date)}</Text>
@@ -222,7 +222,7 @@ export default function FinancesScreen() {
                         {units > 0 ? ` · ${fmtNum(units)} vendus` : ''}
                       </Text>
                     </View>
-                    <Text style={[styles.txAmount, { color: COLORS.emerald }]}>
+                    <Text style={[styles.txAmount, { color: COLORS.primary }]}>
                       {fmt(session.total_profit)}
                     </Text>
                     <Ionicons
@@ -234,8 +234,8 @@ export default function FinancesScreen() {
 
                   {isExpanded && (
                     <View style={styles.overview}>
-                      <OverviewRow label="Revenu" value={fmt(session.total_revenue)} color={COLORS.emerald} />
-                      <OverviewRow label="Coût achats" value={`−${fmt(session.total_cost)}`} color={COLORS.amber} />
+                      <OverviewRow label="Revenu" value={fmt(session.total_revenue)} color={COLORS.primary} />
+                      <OverviewRow label="Coût achats" value={`−${fmt(session.total_cost)}`} color={COLORS.slate600} />
                       {dayExpenses > 0 && (
                         <OverviewRow label="Dépenses jour" value={`−${fmt(dayExpenses)}`} color={COLORS.rose} />
                       )}
@@ -243,7 +243,7 @@ export default function FinancesScreen() {
                       <OverviewRow
                         label="Profit net"
                         value={fmt(session.total_profit)}
-                        color={session.total_profit >= 0 ? COLORS.emerald : COLORS.rose}
+                        color={session.total_profit >= 0 ? COLORS.primary : COLORS.rose}
                       />
                       <TouchableOpacity style={styles.journalLink} onPress={() => openJournal(session)}>
                         <Text style={styles.journalLinkText}>Voir le journal complet</Text>
@@ -313,17 +313,19 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.surface,
   },
   hero: {
-    backgroundColor: COLORS.ink,
+    backgroundColor: COLORS.white,
     borderRadius: 18,
     padding: 22,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: COLORS.border,
     borderTopWidth: 3,
     borderTopColor: COLORS.primary,
     alignItems: 'center',
   },
   heroLabel: {
     fontSize: 11,
-    color: COLORS.primaryLight,
+    color: COLORS.slate,
     fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -333,13 +335,13 @@ const styles = StyleSheet.create({
   marginTrack: {
     width: '100%',
     height: 6,
-    backgroundColor: 'rgba(255,255,255,0.12)',
+    backgroundColor: COLORS.slateLight,
     borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 6,
   },
   marginFill: { height: '100%', borderRadius: 3 },
-  marginHint: { fontSize: 12, color: 'rgba(255,255,255,0.7)' },
+  marginHint: { fontSize: 12, color: COLORS.slate },
   kpiRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   kpi: {
     flex: 1,

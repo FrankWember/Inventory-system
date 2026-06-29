@@ -19,7 +19,6 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { StepIndicator } from '../components/StepIndicator'
 import { Stepper } from '../components/Stepper'
 import { SessionExpensesPanel } from '../components/SessionExpensesPanel'
-import { SessionJournal } from '../components/SessionJournal'
 import { ScreenSkeleton } from '../components/Skeleton'
 import {
   COLORS,
@@ -63,9 +62,6 @@ export default function SessionScreen() {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('Tout')
   const [pastSessions, setPastSessions] = useState<Session[]>([])
-  const [journalVisible, setJournalVisible] = useState(false)
-  const [journalSession, setJournalSession] = useState<Session | null>(null)
-  const [journalExpenses, setJournalExpenses] = useState<Expense[]>([])
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
 
   const categories: Array<Category | 'Tout'> = ['Tout', 'Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre']
@@ -203,10 +199,7 @@ export default function SessionScreen() {
   const netProfit = grossProfit - totalExpenses
 
   const openJournal = async (session: Session) => {
-    const expenses = await loadExpensesForDate(session.date)
-    setJournalExpenses(expenses)
-    setJournalSession(session)
-    setJournalVisible(true)
+    navigation.navigate('SessionDetail', { sessionId: session.id })
   }
 
   const savePurchases = async () => {
@@ -381,7 +374,7 @@ export default function SessionScreen() {
   }
 
   const reopenForEdit = async () => {
-    const session = closedToday ?? journalSession
+    const session = closedToday
     if (!session) return
     Alert.alert(
       'Modifier la session',
@@ -392,7 +385,6 @@ export default function SessionScreen() {
           text: 'Rouvrir',
           onPress: async () => {
             await supabase.from('sessions').update({ closed: false }).eq('id', session.id)
-            setJournalVisible(false)
             setStep('inventory')
             await loadData()
           },
@@ -675,24 +667,6 @@ export default function SessionScreen() {
 
       {renderFooter()}
 
-      <SessionJournal
-        visible={journalVisible}
-        session={journalSession}
-        expenses={journalExpenses}
-        onClose={() => { setJournalVisible(false); setJournalSession(null) }}
-        onEdit={journalSession?.date === todayStr ? reopenForEdit : undefined}
-        onExpensesChange={journalSession?.date === todayStr ? async () => {
-          const ex = await loadExpensesForDate(todayStr)
-          setTodayExpenses(ex)
-          setJournalExpenses(ex)
-          if (journalSession && openSession) {
-            const profit = journalSession.total_revenue - journalSession.total_cost - ex.reduce((s, e) => s + e.amount, 0)
-            await supabase.from('sessions').update({ total_profit: profit }).eq('id', journalSession.id)
-            loadData()
-          }
-        } : undefined}
-        drinksCategoryMap={drinksCategoryMap}
-      />
     </View>
   )
 }

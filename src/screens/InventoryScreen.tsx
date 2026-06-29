@@ -162,7 +162,7 @@ export default function InventoryScreen({ navigation }: any) {
           <Text style={styles.summaryLabel}>Ruptures</Text>
         </View>
         <View style={styles.summaryTile}>
-          <Text style={[styles.summaryValue, lowCount > 0 && { color: COLORS.amber }]}>{lowCount}</Text>
+          <Text style={[styles.summaryValue, lowCount > 0 && { color: COLORS.primary }]}>{lowCount}</Text>
           <Text style={styles.summaryLabel}>Stock bas</Text>
         </View>
       </View>

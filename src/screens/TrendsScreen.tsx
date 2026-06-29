@@ -12,7 +12,6 @@ import {
 } from 'react-native'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ExpandableChartCard } from '../components/ExpandableChartCard'
-import { ChartDetailModal } from '../components/ChartDetailModal'
 import { CategoryShare } from '../components/CategoryShare'
 import { ScreenSkeleton } from '../components/Skeleton'
 import { supabase } from '../lib/supabase'
@@ -31,7 +30,6 @@ export default function TrendsScreen() {
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [period, setPeriod] = useState<7 | 30 | 90>(7)
-  const [expandedChart, setExpandedChart] = useState<ChartKey>(null)
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
 
   const isDesktop = Platform.OS === 'web' && windowWidth >= BREAKPOINT
@@ -97,7 +95,7 @@ export default function TrendsScreen() {
       chartSessions.map(s => ({
         label: dateLabel(s.date).split(' ').slice(0, 2).join(' '),
         value: s.total_profit,
-        color: s.total_profit >= 0 ? COLORS.emerald : COLORS.rose,
+        color: s.total_profit >= 0 ? COLORS.primary : COLORS.rose,
       })),
     [chartSessions]
   )
@@ -217,7 +215,7 @@ export default function TrendsScreen() {
           <View style={styles.kpi}>
             <Text style={styles.kpiLabel}>Profit</Text>
             <Text
-              style={[styles.kpiValue, { color: totalProfit >= 0 ? COLORS.emerald : COLORS.rose }]}
+              style={[styles.kpiValue, { color: totalProfit >= 0 ? COLORS.primary : COLORS.rose }]}
               numberOfLines={1}
             >
               {fmtShort(totalProfit)}
@@ -234,7 +232,13 @@ export default function TrendsScreen() {
           data={revenueChartData}
           height={isDesktop ? 240 : 200}
           formatValue={fmtShortBare}
-          onExpand={isDesktop ? undefined : () => setExpandedChart('revenue')}
+          onExpand={isDesktop ? undefined : () => navigation.navigate('ChartDetail', {
+            title: 'Revenu par jour',
+            subtitle: `${period} derniers jours`,
+            chartData: revenueChartData,
+            rows: revenueRows,
+            valueIsMoney: true,
+          })}
         />
 
         <ExpandableChartCard
@@ -242,7 +246,13 @@ export default function TrendsScreen() {
           data={profitChartData}
           height={isDesktop ? 240 : 200}
           formatValue={fmtShortBare}
-          onExpand={isDesktop ? undefined : () => setExpandedChart('profit')}
+          onExpand={isDesktop ? undefined : () => navigation.navigate('ChartDetail', {
+            title: 'Profit par jour',
+            subtitle: `${period} derniers jours`,
+            chartData: profitChartData,
+            rows: profitRows,
+            valueIsMoney: true,
+          })}
         />
 
         <ExpandableChartCard
@@ -250,7 +260,14 @@ export default function TrendsScreen() {
           data={top5Chart}
           horizontal
           formatValue={fmtShortBare}
-          onExpand={isDesktop ? undefined : () => setExpandedChart('top5')}
+          onExpand={isDesktop ? undefined : () => navigation.navigate('ChartDetail', {
+            title: 'Top boissons par revenu',
+            subtitle: `Période ${period} jours`,
+            chartData: top10Chart,
+            rows: top5Rows,
+            horizontal: true,
+            valueIsMoney: true,
+          })}
         />
 
         {categoryMix.length > 0 && (
@@ -289,38 +306,6 @@ export default function TrendsScreen() {
         </Card>
       </ScrollView>
 
-      {!isDesktop && (
-        <>
-          <ChartDetailModal
-            visible={expandedChart === 'revenue'}
-            onClose={() => setExpandedChart(null)}
-            title="Revenu par jour"
-            subtitle={`${period} derniers jours`}
-            chartData={revenueChartData}
-            rows={revenueRows}
-          />
-
-          <ChartDetailModal
-            visible={expandedChart === 'profit'}
-            onClose={() => setExpandedChart(null)}
-            title="Profit par jour"
-            subtitle={`${period} derniers jours`}
-            chartData={profitChartData}
-            rows={profitRows}
-          />
-
-          <ChartDetailModal
-            visible={expandedChart === 'top5'}
-            onClose={() => setExpandedChart(null)}
-            title="Top boissons par revenu"
-            subtitle={`Période ${period} jours`}
-            chartData={top10Chart}
-            rows={top5Rows}
-            horizontal
-            valueIsMoney
-          />
-        </>
-      )}
     </View>
   )
 }

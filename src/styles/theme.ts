@@ -34,6 +34,11 @@ export const palette = {
   red500: '#F43F5E',
   red600: '#E11D48',
   red100: '#FFE4E6',
+  // Facebook blue for primary theme
+  blue500: '#1877F2',
+  blue600: '#0866FF',
+  blue100: '#E7F3FF',
+  // Warning/low stock - amber/orange
   amber500: '#F59E0B',
   amber600: '#D97706',
   amber100: '#FEF3C7',
@@ -43,11 +48,11 @@ export const palette = {
 
 // ─── Semantic tokens (used across the app) ────────────────────────────────
 export const COLORS = {
-  // Brand (interactive / active / structure accents only)
-  primary: palette.indigo600,
-  primaryLight: palette.indigo100,
-  primaryDark: palette.indigo700,
-  primarySoft: palette.indigo50,
+  // Brand (interactive / active / structure accents only) - Facebook Blue
+  primary: palette.blue500,
+  primaryLight: palette.blue100,
+  primaryDark: palette.blue600,
+  primarySoft: palette.blue100,
 
   // Success / profit
   emerald: palette.green600,
