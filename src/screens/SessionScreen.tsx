@@ -593,7 +593,7 @@ export default function SessionScreen({ navigation }: any) {
       )}
 
       {/* Calendar for date selection */}
-      {isDesktop && step === 'done' && (
+      {step === 'done' && (
         <View style={styles.calendarContainer}>
           <Calendar
             current={selectedDate}
@@ -763,20 +763,84 @@ export default function SessionScreen({ navigation }: any) {
 
         {step === 'done' && !isDesktop && (
           <>
-            {/* Start new session button for mobile */}
-            {!closedToday && !openSession && (
-              <TouchableOpacity
-                style={[styles.primaryButton, { marginHorizontal: 12, marginTop: 12 }]}
-                onPress={() => startNewSession(todayStr)}
-              >
-                <Ionicons name="add" size={20} color={COLORS.white} />
-                <Text style={styles.primaryButtonText}>Démarrer la session d'aujourd'hui</Text>
-              </TouchableOpacity>
-            )}
+            {/* Session Status Card for Selected Date */}
+            <View style={styles.sessionStatusCard}>
+              <View style={styles.statusCardHeader}>
+                <Text style={styles.statusCardDate}>{dateLabelLong(selectedDate)}</Text>
+                {selectedDate === todayStr && (
+                  <View style={styles.todayBadge}>
+                    <Text style={styles.todayBadgeText}>Aujourd'hui</Text>
+                  </View>
+                )}
+              </View>
 
-            {/* History list */}
+              {selectedDateSession.closed ? (
+                // Closed session
+                <View style={styles.statusCardContent}>
+                  <View style={styles.statusRow}>
+                    <Ionicons name="checkmark-circle" size={24} color={COLORS.emerald} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.statusTitle}>Session clôturée</Text>
+                      <Text style={styles.statusSubtitle}>
+                        Revenu: {fmt(selectedDateSession.closed.total_revenue)} •
+                        Net: {fmt(selectedDateSession.closed.total_profit)}
+                      </Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => openJournal(selectedDateSession.closed!)}
+                  >
+                    <Ionicons name="document-text" size={20} color={COLORS.white} />
+                    <Text style={styles.primaryButtonText}>Voir le journal</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : selectedDateSession.open ? (
+                // Open session in progress
+                <View style={styles.statusCardContent}>
+                  <View style={styles.statusRow}>
+                    <Ionicons name="time" size={24} color={COLORS.amber} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.statusTitle}>Session en cours</Text>
+                      <Text style={styles.statusSubtitle}>Continuer où vous en étiez</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => {
+                      setOpenSession(selectedDateSession.open)
+                      setSelectedDate(selectedDate)
+                      setStep('inventory')
+                    }}
+                  >
+                    <Ionicons name="play" size={20} color={COLORS.white} />
+                    <Text style={styles.primaryButtonText}>Reprendre</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                // No session - show start button
+                <View style={styles.statusCardContent}>
+                  <View style={styles.statusRow}>
+                    <Ionicons name="add-circle-outline" size={24} color={COLORS.slate} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.statusTitle}>Aucune session</Text>
+                      <Text style={styles.statusSubtitle}>Démarrer une nouvelle session pour cette date</Text>
+                    </View>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.primaryButton}
+                    onPress={() => startNewSession(selectedDate)}
+                  >
+                    <Ionicons name="add" size={20} color={COLORS.white} />
+                    <Text style={styles.primaryButtonText}>Démarrer la session</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            {/* Recent Sessions List */}
             <View style={styles.section}>
-              <Text style={styles.sectionTitle}>Historique</Text>
+              <Text style={styles.sectionTitle}>Sessions récentes</Text>
               {pastSessions.slice(0, 10).map(s => (
                 <TouchableOpacity key={s.id} style={styles.historyRow} onPress={() => openJournal(s)}>
                   <Text style={styles.historyDate}>{dateLabel(s.date)}</Text>
@@ -1090,27 +1154,20 @@ const styles = StyleSheet.create({
   cardName: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.slateDark, marginBottom: 2 },
   cardCategory: { fontSize: 11, fontFamily: FONT.medium, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.5 },
   stockBadge: {
-    backgroundColor: COLORS.primaryLight,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: COLORS.primary,
-    alignItems: 'center',
-    minWidth: 90,
+    alignItems: 'flex-end',
   },
   stockBadgeLabel: {
     fontSize: 10,
     fontFamily: FONT.medium,
-    color: COLORS.primary,
+    color: COLORS.slate,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 2,
   },
   stockBadgeValue: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: FONT.bold,
-    color: COLORS.primary,
+    color: COLORS.slateDark,
     fontVariant: ['tabular-nums'],
   },
   purchaseInfo: {
