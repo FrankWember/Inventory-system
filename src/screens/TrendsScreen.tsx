@@ -7,6 +7,8 @@ import {
   ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
+  Dimensions,
+  Platform,
 } from 'react-native'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ExpandableChartCard } from '../components/ExpandableChartCard'
@@ -19,6 +21,8 @@ import { COLORS, fmt, fmtNum, dateLabel, dateLabelLong } from '../utils/helpers'
 
 type ChartKey = 'revenue' | 'profit' | 'top5' | null
 
+const BREAKPOINT = 768
+
 export default function TrendsScreen() {
   const [sessions, setSessions] = useState<Session[]>([])
   const [drinks, setDrinks] = useState<Drink[]>([])
@@ -26,6 +30,9 @@ export default function TrendsScreen() {
   const [refreshing, setRefreshing] = useState(false)
   const [period, setPeriod] = useState<7 | 30 | 90>(7)
   const [expandedChart, setExpandedChart] = useState<ChartKey>(null)
+  const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
+
+  const isDesktop = Platform.OS === 'web' && windowWidth >= BREAKPOINT
 
   const loadData = async () => {
     try {
@@ -58,6 +65,13 @@ export default function TrendsScreen() {
   useEffect(() => {
     loadData()
   }, [period])
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setWindowWidth(window.width)
+    })
+    return () => subscription?.remove()
+  }, [])
 
   const closedSessions = useMemo(
     () => [...sessions].filter(s => s.closed).sort((a, b) => a.date.localeCompare(b.date)),
@@ -211,15 +225,15 @@ export default function TrendsScreen() {
           title="Revenu par jour"
           subtitle={`${chartSessions.length} journées`}
           data={revenueChartData}
-          height={150}
-          onExpand={() => setExpandedChart('revenue')}
+          height={isDesktop ? 200 : 150}
+          onExpand={isDesktop ? undefined : () => setExpandedChart('revenue')}
         />
 
         <ExpandableChartCard
           title="Profit par jour"
           data={profitChartData}
-          height={130}
-          onExpand={() => setExpandedChart('profit')}
+          height={isDesktop ? 200 : 130}
+          onExpand={isDesktop ? undefined : () => setExpandedChart('profit')}
         />
 
         <ExpandableChartCard
@@ -227,7 +241,7 @@ export default function TrendsScreen() {
           subtitle="Par revenu"
           data={top5Chart}
           horizontal
-          onExpand={() => setExpandedChart('top5')}
+          onExpand={isDesktop ? undefined : () => setExpandedChart('top5')}
         />
 
         <Card>
@@ -257,34 +271,38 @@ export default function TrendsScreen() {
         </Card>
       </ScrollView>
 
-      <ChartDetailModal
-        visible={expandedChart === 'revenue'}
-        onClose={() => setExpandedChart(null)}
-        title="Revenu par jour"
-        subtitle={`${period} derniers jours`}
-        chartData={revenueChartData}
-        rows={revenueRows}
-      />
+      {!isDesktop && (
+        <>
+          <ChartDetailModal
+            visible={expandedChart === 'revenue'}
+            onClose={() => setExpandedChart(null)}
+            title="Revenu par jour"
+            subtitle={`${period} derniers jours`}
+            chartData={revenueChartData}
+            rows={revenueRows}
+          />
 
-      <ChartDetailModal
-        visible={expandedChart === 'profit'}
-        onClose={() => setExpandedChart(null)}
-        title="Profit par jour"
-        subtitle={`${period} derniers jours`}
-        chartData={profitChartData}
-        rows={profitRows}
-      />
+          <ChartDetailModal
+            visible={expandedChart === 'profit'}
+            onClose={() => setExpandedChart(null)}
+            title="Profit par jour"
+            subtitle={`${period} derniers jours`}
+            chartData={profitChartData}
+            rows={profitRows}
+          />
 
-      <ChartDetailModal
-        visible={expandedChart === 'top5'}
-        onClose={() => setExpandedChart(null)}
-        title="Top boissons par revenu"
-        subtitle={`Période ${period} jours`}
-        chartData={top10Chart}
-        rows={top5Rows}
-        horizontal
-        valueIsMoney
-      />
+          <ChartDetailModal
+            visible={expandedChart === 'top5'}
+            onClose={() => setExpandedChart(null)}
+            title="Top boissons par revenu"
+            subtitle={`Période ${period} jours`}
+            chartData={top10Chart}
+            rows={top5Rows}
+            horizontal
+            valueIsMoney
+          />
+        </>
+      )}
     </View>
   )
 }
@@ -301,23 +319,35 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     borderRadius: 12,
     backgroundColor: COLORS.white,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.04,
+    shadowRadius: 3,
+    elevation: 1,
   },
-  periodButtonActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+  periodButtonActive: {
+    backgroundColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
   periodButtonText: { fontSize: 14, fontWeight: '600', color: COLORS.slate },
   periodButtonTextActive: { color: COLORS.white },
-  kpiRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  kpiRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   kpi: {
     flex: 1,
     backgroundColor: COLORS.white,
-    borderRadius: 12,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: COLORS.border,
+    borderRadius: 14,
+    padding: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  kpiLabel: { fontSize: 11, color: COLORS.slate, fontWeight: '600' },
-  kpiValue: { fontSize: 13, fontWeight: '700', color: COLORS.slateDark, marginTop: 4 },
+  kpiLabel: { fontSize: 12, color: COLORS.slate, fontWeight: '600', textTransform: 'uppercase' },
+  kpiValue: { fontSize: 20, fontWeight: '700', color: COLORS.slateDark, marginTop: 6 },
   performanceItem: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -10,12 +10,14 @@ import {
   RefreshControl,
   TextInput,
   Dimensions,
+  Platform,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../lib/supabase'
 import { Drink, Category } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { StockProgressBar } from '../components/StockProgressBar'
+import EditDrinkScreen from './EditDrinkScreen'
 import {
   COLORS,
   getStockStatus,
@@ -26,8 +28,7 @@ import {
 const GRID_GAP = 10
 const GRID_PADDING = 12
 const NUM_COLUMNS = 2
-const CARD_WIDTH =
-  (Dimensions.get('window').width - GRID_PADDING * 2 - GRID_GAP * (NUM_COLUMNS - 1)) / NUM_COLUMNS
+const BREAKPOINT = 768
 
 export default function InventoryScreen({ navigation }: any) {
   const [drinks, setDrinks] = useState<Drink[]>([])
@@ -35,6 +36,10 @@ export default function InventoryScreen({ navigation }: any) {
   const [refreshing, setRefreshing] = useState(false)
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('Tout')
+  const [selectedDrinkId, setSelectedDrinkId] = useState<string | null>(null)
+  const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
+
+  const isDesktop = Platform.OS === 'web' && windowWidth >= BREAKPOINT
 
   const categories: Array<Category | 'Tout'> = [
     'Tout', 'Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre',
@@ -64,6 +69,13 @@ export default function InventoryScreen({ navigation }: any) {
     return sub
   }, [navigation])
 
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setWindowWidth(window.width)
+    })
+    return () => subscription?.remove()
+  }, [])
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -80,13 +92,22 @@ export default function InventoryScreen({ navigation }: any) {
 
   const alertCount = drinks.filter(d => d.stock <= d.min_stock).length
 
+  const handleDrinkPress = (drinkId: string) => {
+    if (isDesktop) {
+      setSelectedDrinkId(drinkId)
+    } else {
+      navigation.navigate('EditDrink', { drinkId })
+    }
+  }
+
   const renderItem = ({ item: drink }: { item: Drink }) => {
     const status = getStockStatus(drink.stock, drink.min_stock)
+    const isSelected = isDesktop && selectedDrinkId === drink.id
 
     return (
       <TouchableOpacity
-        style={styles.gridCard}
-        onPress={() => navigation.navigate('EditDrink', { drinkId: drink.id })}
+        style={[styles.gridCard, isSelected && styles.gridCardSelected]}
+        onPress={() => handleDrinkPress(drink.id)}
         activeOpacity={0.7}
       >
         <View style={styles.gridBody}>
@@ -109,8 +130,8 @@ export default function InventoryScreen({ navigation }: any) {
     )
   }
 
-  return (
-    <View style={styles.container}>
+  const drinkListContent = (
+    <>
       <ScreenHeader
         title="Stock"
         subtitle={`${drinks.length} boissons${alertCount > 0 ? ` · ${alertCount} alertes` : ''}`}
@@ -171,6 +192,41 @@ export default function InventoryScreen({ navigation }: any) {
       >
         <Ionicons name="add" size={28} color={COLORS.white} style={styles.fabIcon} />
       </TouchableOpacity>
+    </>
+  )
+
+  if (isDesktop) {
+    return (
+      <View style={styles.desktopContainer}>
+        <View style={styles.desktopLeft}>
+          {drinkListContent}
+        </View>
+        {selectedDrinkId && (
+          <View style={styles.desktopRight}>
+            <View style={styles.editHeader}>
+              <TouchableOpacity onPress={() => setSelectedDrinkId(null)} style={styles.closeButton}>
+                <Ionicons name="close" size={24} color={COLORS.slate} />
+              </TouchableOpacity>
+            </View>
+            <EditDrinkScreen
+              route={{ params: { drinkId: selectedDrinkId } }}
+              navigation={{
+                ...navigation,
+                goBack: () => {
+                  setSelectedDrinkId(null)
+                  loadDrinks()
+                }
+              }}
+            />
+          </View>
+        )}
+      </View>
+    )
+  }
+
+  return (
+    <View style={styles.container}>
+      {drinkListContent}
     </View>
   )
 }
@@ -178,6 +234,42 @@ export default function InventoryScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.surface },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.surface },
+  desktopContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    backgroundColor: COLORS.surface,
+  },
+  desktopLeft: {
+    width: '45%',
+    backgroundColor: COLORS.surface,
+    borderRightWidth: 1,
+    borderRightColor: COLORS.border,
+  },
+  desktopRight: {
+    flex: 1,
+    backgroundColor: COLORS.white,
+  },
+  editHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    padding: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+    backgroundColor: COLORS.white,
+  },
+  closeButton: {
+    padding: 8,
+    borderRadius: 8,
+    backgroundColor: COLORS.slateLight,
+  },
+  gridCardSelected: {
+    borderWidth: 2,
+    borderColor: COLORS.primary,
+    shadowColor: COLORS.primary,
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',

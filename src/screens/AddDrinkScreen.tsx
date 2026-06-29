@@ -58,6 +58,7 @@ export default function AddDrinkScreen({ navigation }: any) {
         cost: parseInt(form.cost) || 0,
         stock: getUnitsValue(form.stock),
         min_stock: getUnitsValue(form.minStock),
+        rack_size: 12, // Default rack size (can be edited later)
         supplier: form.supplier,
         notes: form.notes,
         active: true,

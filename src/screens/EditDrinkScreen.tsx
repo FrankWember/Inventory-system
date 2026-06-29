@@ -58,6 +58,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
         .update({
           stock: drink.stock,
           min_stock: drink.min_stock,
+          rack_size: drink.rack_size,
           price: drink.price,
           cost: drink.cost,
         })
@@ -111,13 +112,13 @@ export default function EditDrinkScreen({ route, navigation }: any) {
   const profitPerUnit = drink.price - drink.cost
   const isBeer = drink.category === 'Bière'
 
-  // Helper functions for unit conversion (1 cassier = 12 units)
+  // Helper functions for unit conversion using drink's rack_size
   const getDisplayValue = (units: number, field: 'stock' | 'min_stock'): string => {
     if (!isBeer || unitMode === 'units') {
       return units.toString()
     }
-    // Convert units to cassiers
-    const cassiers = Math.floor(units / 12)
+    // Convert units to cassiers using rack_size
+    const cassiers = Math.floor(units / drink.rack_size)
     return cassiers.toString()
   }
 
@@ -126,8 +127,8 @@ export default function EditDrinkScreen({ route, navigation }: any) {
     let units = numValue
 
     if (isBeer && unitMode === 'cassiers') {
-      // Convert cassiers to units
-      units = numValue * 12
+      // Convert cassiers to units using rack_size
+      units = numValue * drink.rack_size
     }
 
     setDrink({ ...drink, [field]: units })
@@ -142,6 +143,23 @@ export default function EditDrinkScreen({ route, navigation }: any) {
         <Card>
           <Text style={styles.drinkName}>{drink.name}</Text>
           <Text style={styles.categoryBadge}>{drink.category}</Text>
+
+          <View style={styles.rackSizeCard}>
+            <Text style={styles.rackSizeLabel}>Taille du casier d'achat</Text>
+            <Text style={styles.rackSizeHint}>
+              Nombre d'unités dans un casier/rack pour cet article
+            </Text>
+            <Input
+              label="Unités par casier"
+              value={drink.rack_size.toString()}
+              onChangeText={(text) => setDrink({ ...drink, rack_size: parseInt(text) || 1 })}
+              keyboardType="number-pad"
+              placeholder="12"
+            />
+            <Text style={styles.rackSizeExample}>
+              Ex: {drink.rack_size} unités/casier • 1 casier = {fmt(drink.rack_size * drink.cost)}
+            </Text>
+          </View>
 
           {isBeer && (
             <View style={styles.unitSelector}>
@@ -165,7 +183,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
                 </TouchableOpacity>
               </View>
               <Text style={styles.unitHint}>
-                {unitMode === 'units' ? '1 unité = 1 bouteille' : '1 cassier = 12 bouteilles'}
+                {unitMode === 'units' ? '1 unité = 1 bouteille' : `1 cassier = ${drink.rack_size} bouteilles`}
               </Text>
             </View>
           )}
@@ -273,6 +291,32 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
     marginBottom: 16,
     textTransform: 'uppercase',
+  },
+  rackSizeCard: {
+    backgroundColor: COLORS.emeraldLight,
+    padding: 12,
+    borderRadius: 10,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: COLORS.emerald,
+  },
+  rackSizeLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.slateDark,
+    marginBottom: 4,
+  },
+  rackSizeHint: {
+    fontSize: 11,
+    color: COLORS.slate,
+    marginBottom: 8,
+    fontStyle: 'italic',
+  },
+  rackSizeExample: {
+    fontSize: 11,
+    color: COLORS.emerald,
+    fontWeight: '600',
+    marginTop: -8,
   },
   unitSelector: {
     backgroundColor: COLORS.skyLight,

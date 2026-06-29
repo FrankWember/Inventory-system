@@ -8,6 +8,9 @@ import {
   ActivityIndicator,
   TextInput,
   Alert,
+  FlatList,
+  Dimensions,
+  Platform,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../lib/supabase'
@@ -35,6 +38,10 @@ const STEPS = [
   { key: 'summary', label: 'Récap' },
 ]
 
+const BREAKPOINT = 768
+const GRID_GAP = 8
+const GRID_PADDING = 12
+
 interface LineState {
   openingStock: number
   purchased: number
@@ -58,52 +65,33 @@ export default function SessionScreen() {
   const [journalVisible, setJournalVisible] = useState(false)
   const [journalSession, setJournalSession] = useState<Session | null>(null)
   const [journalExpenses, setJournalExpenses] = useState<Expense[]>([])
-  const [unitModes, setUnitModes] = useState<Record<string, 'units' | 'cassiers'>>({})
+  const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
 
   const categories: Array<Category | 'Tout'> = ['Tout', 'Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre']
   const todayStr = today()
+  const isDesktop = Platform.OS === 'web' && windowWidth >= BREAKPOINT
+  const numColumns = isDesktop ? 2 : 1
 
   const drinksCategoryMap = useMemo(
     () => Object.fromEntries(drinks.map(d => [d.id, d.category])),
     [drinks]
   )
 
-  // Helper to get unit mode for a drink (default to cassiers for beers)
-  const getUnitMode = (drinkId: string, category: string): 'units' | 'cassiers' => {
-    if (unitModes[drinkId]) return unitModes[drinkId]
-    return category === 'Bière' ? 'cassiers' : 'units'
+  // Helper to get drink's rack size (defaults to 1 if not set)
+  const getRackSize = (drinkId: string): number => {
+    const drink = drinks.find(d => d.id === drinkId)
+    return drink?.rack_size || 1
   }
 
-  // Helper functions for unit conversion (1 cassier = 12 units)
-  const convertToUnits = (value: number, drinkId: string, category: string): number => {
-    if (category === 'Bière' && getUnitMode(drinkId, category) === 'cassiers') {
-      return value * 12
-    }
-    return value
+  // Helper functions for unit conversion using drink's rack_size
+  const convertToUnits = (racks: number, drinkId: string): number => {
+    const rackSize = getRackSize(drinkId)
+    return racks * rackSize
   }
 
-  const convertFromUnits = (units: number, drinkId: string, category: string): number => {
-    if (category === 'Bière' && getUnitMode(drinkId, category) === 'cassiers') {
-      return Math.floor(units / 12)
-    }
-    return units
-  }
-
-  const formatStockDisplay = (units: number, drinkId: string, category: string): string => {
-    if (category === 'Bière' && getUnitMode(drinkId, category) === 'cassiers') {
-      const cassiers = Math.floor(units / 12)
-      const remaining = units % 12
-      if (remaining > 0) {
-        return `${cassiers}c + ${remaining}u`
-      }
-      return `${cassiers}c`
-    }
-    return units.toString()
-  }
-
-  const toggleUnitMode = (drinkId: string, category: string) => {
-    const current = getUnitMode(drinkId, category)
-    setUnitModes(prev => ({ ...prev, [drinkId]: current === 'units' ? 'cassiers' : 'units' }))
+  const convertFromUnits = (units: number, drinkId: string): number => {
+    const rackSize = getRackSize(drinkId)
+    return Math.floor(units / rackSize)
   }
 
   const loadExpensesForDate = async (date: string) => {
@@ -182,6 +170,13 @@ export default function SessionScreen() {
   useEffect(() => {
     loadData()
   }, [loadData])
+
+  useEffect(() => {
+    const subscription = Dimensions.addEventListener('change', ({ window }) => {
+      setWindowWidth(window.width)
+    })
+    return () => subscription?.remove()
+  }, [])
 
   const getExpectedStock = (drinkId: string) => {
     const line = lineStates[drinkId]
@@ -552,39 +547,22 @@ export default function SessionScreen() {
         )}
 
         {step === 'purchases' && filtered.map(drink => {
-          const isBeer = drink.category === 'Bière'
-          const unitMode = getUnitMode(drink.id, drink.category)
-          const displayValue = convertFromUnits(purchases[drink.id] ?? 0, drink.id, drink.category)
+          const rackSize = getRackSize(drink.id)
+          const displayValue = convertFromUnits(purchases[drink.id] ?? 0, drink.id)
           return (
             <View key={drink.id} style={styles.cardCompact}>
               <View style={styles.cardHeader}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.cardName} numberOfLines={1}>{drink.name}</Text>
-                  <Text style={styles.cardMeta}>Stock: {formatWithCassiers(drink.stock, drink.category)}</Text>
+                  <Text style={styles.cardMeta}>Stock: {formatWithCassiers(drink.stock, drink.category)} • {rackSize}u/casier</Text>
                 </View>
-                {isBeer && (
-                  <View style={styles.unitToggleContainer}>
-                    <TouchableOpacity
-                      style={[styles.unitToggleBtn, unitMode === 'units' && styles.unitToggleBtnActive]}
-                      onPress={() => toggleUnitMode(drink.id, drink.category)}
-                    >
-                      <Text style={[styles.unitToggleBtnText, unitMode === 'units' && styles.unitToggleBtnTextActive]}>U</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.unitToggleBtn, unitMode === 'cassiers' && styles.unitToggleBtnActive]}
-                      onPress={() => toggleUnitMode(drink.id, drink.category)}
-                    >
-                      <Text style={[styles.unitToggleBtnText, unitMode === 'cassiers' && styles.unitToggleBtnTextActive]}>C</Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
               </View>
               <View style={styles.stepperRow}>
-                <Text style={styles.stepperLabel}>Quantité reçue{isBeer ? ` (${unitMode === 'units' ? 'u' : 'c'})` : ''}</Text>
+                <Text style={styles.stepperLabel}>Casiers reçus</Text>
                 <View style={styles.stepperWrapper}>
                   <Stepper
                     value={displayValue}
-                    onValueChange={v => setPurchases(prev => ({ ...prev, [drink.id]: convertToUnits(v, drink.id, drink.category) }))}
+                    onValueChange={v => setPurchases(prev => ({ ...prev, [drink.id]: convertToUnits(v, drink.id) }))}
                     compact
                   />
                 </View>
@@ -593,54 +571,47 @@ export default function SessionScreen() {
           )
         })}
 
-        {step === 'inventory' && filtered.map(drink => {
-          const expected = getExpectedStock(drink.id)
-          const sold = getSold(drink.id)
-          const closing = closingCounts[drink.id] ?? drink.stock
-          const isBeer = drink.category === 'Bière'
-          const unitMode = getUnitMode(drink.id, drink.category)
-          const displayClosing = convertFromUnits(closing, drink.id, drink.category)
-          return (
-            <View key={drink.id} style={[styles.cardCompact, sold > 0 && styles.cardHighlight]}>
-              <View style={styles.cardHeader}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.cardName} numberOfLines={1}>{drink.name}</Text>
-                  <Text style={styles.cardMeta}>
-                    Dispo: {formatWithCassiers(expected, drink.category)}
-                    {sold > 0 && <Text style={styles.soldInline}> • Vendu: {formatWithCassiers(sold, drink.category)}</Text>}
-                  </Text>
-                </View>
-                {isBeer && (
-                  <View style={styles.unitToggleContainer}>
-                    <TouchableOpacity
-                      style={[styles.unitToggleBtn, unitMode === 'units' && styles.unitToggleBtnActive]}
-                      onPress={() => toggleUnitMode(drink.id, drink.category)}
-                    >
-                      <Text style={[styles.unitToggleBtnText, unitMode === 'units' && styles.unitToggleBtnTextActive]}>U</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.unitToggleBtn, unitMode === 'cassiers' && styles.unitToggleBtnActive]}
-                      onPress={() => toggleUnitMode(drink.id, drink.category)}
-                    >
-                      <Text style={[styles.unitToggleBtnText, unitMode === 'cassiers' && styles.unitToggleBtnTextActive]}>C</Text>
-                    </TouchableOpacity>
+        {step === 'inventory' && (
+          <FlatList
+            data={filtered}
+            keyExtractor={d => d.id}
+            numColumns={numColumns}
+            key={`inventory-${numColumns}`}
+            scrollEnabled={false}
+            columnWrapperStyle={numColumns > 1 ? { gap: GRID_GAP } : undefined}
+            contentContainerStyle={{ gap: 6 }}
+            renderItem={({ item: drink }) => {
+              const expected = getExpectedStock(drink.id)
+              const sold = getSold(drink.id)
+              const closing = closingCounts[drink.id] ?? drink.stock
+              return (
+                <View style={[
+                  isDesktop ? styles.cardDesktop : styles.cardUltraCompact,
+                  sold > 0 && styles.cardHighlight,
+                  numColumns > 1 && { flex: 1 }
+                ]}>
+                  <View style={styles.inlineRow}>
+                    <View style={styles.drinkInfo}>
+                      <Text style={isDesktop ? styles.drinkNameDesktop : styles.drinkNameCompact} numberOfLines={1}>{drink.name}</Text>
+                      <Text style={isDesktop ? styles.drinkMetaDesktop : styles.drinkMetaCompact}>
+                        {formatWithCassiers(expected, drink.category)}
+                        {sold > 0 && <Text style={styles.soldCompact}> • {formatWithCassiers(sold, drink.category)}</Text>}
+                      </Text>
+                    </View>
+                    <View style={styles.stepperInline}>
+                      <Stepper
+                        value={closing}
+                        onValueChange={v => setClosingCounts(prev => ({ ...prev, [drink.id]: v }))}
+                        compact
+                      />
+                    </View>
+                    {sold > 0 && <Text style={isDesktop ? styles.revenueDesktop : styles.revenueInline}>{fmt(sold * drink.price)}</Text>}
                   </View>
-                )}
-              </View>
-              <View style={styles.stepperRow}>
-                <Text style={styles.stepperLabel}>Stock restant{isBeer ? ` (${unitMode === 'units' ? 'u' : 'c'})` : ''}</Text>
-                <View style={styles.stepperWrapper}>
-                  <Stepper
-                    value={displayClosing}
-                    onValueChange={v => setClosingCounts(prev => ({ ...prev, [drink.id]: convertToUnits(v, drink.id, drink.category) }))}
-                    compact
-                  />
                 </View>
-              </View>
-              {sold > 0 && <Text style={styles.revenueText}>{fmt(sold * drink.price)}</Text>}
-            </View>
-          )
-        })}
+              )
+            }}
+          />
+        )}
 
         {step === 'summary' && (
           <>
@@ -808,6 +779,30 @@ const styles = StyleSheet.create({
     shadowRadius: 3,
     elevation: 1,
   },
+  cardUltraCompact: {
+    backgroundColor: COLORS.white,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    marginBottom: 6,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 2,
+    elevation: 1,
+  },
+  cardDesktop: {
+    backgroundColor: COLORS.white,
+    borderRadius: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    marginBottom: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   cardHighlight: {
     shadowColor: COLORS.primary,
     shadowOpacity: 0.12,
@@ -815,6 +810,70 @@ const styles = StyleSheet.create({
     elevation: 3,
     borderWidth: 1,
     borderColor: COLORS.primary + '40',
+  },
+  inlineRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  drinkInfo: {
+    flex: 1,
+    minWidth: 0,
+  },
+  drinkNameCompact: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: COLORS.slateDark,
+    marginBottom: 2,
+  },
+  drinkNameDesktop: {
+    fontSize: 15,
+    fontWeight: '600',
+    color: COLORS.slateDark,
+    marginBottom: 3,
+  },
+  drinkMetaCompact: {
+    fontSize: 11,
+    color: COLORS.slate,
+    fontWeight: '500',
+  },
+  drinkMetaDesktop: {
+    fontSize: 13,
+    color: COLORS.slate,
+    fontWeight: '500',
+  },
+  soldCompact: {
+    color: COLORS.primary,
+    fontWeight: '700',
+  },
+  unitToggleMini: {
+    flexDirection: 'row',
+    backgroundColor: COLORS.slateLight,
+    borderRadius: 6,
+    padding: 2,
+    marginRight: 4,
+  },
+  unitToggleBtnMini: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 4,
+  },
+  stepperInline: {
+    flexShrink: 0,
+  },
+  revenueInline: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: COLORS.primary,
+    minWidth: 60,
+    textAlign: 'right',
+  },
+  revenueDesktop: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: COLORS.primary,
+    minWidth: 80,
+    textAlign: 'right',
   },
   cardTop: { marginBottom: 8, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   cardHeader: { marginBottom: 6, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },

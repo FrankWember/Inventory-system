@@ -72,6 +72,9 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.white,
     height: '100%',
     flexDirection: 'column',
+    borderTopRightRadius: 20,
+    borderBottomRightRadius: 20,
+    overflow: 'hidden',
     ...Platform.select({
       web: {
         boxShadow: '2px 0 12px rgba(0, 0, 0, 0.06)',

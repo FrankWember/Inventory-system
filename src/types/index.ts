@@ -11,6 +11,7 @@ export interface Drink {
   cost: number
   stock: number
   min_stock: number
+  rack_size: number  // Number of units per rack (default 12 for beers)
   supplier: string
   notes: string
   active: boolean
