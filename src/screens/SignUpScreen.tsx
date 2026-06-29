@@ -104,16 +104,24 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
     setLoading(false)
 
     if (error) {
-      Alert.alert('Erreur d\'inscription', error.message || 'Une erreur est survenue')
+      const title = error.type === 'email_exists' || error.type === 'phone_exists'
+        ? 'Compte existant'
+        : error.type === 'weak_password'
+        ? 'Mot de passe faible'
+        : error.type === 'network_error'
+        ? 'Erreur réseau'
+        : "Erreur d'inscription"
+
+      Alert.alert(title, error.message)
     } else {
       Alert.alert(
-        'Inscription réussie',
+        '✅ Inscription réussie !',
         authMethod === 'email'
-          ? 'Vérifiez votre email pour confirmer votre compte'
-          : 'Votre compte a été créé avec succès',
+          ? 'Vérifiez votre email pour confirmer votre compte, puis connectez-vous.'
+          : 'Votre compte a été créé avec succès ! Vous pouvez maintenant vous connecter.',
         [
           {
-            text: 'OK',
+            text: 'Se connecter',
             onPress: () => navigation.navigate('SignIn'),
           },
         ]

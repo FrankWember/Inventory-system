@@ -65,7 +65,13 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
       setLoading(false)
 
       if (error) {
-        Alert.alert('Erreur de connexion', error.message || 'Email ou mot de passe incorrect')
+        const title = error.type === 'email_not_confirmed'
+          ? 'Email non confirmé'
+          : error.type === 'user_not_found'
+          ? 'Compte introuvable'
+          : 'Erreur de connexion'
+
+        Alert.alert(title, error.message)
       }
     } else {
       if (phone.length !== 9 || !password.trim()) {
@@ -78,7 +84,11 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
       setLoading(false)
 
       if (error) {
-        Alert.alert('Erreur de connexion', error.message || 'Numéro ou mot de passe incorrect')
+        const title = error.type === 'user_not_found'
+          ? 'Compte introuvable'
+          : 'Erreur de connexion'
+
+        Alert.alert(title, error.message)
       }
     }
   }

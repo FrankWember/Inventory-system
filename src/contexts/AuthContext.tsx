@@ -2,19 +2,93 @@ import React, { createContext, useContext, useState, useEffect } from 'react'
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 
+interface AuthError {
+  message: string
+  type?: 'invalid_credentials' | 'user_not_found' | 'email_not_confirmed' | 'weak_password' | 'email_exists' | 'phone_exists' | 'network_error' | 'unknown'
+}
+
 interface AuthContextType {
   session: Session | null
   user: User | null
   loading: boolean
   isWelcomeLoading: boolean
-  signIn: (email: string, password: string) => Promise<{ error: Error | null }>
-  signInWithPhone: (phone: string, password: string) => Promise<{ error: Error | null }>
-  signUp: (email: string, password: string, name?: string, phone?: string) => Promise<{ error: Error | null }>
+  signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
+  signInWithPhone: (phone: string, password: string) => Promise<{ error: AuthError | null }>
+  signUp: (email: string, password: string, name?: string, phone?: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
-  resetPassword: (email: string) => Promise<{ error: Error | null }>
+  resetPassword: (email: string) => Promise<{ error: AuthError | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
+
+// Helper function to parse Supabase errors into user-friendly messages
+function parseAuthError(error: any): AuthError {
+  if (!error) return { message: 'Une erreur inconnue est survenue', type: 'unknown' }
+
+  const errorMessage = error.message?.toLowerCase() || ''
+
+  // Invalid credentials
+  if (errorMessage.includes('invalid login credentials') ||
+      errorMessage.includes('invalid password') ||
+      errorMessage.includes('wrong password')) {
+    return {
+      message: 'Email/téléphone ou mot de passe incorrect',
+      type: 'invalid_credentials'
+    }
+  }
+
+  // User not found
+  if (errorMessage.includes('user not found') ||
+      errorMessage.includes('no user found')) {
+    return {
+      message: 'Aucun compte associé à ces identifiants',
+      type: 'user_not_found'
+    }
+  }
+
+  // Email not confirmed
+  if (errorMessage.includes('email not confirmed') ||
+      errorMessage.includes('email address not confirmed')) {
+    return {
+      message: 'Veuillez confirmer votre email avant de vous connecter',
+      type: 'email_not_confirmed'
+    }
+  }
+
+  // Weak password
+  if (errorMessage.includes('password') && errorMessage.includes('weak')) {
+    return {
+      message: 'Le mot de passe est trop faible',
+      type: 'weak_password'
+    }
+  }
+
+  // User already exists
+  if (errorMessage.includes('user already registered') ||
+      errorMessage.includes('email already registered') ||
+      errorMessage.includes('already exists')) {
+    return {
+      message: 'Un compte existe déjà avec ces identifiants',
+      type: 'email_exists'
+    }
+  }
+
+  // Network errors
+  if (errorMessage.includes('network') ||
+      errorMessage.includes('fetch') ||
+      errorMessage.includes('timeout')) {
+    return {
+      message: 'Erreur de connexion. Vérifiez votre connexion internet',
+      type: 'network_error'
+    }
+  }
+
+  // Default error
+  return {
+    message: error.message || 'Une erreur est survenue',
+    type: 'unknown'
+  }
+}
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
@@ -58,9 +132,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email,
         password,
       })
-      return { error }
+      if (error) {
+        return { error: parseAuthError(error) }
+      }
+      return { error: null }
     } catch (error) {
-      return { error: error as Error }
+      return { error: parseAuthError(error) }
     }
   }
 
@@ -72,9 +149,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: phoneEmail,
         password,
       })
-      return { error }
+      if (error) {
+        return { error: parseAuthError(error) }
+      }
+      return { error: null }
     } catch (error) {
-      return { error: error as Error }
+      return { error: parseAuthError(error) }
     }
   }
 
@@ -94,9 +174,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           },
         },
       })
-      return { error }
+      if (error) {
+        return { error: parseAuthError(error) }
+      }
+      return { error: null }
     } catch (error) {
-      return { error: error as Error }
+      return { error: parseAuthError(error) }
     }
   }
 
@@ -107,9 +190,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const resetPassword = async (email: string) => {
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email)
-      return { error }
+      if (error) {
+        return { error: parseAuthError(error) }
+      }
+      return { error: null }
     } catch (error) {
-      return { error: error as Error }
+      return { error: parseAuthError(error) }
     }
   }
 
