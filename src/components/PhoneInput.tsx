@@ -20,10 +20,12 @@ export function PhoneInput({ label, value, onChangeText, error, ...props }: Phon
   }
 
   const formatDisplay = (val: string) => {
-    // Format as XXX XXX XXX for better readability
-    if (val.length <= 3) return val
-    if (val.length <= 6) return `${val.slice(0, 3)} ${val.slice(3)}`
-    return `${val.slice(0, 3)} ${val.slice(3, 6)} ${val.slice(6)}`
+    // Format as X XX XX XX XX for better readability (e.g., 6 79 12 28 78)
+    if (val.length <= 1) return val
+    if (val.length <= 3) return `${val.slice(0, 1)} ${val.slice(1)}`
+    if (val.length <= 5) return `${val.slice(0, 1)} ${val.slice(1, 3)} ${val.slice(3)}`
+    if (val.length <= 7) return `${val.slice(0, 1)} ${val.slice(1, 3)} ${val.slice(3, 5)} ${val.slice(5)}`
+    return `${val.slice(0, 1)} ${val.slice(1, 3)} ${val.slice(3, 5)} ${val.slice(5, 7)} ${val.slice(7)}`
   }
 
   return (

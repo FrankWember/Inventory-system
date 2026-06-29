@@ -113,14 +113,22 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
       return
     }
 
-    if (authMethod === 'email' && !validateEmail(email.trim())) {
-      Alert.alert('Erreur', 'Veuillez entrer une adresse email valide')
-      return
+    if (authMethod === 'email') {
+      if (!email.trim()) {
+        Alert.alert('Erreur', 'Veuillez entrer votre email')
+        return
+      }
+      if (!validateEmail(email.trim())) {
+        Alert.alert('Erreur', 'Veuillez entrer une adresse email valide')
+        return
+      }
     }
 
-    if (authMethod === 'phone' && phone.length !== 9) {
-      Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone valide (9 chiffres)')
-      return
+    if (authMethod === 'phone') {
+      if (phone.length !== 9) {
+        Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone valide (9 chiffres)')
+        return
+      }
     }
 
     if (password.length < 6) {
@@ -135,7 +143,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
     setLoading(true)
     const { error } = await signUp(
-      email.trim(),
+      authMethod === 'email' ? email.trim() : '',
       password,
       name.trim(),
       authMethod === 'phone' ? phone : undefined
@@ -289,7 +297,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
                   label="Numéro de téléphone"
                   value={phone}
                   onChangeText={setPhone}
-                  placeholder="6 XX XX XX XX"
+                  placeholder="6 79 12 28 78"
                   editable={!loading}
                 />
               ) : (

@@ -156,7 +156,7 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
                 label="Numéro de téléphone"
                 value={phone}
                 onChangeText={setPhone}
-                placeholder="6 XX XX XX XX"
+                placeholder="6 79 12 28 78"
                 editable={!loading}
               />
             ) : (
