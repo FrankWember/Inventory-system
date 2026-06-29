@@ -48,7 +48,7 @@ interface LineState {
   closingStock: number
 }
 
-export default function SessionScreen() {
+export default function SessionScreen({ navigation }: any) {
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [step, setStep] = useState<Step>('purchases')
   const [openSession, setOpenSession] = useState<Session | null>(null)

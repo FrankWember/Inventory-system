@@ -17,6 +17,8 @@ import {
 import { COLORS, FONT } from './src/utils/helpers'
 import { applyGlobalFont } from './src/styles/applyFonts'
 import { ResponsiveLayout } from './src/components/ResponsiveLayout'
+import { AuthProvider, useAuth } from './src/contexts/AuthContext'
+import { SettingsProvider } from './src/contexts/SettingsContext'
 
 applyGlobalFont()
 
@@ -34,11 +36,17 @@ import AddDrinkScreen from './src/screens/AddDrinkScreen'
 import EditDrinkScreen from './src/screens/EditDrinkScreen'
 import SessionDetailScreen from './src/screens/SessionDetailScreen'
 import ChartDetailScreen, { ChartDetailRow } from './src/screens/ChartDetailScreen'
+import SignInScreen from './src/screens/SignInScreen'
+import SignUpScreen from './src/screens/SignUpScreen'
+import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen'
 import { BarChartItem } from './src/components/SimpleBarChart'
 
 const BREAKPOINT = 768
 
 export type RootStackParamList = {
+  SignIn: undefined
+  SignUp: undefined
+  ForgotPassword: undefined
   MainTabs: undefined
   AddDrink: undefined
   EditDrink: { drinkId: string }
@@ -149,16 +157,10 @@ function MainTabs() {
   )
 }
 
-export default function App() {
-  const [fontsLoaded] = useFonts({
-    Manrope_400Regular,
-    Manrope_500Medium,
-    Manrope_600SemiBold,
-    Manrope_700Bold,
-    Manrope_800ExtraBold,
-  })
+function RootNavigator() {
+  const { user, loading } = useAuth()
 
-  if (!fontsLoaded) {
+  if (loading) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface }}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -167,24 +169,43 @@ export default function App() {
   }
 
   return (
-    <SafeAreaProvider>
-      <StatusBar style="dark" />
-      <NavigationContainer>
-        <Stack.Navigator
-          screenOptions={{
-            headerStyle: {
-              backgroundColor: COLORS.white,
-            },
-            headerTintColor: COLORS.primary,
-            headerTitleStyle: {
-              fontFamily: FONT.bold,
-              fontSize: 17,
-              color: COLORS.slateDark,
-            },
-            headerShadowVisible: false,
-            headerBackTitle: 'Retour',
-          }}
-        >
+    <Stack.Navigator
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: COLORS.white,
+        },
+        headerTintColor: COLORS.primary,
+        headerTitleStyle: {
+          fontFamily: FONT.bold,
+          fontSize: 17,
+          color: COLORS.slateDark,
+        },
+        headerShadowVisible: false,
+        headerBackTitle: 'Retour',
+      }}
+    >
+      {!user ? (
+        // Auth screens
+        <>
+          <Stack.Screen
+            name="SignIn"
+            component={SignInScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="SignUp"
+            component={SignUpScreen}
+            options={{ headerShown: false }}
+          />
+          <Stack.Screen
+            name="ForgotPassword"
+            component={ForgotPasswordScreen}
+            options={{ headerShown: false }}
+          />
+        </>
+      ) : (
+        // App screens
+        <>
           <Stack.Screen
             name="MainTabs"
             component={MainTabs}
@@ -210,8 +231,39 @@ export default function App() {
             component={ChartDetailScreen}
             options={{ title: 'Détails' }}
           />
-        </Stack.Navigator>
-      </NavigationContainer>
+        </>
+      )}
+    </Stack.Navigator>
+  )
+}
+
+export default function App() {
+  const [fontsLoaded] = useFonts({
+    Manrope_400Regular,
+    Manrope_500Medium,
+    Manrope_600SemiBold,
+    Manrope_700Bold,
+    Manrope_800ExtraBold,
+  })
+
+  if (!fontsLoaded) {
+    return (
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    )
+  }
+
+  return (
+    <SafeAreaProvider>
+      <AuthProvider>
+        <SettingsProvider>
+          <StatusBar style="dark" />
+          <NavigationContainer>
+            <RootNavigator />
+          </NavigationContainer>
+        </SettingsProvider>
+      </AuthProvider>
     </SafeAreaProvider>
   )
 }

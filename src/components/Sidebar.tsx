@@ -21,7 +21,7 @@ const navItems: NavItem[] = [
   { name: 'Inventory', label: 'Stock', icon: 'cube', iconOutline: 'cube-outline' },
   { name: 'Session', label: 'Session', icon: 'clipboard', iconOutline: 'clipboard-outline' },
   { name: 'Trends', label: 'Stats', icon: 'stats-chart', iconOutline: 'stats-chart-outline' },
-  { name: 'Finances', label: 'Finances', icon: 'wallet', iconOutline: 'wallet-outline' },
+  { name: 'Settings', label: 'Paramètres', icon: 'settings', iconOutline: 'settings-outline' },
 ]
 
 export function Sidebar({ currentRoute, onNavigate }: SidebarProps) {

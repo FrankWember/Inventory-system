@@ -9,7 +9,12 @@
     "web": "expo start --web",
     "build": "expo export --platform web",
     "build:prod": "expo export --platform web --output-dir dist",
-    "test": "node --import tsx --test src/utils/*.test.ts",
+    "test": "node --import tsx --test src/**/*.test.ts",
+    "test:watch": "node --import tsx --test --watch src/**/*.test.ts",
+    "test:storage": "node --import tsx --test src/lib/storage.test.ts",
+    "test:auth": "node --import tsx --test src/utils/auth.test.ts",
+    "test:calculations": "node --import tsx --test src/utils/calculations.test.ts",
+    "benchmark": "node --import tsx --test src/utils/benchmarks.test.ts",
     "typecheck": "tsc --noEmit --moduleResolution bundler --module esnext"
   },
   "dependencies": {

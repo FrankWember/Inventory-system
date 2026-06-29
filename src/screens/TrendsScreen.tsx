@@ -4,12 +4,14 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  ActivityIndicator,
   RefreshControl,
   TouchableOpacity,
   Dimensions,
   Platform,
 } from 'react-native'
+import { useNavigation } from '@react-navigation/native'
+import { NativeStackNavigationProp } from '@react-navigation/native-stack'
+import { RootStackParamList } from '../../App'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { ExpandableChartCard } from '../components/ExpandableChartCard'
 import { CategoryShare } from '../components/CategoryShare'
@@ -20,11 +22,12 @@ import { Card, CardHeader, CardContent } from '../components/Card'
 import { Badge } from '../components/Badge'
 import { COLORS, fmt, fmtNum, fmtShort, fmtShortBare, dateLabel, dateLabelLong, getCategoryColor } from '../utils/helpers'
 
-type ChartKey = 'revenue' | 'profit' | 'top5' | null
-
 const BREAKPOINT = 768
 
+type TrendsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>
+
 export default function TrendsScreen() {
+  const navigation = useNavigation<TrendsScreenNavigationProp>()
   const [sessions, setSessions] = useState<Session[]>([])
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [loading, setLoading] = useState(true)
@@ -162,7 +165,6 @@ export default function TrendsScreen() {
     (sum, s) => sum + (s.session_lines?.reduce((ls, l) => ls + l.sold, 0) || 0),
     0
   )
-  const marginPct = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0
 
   const revenueRows = chartSessions.map(s => ({
     label: dateLabelLong(s.date),

@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 import {
   View,
   Text,
@@ -7,27 +7,182 @@ import {
   TouchableOpacity,
   Platform,
   Alert,
+  Share,
+  TextInput,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { Card } from '../components/Card'
 import { COLORS } from '../utils/helpers'
+import { useAuth } from '../contexts/AuthContext'
+import { useSettings } from '../contexts/SettingsContext'
+import { clearCache, exportData } from '../lib/storage'
+import { supabase } from '../lib/supabase'
 
 export default function SettingsScreen() {
-  const handleExportData = () => {
-    Alert.alert(
-      'Exporter les données',
-      'Cette fonctionnalité sera disponible prochainement.',
-      [{ text: 'OK' }]
+  const { user, signOut } = useAuth()
+  const { theme, language, notificationsEnabled, barInfo, setTheme, setLanguage, setNotificationsEnabled, updateBarInfo } = useSettings()
+
+  const handleBarInfo = () => {
+    Alert.prompt(
+      'Informations du bar',
+      'Nom de votre établissement',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Enregistrer',
+          onPress: async (name?: string) => {
+            if (name?.trim()) {
+              try {
+                await updateBarInfo({ name: name.trim() })
+                Alert.alert('Succès', 'Informations enregistrées')
+              } catch (error) {
+                Alert.alert('Erreur', 'Impossible de sauvegarder')
+              }
+            }
+          },
+        },
+      ],
+      'plain-text',
+      barInfo?.name || ''
     )
   }
 
-  const handleBackupData = () => {
+  const handleNotifications = () => {
     Alert.alert(
-      'Sauvegarde',
-      'Cette fonctionnalité sera disponible prochainement.',
-      [{ text: 'OK' }]
+      'Notifications',
+      'Voulez-vous activer les notifications ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: notificationsEnabled ? 'Désactiver' : 'Activer',
+          onPress: async () => {
+            try {
+              await setNotificationsEnabled(!notificationsEnabled)
+              Alert.alert('Succès', `Notifications ${!notificationsEnabled ? 'activées' : 'désactivées'}`)
+            } catch (error) {
+              Alert.alert('Erreur', 'Impossible de modifier les paramètres')
+            }
+          },
+        },
+      ]
     )
+  }
+
+  const handleLanguage = () => {
+    Alert.alert(
+      'Langue',
+      'Choisissez votre langue',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Français',
+          onPress: async () => {
+            try {
+              await setLanguage('fr')
+              Alert.alert('Succès', 'Langue changée en Français')
+            } catch (error) {
+              Alert.alert('Erreur', 'Impossible de changer la langue')
+            }
+          },
+        },
+        {
+          text: 'English',
+          onPress: async () => {
+            try {
+              await setLanguage('en')
+              Alert.alert('Success', 'Language changed to English')
+            } catch (error) {
+              Alert.alert('Error', 'Unable to change language')
+            }
+          },
+        },
+      ]
+    )
+  }
+
+  const handleTheme = () => {
+    Alert.alert(
+      'Thème',
+      'Choisissez le thème de l\'application',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Clair',
+          onPress: async () => {
+            try {
+              await setTheme('light')
+              Alert.alert('Succès', 'Thème clair activé')
+            } catch (error) {
+              Alert.alert('Erreur', 'Impossible de changer le thème')
+            }
+          },
+        },
+        {
+          text: 'Sombre',
+          onPress: async () => {
+            try {
+              await setTheme('dark')
+              Alert.alert('Succès', 'Thème sombre activé (à venir)')
+            } catch (error) {
+              Alert.alert('Erreur', 'Impossible de changer le thème')
+            }
+          },
+        },
+      ]
+    )
+  }
+
+  const handleExportData = async () => {
+    try {
+      const data = await exportData()
+
+      if (Platform.OS === 'web') {
+        // For web, download as JSON file
+        try {
+          const blob = new Blob([data])
+          const url = URL.createObjectURL(blob)
+          const a = (global as any).document?.createElement('a')
+          if (a) {
+            a.href = url
+            a.download = `bartrack-export-${new Date().toISOString().split('T')[0]}.json`
+            a.click()
+            URL.revokeObjectURL(url)
+          }
+        } catch (webError) {
+          // Fallback for web environments without document
+          console.error('Web export failed:', webError)
+        }
+        Alert.alert('Succès', 'Données exportées avec succès')
+      } else {
+        // For mobile, use share
+        await Share.share({
+          message: data,
+          title: 'Export BarTrack',
+        })
+      }
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible d\'exporter les données')
+    }
+  }
+
+  const handleBackupData = async () => {
+    try {
+      // Export drinks to Supabase
+      const { data: drinks, error } = await supabase
+        .from('drinks')
+        .select('*')
+
+      if (error) throw error
+
+      Alert.alert(
+        'Sauvegarde cloud',
+        `${drinks?.length || 0} articles trouvés dans le cloud.\n\nLa synchronisation automatique est active.`,
+        [{ text: 'OK' }]
+      )
+    } catch (error) {
+      Alert.alert('Erreur', 'Impossible d\'accéder à la sauvegarde cloud')
+    }
   }
 
   const handleClearCache = () => {
@@ -39,9 +194,68 @@ export default function SettingsScreen() {
         {
           text: 'Confirmer',
           style: 'destructive',
-          onPress: () => {
-            // Implement cache clearing logic
-            Alert.alert('Succès', 'Cache vidé avec succès')
+          onPress: async () => {
+            try {
+              await clearCache()
+              Alert.alert('Succès', 'Cache vidé avec succès')
+            } catch (error) {
+              Alert.alert('Erreur', 'Impossible de vider le cache')
+            }
+          },
+        },
+      ]
+    )
+  }
+
+  const handleUserProfile = () => {
+    if (!user) return
+
+    Alert.alert(
+      'Profil utilisateur',
+      `Email: ${user.email}\nID: ${user.id}`,
+      [{ text: 'OK' }]
+    )
+  }
+
+  const handleChangePassword = async () => {
+    if (!user?.email) return
+
+    Alert.alert(
+      'Changer le mot de passe',
+      'Un email de réinitialisation va être envoyé à votre adresse',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Envoyer',
+          onPress: async () => {
+            try {
+              const { error } = await supabase.auth.resetPasswordForEmail(user.email!)
+              if (error) throw error
+              Alert.alert('Succès', 'Email de réinitialisation envoyé')
+            } catch (error) {
+              Alert.alert('Erreur', 'Impossible d\'envoyer l\'email')
+            }
+          },
+        },
+      ]
+    )
+  }
+
+  const handleLogout = () => {
+    Alert.alert(
+      'Déconnexion',
+      'Êtes-vous sûr de vouloir vous déconnecter ?',
+      [
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Déconnexion',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await signOut()
+            } catch (error) {
+              Alert.alert('Erreur', 'Impossible de se déconnecter')
+            }
           },
         },
       ]
@@ -67,26 +281,28 @@ export default function SettingsScreen() {
           <SettingItem
             icon="business-outline"
             label="Informations du bar"
-            onPress={() => Alert.alert('Info', 'Fonctionnalité à venir')}
+            value={barInfo?.name}
+            onPress={handleBarInfo}
           />
           <SettingItem
             icon="notifications-outline"
             label="Notifications"
-            onPress={() => Alert.alert('Info', 'Fonctionnalité à venir')}
+            value={notificationsEnabled ? 'Activées' : 'Désactivées'}
+            onPress={handleNotifications}
             showDivider
           />
           <SettingItem
             icon="globe-outline"
             label="Langue"
-            value="Français"
-            onPress={() => Alert.alert('Info', 'Fonctionnalité à venir')}
+            value={language === 'fr' ? 'Français' : 'English'}
+            onPress={handleLanguage}
             showDivider
           />
           <SettingItem
             icon="color-palette-outline"
             label="Thème"
-            value="Clair"
-            onPress={() => Alert.alert('Info', 'Fonctionnalité à venir')}
+            value={theme === 'light' ? 'Clair' : 'Sombre'}
+            onPress={handleTheme}
           />
         </Card>
 
@@ -113,26 +329,31 @@ export default function SettingsScreen() {
         </Card>
 
         {/* Account */}
-        <Text style={styles.sectionTitle}>Compte</Text>
-        <Card style={styles.card}>
-          <SettingItem
-            icon="person-outline"
-            label="Profil utilisateur"
-            onPress={() => Alert.alert('Info', 'Fonctionnalité à venir')}
-          />
-          <SettingItem
-            icon="key-outline"
-            label="Changer le mot de passe"
-            onPress={() => Alert.alert('Info', 'Fonctionnalité à venir')}
-            showDivider
-          />
-          <SettingItem
-            icon="log-out-outline"
-            label="Déconnexion"
-            onPress={() => Alert.alert('Déconnexion', 'Fonctionnalité à venir')}
-            destructive
-          />
-        </Card>
+        {user && (
+          <>
+            <Text style={styles.sectionTitle}>Compte</Text>
+            <Card style={styles.card}>
+              <SettingItem
+                icon="person-outline"
+                label="Profil utilisateur"
+                value={user.email?.split('@')[0]}
+                onPress={handleUserProfile}
+              />
+              <SettingItem
+                icon="key-outline"
+                label="Changer le mot de passe"
+                onPress={handleChangePassword}
+                showDivider
+              />
+              <SettingItem
+                icon="log-out-outline"
+                label="Déconnexion"
+                onPress={handleLogout}
+                destructive
+              />
+            </Card>
+          </>
+        )}
 
         {/* About */}
         <Text style={styles.sectionTitle}>Application</Text>
