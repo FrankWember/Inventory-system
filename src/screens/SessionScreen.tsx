@@ -1286,9 +1286,6 @@ export default function SessionScreen({ navigation }: any) {
         </View>
         {selectedSessionId && (
           <View style={styles.desktopRight}>
-            <TouchableOpacity style={styles.desktopCloseBtn} onPress={() => setSelectedSessionId(null)}>
-              <Ionicons name="close" size={22} color={COLORS.slate} />
-            </TouchableOpacity>
             <SessionDetailScreen
               route={{ params: { sessionId: selectedSessionId } } as any}
               navigation={{ ...navigation, goBack: () => setSelectedSessionId(null) } as any}

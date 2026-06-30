@@ -31,11 +31,12 @@ function SkeletonCard({ height = 80 }: { height?: number }) {
 /** Full-screen skeleton for list/dashboard screens. */
 export function ScreenSkeleton({ variant = 'list' }: { variant?: 'list' | 'dashboard' | 'grid' }) {
   return (
-    <ScrollView
-      style={{ flex: 1, backgroundColor: COLORS.surface }}
-      contentContainerStyle={{ padding: SPACE.lg }}
-      scrollEnabled={false}
-    >
+    <View style={{ flex: 1, backgroundColor: COLORS.surface }}>
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{ padding: SPACE.lg, flexGrow: 1 }}
+        scrollEnabled={false}
+      >
       {variant === 'dashboard' && (
         <>
           {/* Stats row */}
@@ -78,7 +79,8 @@ export function ScreenSkeleton({ variant = 'list' }: { variant?: 'list' | 'dashb
 
       {variant === 'list' &&
         Array.from({ length: 6 }).map((_, i) => <SkeletonCard key={i} />)}
-    </ScrollView>
+      </ScrollView>
+    </View>
   )
 }
 
