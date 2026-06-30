@@ -11,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { Session, Expense } from '../types'
 import { SessionExpensesPanel } from './SessionExpensesPanel'
-import { COLORS, fmt, fmtNum, dateLabelLong, formatWithCassiers } from '../utils/helpers'
+import { COLORS, fmt, fmtNum, dateLabelLong, formatWithCassiersShort } from '../utils/helpers'
 
 interface SessionJournalProps {
   visible: boolean
@@ -90,7 +90,7 @@ export function SessionJournal({
             />
           </View>
 
-          <Section title="Réceptions / Achats" count={purchaseLines.length}>
+          <Section title="Réception et achat" count={purchaseLines.length} color={COLORS.violet}>
             {purchaseLines.length === 0 ? (
               <Text style={styles.sectionEmpty}>Aucun achat enregistré</Text>
             ) : (
@@ -103,7 +103,14 @@ export function SessionJournal({
             )}
           </Section>
 
-          <Section title="Ventes" count={saleLines.length}>
+          <SessionExpensesPanel
+            date={session.date}
+            expenses={expenses}
+            onChange={onExpensesChange ?? (() => {})}
+            readOnly={!onExpensesChange}
+          />
+
+          <Section title="Détail de vente" count={saleLines.length} color={COLORS.emerald}>
             {saleLines.length === 0 ? (
               <Text style={styles.sectionEmpty}>Aucune vente</Text>
             ) : (
@@ -114,7 +121,7 @@ export function SessionJournal({
                   return (
                     <View key={line.id}>
                       <TableRow
-                        cols={[line.drink_name, formatWithCassiers(line.sold, cat), fmt(line.revenue)]}
+                        cols={[line.drink_name, formatWithCassiersShort(line.sold, cat), fmt(line.revenue)]}
                       />
                       <Text style={styles.lineDetail}>
                         Stock: {fmtNum(line.opening_stock)} → {fmtNum(line.closing_stock)}
@@ -127,7 +134,7 @@ export function SessionJournal({
             )}
           </Section>
 
-          <Section title="Mouvements de stock" count={lines.filter(l => l.purchased > 0 || l.sold > 0).length}>
+          <Section title="Mouvement de stock" count={lines.filter(l => l.purchased > 0 || l.sold > 0).length} color={COLORS.slate600}>
             {lines
               .filter(l => l.purchased > 0 || l.sold > 0)
               .map(line => (
@@ -142,25 +149,18 @@ export function SessionJournal({
                 </View>
               ))}
           </Section>
-
-          <SessionExpensesPanel
-            date={session.date}
-            expenses={expenses}
-            onChange={onExpensesChange ?? (() => {})}
-            readOnly={!onExpensesChange}
-          />
         </ScrollView>
       </SafeAreaView>
     </Modal>
   )
 }
 
-function Section({ title, count, children }: { title: string; count: number; children: React.ReactNode }) {
+function Section({ title, count, children, color }: { title: string; count: number; children: React.ReactNode; color?: string }) {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHead}>
         <Text style={styles.sectionTitle}>{title}</Text>
-        <Text style={styles.sectionCount}>{count}</Text>
+        <Text style={[styles.sectionCount, color && { color, backgroundColor: color + '15' }]}>{count}</Text>
       </View>
       {children}
     </View>
@@ -326,7 +326,7 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   th: { fontSize: 11, fontWeight: '700', color: COLORS.slate, textTransform: 'uppercase' },
-  thRight: { width: 72, textAlign: 'right' },
+  thRight: { width: 80, textAlign: 'right' },
   tableRow: {
     flexDirection: 'row',
     paddingVertical: 10,
@@ -336,7 +336,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   td: { fontSize: 13, color: COLORS.slateDark, fontWeight: '500' },
-  tdRight: { width: 72, textAlign: 'right', fontWeight: '700' },
+  tdRight: { width: 80, textAlign: 'right', fontWeight: '700' },
   lineDetail: {
     fontSize: 11,
     color: COLORS.slate,

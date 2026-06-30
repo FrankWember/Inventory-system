@@ -56,12 +56,40 @@ export const fmtShortBare = (n: number): string => {
 export const fmtCompact = (n: number): string => fmtNum(n)
 
 // Date Functions
+// All date functions use local timezone to ensure consistency across the app
+
+/**
+ * Returns today's date in YYYY-MM-DD format using local timezone
+ */
 export const today = (): string => {
-  return new Date().toISOString().split('T')[0]
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+/**
+ * Parses an ISO date string (YYYY-MM-DD) as a local date, avoiding timezone conversion issues
+ */
+export const parseLocalDate = (iso: string): Date => {
+  const [year, month, day] = iso.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+/**
+ * Converts a Date object to ISO string (YYYY-MM-DD) in local timezone
+ */
+export const toISODateString = (date: Date): string => {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 export const dateLabel = (iso: string): string => {
-  return new Date(iso).toLocaleDateString('fr-FR', {
+  const date = parseLocalDate(iso)
+  return date.toLocaleDateString('fr-FR', {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -69,7 +97,8 @@ export const dateLabel = (iso: string): string => {
 }
 
 export const dateLabelLong = (iso: string): string => {
-  return new Date(iso).toLocaleDateString('fr-FR', {
+  const date = parseLocalDate(iso)
+  return date.toLocaleDateString('fr-FR', {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

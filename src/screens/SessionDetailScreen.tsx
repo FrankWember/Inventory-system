@@ -16,7 +16,8 @@ import { supabase } from '../lib/supabase'
 import { Session, Expense } from '../types'
 import { SessionExpensesPanel } from '../components/SessionExpensesPanel'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers } from '../utils/helpers'
+import { useSettings } from '../contexts/SettingsContext'
+import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers, formatWithCassiersShort, today } from '../utils/helpers'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SessionDetail'>
 
@@ -46,6 +47,7 @@ function usePrintStyles() {
 
 export default function SessionDetailScreen({ route, navigation }: Props) {
   const { sessionId } = route.params
+  const { barInfo } = useSettings()
   const [session, setSession] = useState<Session | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
@@ -146,7 +148,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
         {Platform.OS === 'web' && (
           // @ts-ignore – className is valid on web
           <View style={s.printHeader} className="print-only">
-            <Text style={s.printTitle}>BarTrack — Journal de caisse</Text>
+            <Text style={s.printTitle}>{barInfo?.name || 'BarTrack'} — Journal de caisse</Text>
             <Text style={s.printDate}>{dateLabelLong(session.date)}</Text>
             <View style={s.printDivider} />
           </View>
@@ -192,54 +194,60 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
           {activeLines.length === 0 ? (
             <EmptySection label="Aucun mouvement de stock" />
           ) : (
-            <View style={s.stockTable}>
-              {/* header */}
-              <View style={s.stockHead}>
-                <Text style={[s.sth, { flex: 2 }]}>Article</Text>
-                <Text style={[s.sth, s.sthNum]}>Début</Text>
-                <Text style={[s.sth, s.sthNum]}>+Reçu</Text>
-                <Text style={[s.sth, s.sthNum]}>Dispo</Text>
-                <Text style={[s.sth, s.sthNum]}>Compté</Text>
-                <Text style={[s.sth, s.sthNum, { color: COLORS.primary }]}>Vendus</Text>
-                <Text style={[s.sth, s.sthMoney]}>Revenu</Text>
-              </View>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={true}
+              style={s.tableScrollContainer}
+            >
+              <View style={s.stockTable}>
+                {/* header */}
+                <View style={s.stockHead}>
+                  <Text style={[s.sth, s.sthArticle]}>Article</Text>
+                  <Text style={[s.sth, s.sthNum]}>Début</Text>
+                  <Text style={[s.sth, s.sthNum]}>+Reçu</Text>
+                  <Text style={[s.sth, s.sthNum]}>Dispo</Text>
+                  <Text style={[s.sth, s.sthNum]}>Compté</Text>
+                  <Text style={[s.sth, s.sthNum, { color: COLORS.primary }]}>Vendus</Text>
+                  <Text style={[s.sth, s.sthMoney]}>Revenu</Text>
+                </View>
 
-              {activeLines.map((line, i) => {
-                const cat = drinksCategoryMap[line.drink_id] ?? 'Autre'
-                const available = line.opening_stock + line.purchased
-                const isEven = i % 2 === 0
-                return (
-                  <View key={line.id} style={[s.stockRow, isEven && s.stockRowEven]}>
-                    <Text style={[s.std, { flex: 2 }]} numberOfLines={1}>{line.drink_name}</Text>
-                    <Text style={[s.std, s.stdNum]}>{fmtNum(line.opening_stock)}</Text>
-                    <Text style={[s.std, s.stdNum, line.purchased > 0 && s.stdPos]}>
-                      {line.purchased > 0 ? `+${fmtNum(line.purchased)}` : '—'}
-                    </Text>
-                    <Text style={[s.std, s.stdNum]}>{fmtNum(available)}</Text>
-                    <Text style={[s.std, s.stdNum]}>{fmtNum(line.closing_stock)}</Text>
-                    <Text style={[s.std, s.stdNum, line.sold > 0 && s.stdAccent]}>
-                      {line.sold > 0 ? fmtNum(line.sold) : '—'}
-                    </Text>
-                    <Text style={[s.std, s.stdMoney]}>
-                      {line.sold > 0 ? fmt(line.revenue) : '—'}
-                    </Text>
-                  </View>
-                )
-              })}
+                {activeLines.map((line, i) => {
+                  const cat = drinksCategoryMap[line.drink_id] ?? 'Autre'
+                  const available = line.opening_stock + line.purchased
+                  const isEven = i % 2 === 0
+                  return (
+                    <View key={line.id} style={[s.stockRow, isEven && s.stockRowEven]}>
+                      <Text style={[s.std, s.stdArticle]} numberOfLines={1}>{line.drink_name}</Text>
+                      <Text style={[s.std, s.stdNum]}>{fmtNum(line.opening_stock)}</Text>
+                      <Text style={[s.std, s.stdNum, line.purchased > 0 && s.stdPos]}>
+                        {line.purchased > 0 ? `+${fmtNum(line.purchased)}` : '—'}
+                      </Text>
+                      <Text style={[s.std, s.stdNum]}>{fmtNum(available)}</Text>
+                      <Text style={[s.std, s.stdNum]}>{fmtNum(line.closing_stock)}</Text>
+                      <Text style={[s.std, s.stdNum, line.sold > 0 && s.stdAccent]}>
+                        {line.sold > 0 ? fmtNum(line.sold) : '—'}
+                      </Text>
+                      <Text style={[s.std, s.stdMoney]}>
+                        {line.sold > 0 ? fmt(line.revenue) : '—'}
+                      </Text>
+                    </View>
+                  )
+                })}
 
-              {/* totals row */}
-              <View style={s.stockTotalRow}>
-                <Text style={[s.stTotal, { flex: 2 }]}>TOTAL</Text>
-                <Text style={[s.stTotal, s.stdNum]}>—</Text>
-                <Text style={[s.stTotal, s.stdNum, s.stdPos]}>
-                  {totalPurchased > 0 ? `+${fmtNum(totalPurchased)}` : '—'}
-                </Text>
-                <Text style={[s.stTotal, s.stdNum]}>—</Text>
-                <Text style={[s.stTotal, s.stdNum]}>—</Text>
-                <Text style={[s.stTotal, s.stdNum, s.stdAccent]}>{fmtNum(totalUnits)}</Text>
-                <Text style={[s.stTotal, s.stdMoney, { color: COLORS.primary }]}>{fmt(session.total_revenue)}</Text>
+                {/* totals row */}
+                <View style={s.stockTotalRow}>
+                  <Text style={[s.stTotal, s.stdArticle]}>TOTAL</Text>
+                  <Text style={[s.stTotal, s.stdNum]}>—</Text>
+                  <Text style={[s.stTotal, s.stdNum, s.stdPos]}>
+                    {totalPurchased > 0 ? `+${fmtNum(totalPurchased)}` : '—'}
+                  </Text>
+                  <Text style={[s.stTotal, s.stdNum]}>—</Text>
+                  <Text style={[s.stTotal, s.stdNum]}>—</Text>
+                  <Text style={[s.stTotal, s.stdNum, s.stdAccent]}>{fmtNum(totalUnits)}</Text>
+                  <Text style={[s.stTotal, s.stdMoney, { color: COLORS.primary }]}>{fmt(session.total_revenue)}</Text>
+                </View>
               </View>
-            </View>
+            </ScrollView>
           )}
         </Section>
 
@@ -256,35 +264,41 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
         {/* ── Sales detail ── */}
         {saleLines.length > 0 && (
           <Section title="Détail des ventes" icon="trending-up-outline" count={saleLines.length}>
-            <View style={s.salesTable}>
-              <View style={s.salesHead}>
-                <Text style={[s.sth, { flex: 2 }]}>Article</Text>
-                <Text style={[s.sth, s.sthNum]}>Vendu</Text>
-                <Text style={[s.sth, s.sthMoney]}>Revenu</Text>
-              </View>
-              {saleLines.map((line, i) => {
-                const cat = drinksCategoryMap[line.drink_id] ?? 'Autre'
-                return (
-                  <View key={line.id} style={[s.salesRow, i % 2 === 0 && s.stockRowEven]}>
-                    <View style={{ flex: 2 }}>
-                      <Text style={s.std} numberOfLines={1}>{line.drink_name}</Text>
-                      <Text style={s.saleFlow}>
-                        Début {fmtNum(line.opening_stock)}
-                        {line.purchased > 0 ? ` +${fmtNum(line.purchased)} reçus` : ''}
-                        {' → '}{fmtNum(line.closing_stock)} restants
-                      </Text>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={true}
+              style={s.tableScrollContainer}
+            >
+              <View style={s.salesTable}>
+                <View style={s.salesHead}>
+                  <Text style={[s.sth, s.sthSalesArticle]}>Article</Text>
+                  <Text style={[s.sth, s.sthNum]}>Vendu</Text>
+                  <Text style={[s.sth, s.sthMoney]}>Revenu</Text>
+                </View>
+                {saleLines.map((line, i) => {
+                  const cat = drinksCategoryMap[line.drink_id] ?? 'Autre'
+                  return (
+                    <View key={line.id} style={[s.salesRow, i % 2 === 0 && s.stockRowEven]}>
+                      <View style={s.stdSalesArticle}>
+                        <Text style={s.std} numberOfLines={1}>{line.drink_name}</Text>
+                        <Text style={s.saleFlow} numberOfLines={1}>
+                          {line.opening_stock}
+                          {line.purchased > 0 ? `+${line.purchased}` : ''}
+                          →{line.closing_stock}
+                        </Text>
+                      </View>
+                      <Text style={[s.std, s.stdNum, s.stdAccent]}>{formatWithCassiersShort(line.sold, cat)}</Text>
+                      <Text style={[s.std, s.stdMoney]} numberOfLines={1}>{fmt(line.revenue)}</Text>
                     </View>
-                    <Text style={[s.std, s.stdNum, s.stdAccent]}>{formatWithCassiers(line.sold, cat)}</Text>
-                    <Text style={[s.std, s.stdMoney]}>{fmt(line.revenue)}</Text>
-                  </View>
-                )
-              })}
-              <View style={s.stockTotalRow}>
-                <Text style={[s.stTotal, { flex: 2 }]}>TOTAL</Text>
-                <Text style={[s.stTotal, s.stdNum, s.stdAccent]}>{fmtNum(totalUnits)}</Text>
-                <Text style={[s.stTotal, s.stdMoney, { color: COLORS.primary }]}>{fmt(session.total_revenue)}</Text>
+                  )
+                })}
+                <View style={s.stockTotalRow}>
+                  <Text style={[s.stTotal, s.stdSalesArticle]}>TOTAL</Text>
+                  <Text style={[s.stTotal, s.stdNum, s.stdAccent]}>{fmtNum(totalUnits)}</Text>
+                  <Text style={[s.stTotal, s.stdMoney, { color: COLORS.primary }]}>{fmt(session.total_revenue)}</Text>
+                </View>
               </View>
-            </View>
+            </ScrollView>
           </Section>
         )}
 
@@ -294,7 +308,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
             date={session.date}
             expenses={expenses}
             onChange={loadData}
-            readOnly={session.closed}
+            readOnly={session.closed && session.date !== today()}
           />
         </Section>
 
@@ -331,18 +345,40 @@ function Section({
 
 const sc = StyleSheet.create({
   wrap: {
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
     marginBottom: 14,
-    ...Platform.select({ web: { boxShadow: '0 1px 4px rgba(0,0,0,0.04)' } }),
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
+      },
+    }),
   },
   head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
   headLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 15, fontFamily: FONT.bold, color: COLORS.slateDark },
-  countPill: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: COLORS.primaryLight, borderRadius: 20 },
+  countPill: {
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    backgroundColor: 'rgba(74, 144, 226, 0.15)',
+    borderRadius: 20,
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(8px)',
+      },
+    }),
+  },
   countText: { fontSize: 12, fontFamily: FONT.bold, color: COLORS.primary },
 })
 
@@ -378,34 +414,42 @@ const jr = StyleSheet.create({
 
 function SimpleTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
   return (
-    <View style={st.table}>
-      <View style={st.head}>
-        {headers.map((h, i) => (
-          <Text key={i} style={[st.th, i === 0 ? { flex: 1 } : st.thRight]}>{h}</Text>
-        ))}
-      </View>
-      {rows.map((row, ri) => (
-        <View key={ri} style={[st.row, ri % 2 === 0 && st.rowEven]}>
-          {row.map((cell, ci) => (
-            <Text key={ci} style={[st.td, ci === 0 ? { flex: 1 } : st.tdRight]} numberOfLines={ci === 0 ? 2 : 1}>
-              {cell}
-            </Text>
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={true}
+      style={s.tableScrollContainer}
+    >
+      <View style={st.table}>
+        <View style={st.head}>
+          {headers.map((h, i) => (
+            <Text key={i} style={[st.th, i === 0 ? st.thFirst : st.thRight]}>{h}</Text>
           ))}
         </View>
-      ))}
-    </View>
+        {rows.map((row, ri) => (
+          <View key={ri} style={[st.row, ri % 2 === 0 && st.rowEven]}>
+            {row.map((cell, ci) => (
+              <Text key={ci} style={[st.td, ci === 0 ? st.tdFirst : st.tdRight]} numberOfLines={1}>
+                {cell}
+              </Text>
+            ))}
+          </View>
+        ))}
+      </View>
+    </ScrollView>
   )
 }
 
 const st = StyleSheet.create({
-  table: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, overflow: 'hidden' },
+  table: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, overflow: 'hidden', minWidth: '100%' },
   head: { flexDirection: 'row', backgroundColor: COLORS.surface, paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   th: { fontSize: 10, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
-  thRight: { width: 72, textAlign: 'right' },
+  thFirst: { width: 140, minWidth: 140, paddingRight: 12 },
+  thRight: { width: 100, minWidth: 100, textAlign: 'right', paddingHorizontal: 8 },
   row: { flexDirection: 'row', paddingVertical: 11, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center' },
   rowEven: { backgroundColor: COLORS.surface + '60' },
   td: { fontSize: 13, fontFamily: FONT.medium, color: COLORS.slateDark },
-  tdRight: { width: 72, textAlign: 'right', fontFamily: FONT.bold },
+  tdFirst: { width: 140, minWidth: 140, paddingRight: 12 },
+  tdRight: { width: 100, minWidth: 100, textAlign: 'right', fontFamily: FONT.bold, paddingHorizontal: 8 },
 })
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -421,10 +465,23 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 8,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: 'rgba(74, 144, 226, 0.15)',
     borderWidth: 1,
-    borderColor: COLORS.primary + '40',
-    ...Platform.select({ web: { cursor: 'pointer' } }),
+    borderColor: 'rgba(74, 144, 226, 0.4)',
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        backdropFilter: 'blur(10px)',
+        transition: 'all 0.2s ease',
+      },
+      default: {
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+      },
+    }),
   },
   printBtnText: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.primary },
 
@@ -446,13 +503,30 @@ const s = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 16,
     borderWidth: 1,
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(10px)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 6,
+        elevation: 2,
+      },
+    }),
   },
-  statusClosed: { backgroundColor: COLORS.emeraldLight, borderColor: COLORS.emerald + '40' },
-  statusOpen: { backgroundColor: COLORS.amberLight, borderColor: COLORS.amber + '40' },
+  statusClosed: { backgroundColor: 'rgba(16, 185, 129, 0.15)', borderColor: 'rgba(16, 185, 129, 0.4)' },
+  statusOpen: { backgroundColor: 'rgba(251, 191, 36, 0.15)', borderColor: 'rgba(251, 191, 36, 0.4)' },
   statusText: { fontSize: 13, fontFamily: FONT.semibold },
 
+  // table scroll container
+  tableScrollContainer: {
+    width: '100%',
+  },
+
   // stock movement table
-  stockTable: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, overflow: 'hidden' },
+  stockTable: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, overflow: 'hidden', minWidth: '100%' },
   stockHead: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
@@ -462,13 +536,17 @@ const s = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   sth: { fontSize: 9, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
-  sthNum: { width: 40, textAlign: 'right' },
-  sthMoney: { width: 66, textAlign: 'right' },
+  sthArticle: { width: 120, minWidth: 120, paddingRight: 12 },
+  sthNum: { width: 60, minWidth: 60, textAlign: 'right', paddingHorizontal: 6 },
+  sthMoney: { width: 90, minWidth: 90, textAlign: 'right', paddingHorizontal: 6 },
+  sthSalesArticle: { flex: 1, minWidth: 140, paddingRight: 12 },
   stockRow: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center' },
   stockRowEven: { backgroundColor: COLORS.surface + '60' },
   std: { fontSize: 12, fontFamily: FONT.medium, color: COLORS.slateDark },
-  stdNum: { width: 40, textAlign: 'right', fontFamily: FONT.semibold, fontVariant: ['tabular-nums'] },
-  stdMoney: { width: 66, textAlign: 'right', fontFamily: FONT.bold, color: COLORS.primary, fontVariant: ['tabular-nums'], fontSize: 11 },
+  stdArticle: { width: 120, minWidth: 120, paddingRight: 12 },
+  stdNum: { width: 60, minWidth: 60, textAlign: 'right', fontFamily: FONT.semibold, fontVariant: ['tabular-nums'], paddingHorizontal: 6 },
+  stdMoney: { width: 90, minWidth: 90, textAlign: 'right', fontFamily: FONT.bold, color: COLORS.primary, fontVariant: ['tabular-nums'], fontSize: 11, paddingHorizontal: 6 },
+  stdSalesArticle: { flex: 1, minWidth: 140, paddingRight: 12 },
   stdPos: { color: COLORS.primary },
   stdAccent: { color: COLORS.primary },
   stockTotalRow: {
@@ -483,7 +561,7 @@ const s = StyleSheet.create({
   stTotal: { fontSize: 12, fontFamily: FONT.bold, color: COLORS.slateDark },
 
   // sales table
-  salesTable: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, overflow: 'hidden' },
+  salesTable: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, overflow: 'hidden', minWidth: '100%' },
   salesHead: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
@@ -492,6 +570,6 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  salesRow: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center', gap: 4 },
-  saleFlow: { fontSize: 10, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 2, fontVariant: ['tabular-nums'] },
+  salesRow: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center', gap: 8 },
+  saleFlow: { fontSize: 9, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 2, fontVariant: ['tabular-nums'] },
 })

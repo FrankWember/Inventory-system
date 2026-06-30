@@ -7,11 +7,13 @@ export interface Drink {
   id: string
   name: string
   category: Category
-  price: number
-  cost: number
+  price: number  // Selling price per unit (FCFA)
+  cost: number  // Cost per unit (FCFA) - calculated from cassier_cost / cassier_quantity
   stock: number
   min_stock: number
-  rack_size: number  // Number of units per rack (default 12 for beers)
+  rack_size: number  // Number of units per rack (default 12 for beers) - DEPRECATED, use cassier_quantity
+  cassier_quantity?: number  // Number of units in a cassier (replaces rack_size)
+  cassier_cost?: number  // Total cost of one cassier (FCFA)
   supplier: string
   notes: string
   active: boolean

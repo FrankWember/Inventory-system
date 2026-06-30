@@ -15,60 +15,93 @@ import { Card } from '../components/Card'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { DrinkSelector } from '../components/DrinkSelector'
+import { DrinkTemplate } from '../data/cameroonianDrinks'
 import { COLORS, fmt, fmtNum, getCategoryColor } from '../utils/helpers'
 
 export default function AddDrinkScreen({ navigation }: any) {
   const [saving, setSaving] = useState(false)
-  const [unitMode, setUnitMode] = useState<'units' | 'cassiers'>('units')
+  const [unitMode, setUnitMode] = useState<'units' | 'cassiers'>('cassiers')
+  const [selectedDrink, setSelectedDrink] = useState<DrinkTemplate | null>(null)
   const [form, setForm] = useState({
-    name: '',
-    category: 'Autre' as Category,
+    cassierQuantity: '',
+    cassierCost: '',
     price: '',
-    cost: '',
     stock: '',
     minStock: '',
-    rackSize: '12',
     supplier: '',
-    notes: '',
   })
 
-  const categories: Category[] = ['Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre']
-  const isBeer = form.category === 'Bière'
+  const isBeer = selectedDrink?.category === 'Bière'
+
+  // Auto-calculate COGS (cost per unit)
+  const cassierQuantity = parseInt(form.cassierQuantity) || 0
+  const cassierCost = parseInt(form.cassierCost) || 0
+  const costPerUnit = cassierQuantity > 0 ? cassierCost / cassierQuantity : 0
+
+  // Auto-calculate profit per unit
+  const sellingPrice = parseInt(form.price) || 0
+  const profitPerUnit = sellingPrice - costPerUnit
+  const marginPercent = sellingPrice > 0 ? ((profitPerUnit / sellingPrice) * 100).toFixed(1) : '0'
 
   // Helper function to convert display value to units
   const getUnitsValue = (displayValue: string): number => {
     const numValue = parseInt(displayValue) || 0
-    if (isBeer && unitMode === 'cassiers') {
-      const rackSize = parseInt(form.rackSize) || 12
-      return numValue * rackSize
+    if (unitMode === 'cassiers') {
+      return numValue * cassierQuantity
     }
     return numValue
   }
 
+  const handleDrinkSelect = (drink: DrinkTemplate) => {
+    setSelectedDrink(drink)
+    setForm(prev => ({
+      ...prev,
+      cassierQuantity: drink.defaultRackSize.toString(),
+    }))
+  }
+
   const handleSave = async () => {
-    if (!form.name.trim()) {
-      Alert.alert('Erreur', 'Le nom est requis')
+    if (!selectedDrink) {
+      Alert.alert('Erreur', 'Veuillez sélectionner une boisson')
+      return
+    }
+
+    if (!form.cassierQuantity || cassierQuantity === 0) {
+      Alert.alert('Erreur', 'Veuillez entrer le nombre d\'unités par cassier')
+      return
+    }
+
+    if (!form.cassierCost || cassierCost === 0) {
+      Alert.alert('Erreur', 'Veuillez entrer le coût du cassier')
+      return
+    }
+
+    if (!form.price || sellingPrice === 0) {
+      Alert.alert('Erreur', 'Veuillez entrer le prix de vente')
       return
     }
 
     setSaving(true)
     try {
       const { error } = await supabase.from('drinks').insert({
-        name: form.name.toUpperCase(),
-        category: form.category,
-        price: parseInt(form.price) || 0,
-        cost: parseInt(form.cost) || 0,
+        name: selectedDrink.name,
+        category: selectedDrink.category,
+        price: sellingPrice,
+        cost: Math.round(costPerUnit),
         stock: getUnitsValue(form.stock),
         min_stock: getUnitsValue(form.minStock),
-        rack_size: parseInt(form.rackSize) || 12,
+        rack_size: cassierQuantity,
+        cassier_quantity: cassierQuantity,
+        cassier_cost: cassierCost,
         supplier: form.supplier,
-        notes: form.notes,
+        notes: '',
         active: true,
       })
 
       if (error) throw error
 
-      Alert.alert('Succès', 'Boisson ajoutée')
+      Alert.alert('Succès', 'Boisson ajoutée avec succès!')
       navigation.goBack()
     } catch (error) {
       console.error('Error adding drink:', error)
@@ -78,11 +111,6 @@ export default function AddDrinkScreen({ navigation }: any) {
     }
   }
 
-  const price = parseInt(form.price) || 0
-  const cost = parseInt(form.cost) || 0
-  const margin = price > 0 ? ((price - cost) / price * 100).toFixed(0) : '0'
-  const profitPerUnit = price - cost
-
   return (
     <KeyboardAvoidingView
       style={{ flex: 1 }}
@@ -90,132 +118,126 @@ export default function AddDrinkScreen({ navigation }: any) {
     >
       <ScreenHeader
         title="Ajouter une boisson"
+        subtitle="Sélectionnez et configurez"
         onBack={() => navigation.goBack()}
       />
       <ScrollView style={styles.container}>
         <Card>
-          <Text style={styles.sectionTitle}>Identité</Text>
-          <Input
-            label="Nom *"
-            value={form.name}
-            onChangeText={(text) => setForm({ ...form, name: text })}
-            placeholder="Ex: COCA COLA"
-            autoCapitalize="characters"
-          />
-
-          <Text style={styles.label}>Catégorie *</Text>
-          <View style={styles.categoryGrid}>
-            {categories.map(cat => (
-              <TouchableOpacity
-                key={cat}
-                onPress={() => setForm({ ...form, category: cat })}
-                style={[
-                  styles.categoryButton,
-                  form.category === cat && styles.categoryButtonActive
-                ]}
-              >
-                <Text style={[
-                  styles.categoryButtonText,
-                  form.category === cat && styles.categoryButtonTextActive
-                ]}>
-                  {cat}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </View>
-        </Card>
-
-        <Card>
-          <Text style={styles.sectionTitle}>Tarification</Text>
-          <Input
-            label="Prix de vente (FCFA) *"
-            value={form.price}
-            onChangeText={(text) => setForm({ ...form, price: text })}
-            keyboardType="number-pad"
-            placeholder="0"
-          />
-          <Input
-            label="Coût d'achat (FCFA) *"
-            value={form.cost}
-            onChangeText={(text) => setForm({ ...form, cost: text })}
-            keyboardType="number-pad"
-            placeholder="0"
-          />
-
-          {price > 0 && cost > 0 && (
-            <View style={styles.summary}>
-              <Text style={styles.summaryText}>Marge: {margin}%</Text>
-              <Text style={styles.summaryValue}>{fmt(profitPerUnit)}/unité</Text>
-            </View>
-          )}
-        </Card>
-
-        <Card>
-          <Text style={styles.sectionTitle}>Configuration du stock</Text>
-
-          <Input
-            label="Unités par casier"
-            value={form.rackSize}
-            onChangeText={(text) => setForm({ ...form, rackSize: text })}
-            keyboardType="number-pad"
-            placeholder="12"
-          />
-
-          {isBeer && (
-            <View style={styles.unitToggle}>
-              <TouchableOpacity
-                style={[styles.unitToggleButton, unitMode === 'units' && styles.unitToggleButtonActive]}
-                onPress={() => setUnitMode('units')}
-              >
-                <Text style={[styles.unitToggleText, unitMode === 'units' && styles.unitToggleTextActive]}>
-                  Unités
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.unitToggleButton, unitMode === 'cassiers' && styles.unitToggleButtonActive]}
-                onPress={() => setUnitMode('cassiers')}
-              >
-                <Text style={[styles.unitToggleText, unitMode === 'cassiers' && styles.unitToggleTextActive]}>
-                  Cassiers
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
-          <Input
-            label={`Stock initial${isBeer ? ` (${unitMode === 'units' ? 'unités' : 'cassiers'})` : ''}`}
-            value={form.stock}
-            onChangeText={(text) => setForm({ ...form, stock: text })}
-            keyboardType="number-pad"
-            placeholder="0"
-          />
-
-          <Input
-            label={`Seuil minimum${isBeer ? ` (${unitMode === 'units' ? 'unités' : 'cassiers'})` : ''}`}
-            value={form.minStock}
-            onChangeText={(text) => setForm({ ...form, minStock: text })}
-            keyboardType="number-pad"
-            placeholder="0"
-          />
-          <Input
-            label="Fournisseur (optionnel)"
-            value={form.supplier}
-            onChangeText={(text) => setForm({ ...form, supplier: text })}
-            placeholder="Ex: Brasseries du Cameroun"
-          />
-          <Input
-            label="Notes (optionnel)"
-            value={form.notes}
-            onChangeText={(text) => setForm({ ...form, notes: text })}
-            placeholder="Ex: Bouteille 1 litre"
+          <Text style={styles.sectionTitle}>Boisson</Text>
+          <Text style={styles.label}>Choisir une boisson *</Text>
+          <DrinkSelector
+            selectedDrink={selectedDrink}
+            onSelectDrink={handleDrinkSelect}
           />
         </Card>
+
+        {selectedDrink && (
+          <>
+            <Card>
+              <Text style={styles.sectionTitle}>Tarification par cassier</Text>
+              <Text style={styles.helpText}>
+                Entrez les informations du cassier pour calculer automatiquement vos coûts et profits
+              </Text>
+
+              <Input
+                label="Combien d'unités dans un cassier? *"
+                value={form.cassierQuantity}
+                onChangeText={(text) => setForm({ ...form, cassierQuantity: text })}
+                keyboardType="number-pad"
+                placeholder="Ex: 12, 24"
+              />
+
+              <Input
+                label="Combien coûte le cassier? (FCFA) *"
+                value={form.cassierCost}
+                onChangeText={(text) => setForm({ ...form, cassierCost: text })}
+                keyboardType="number-pad"
+                placeholder="Ex: 6000"
+              />
+
+              <Input
+                label="Prix de vente par unité (FCFA) *"
+                value={form.price}
+                onChangeText={(text) => setForm({ ...form, price: text })}
+                keyboardType="number-pad"
+                placeholder="Ex: 600"
+              />
+
+              {cassierQuantity > 0 && cassierCost > 0 && sellingPrice > 0 && (
+                <View style={styles.calculationCard}>
+                  <View style={styles.calculationRow}>
+                    <Text style={styles.calculationLabel}>Coût par unité (COGS)</Text>
+                    <Text style={styles.calculationValue}>{fmt(costPerUnit)}</Text>
+                  </View>
+                  <View style={styles.calculationRow}>
+                    <Text style={styles.calculationLabel}>Profit par unité</Text>
+                    <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
+                      {fmt(profitPerUnit)}
+                    </Text>
+                  </View>
+                  <View style={styles.calculationRow}>
+                    <Text style={styles.calculationLabel}>Marge bénéficiaire</Text>
+                    <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
+                      {marginPercent}%
+                    </Text>
+                  </View>
+                </View>
+              )}
+            </Card>
+
+            <Card>
+              <Text style={styles.sectionTitle}>Stock initial</Text>
+
+              <View style={styles.unitToggle}>
+                <TouchableOpacity
+                  style={[styles.unitToggleButton, unitMode === 'units' && styles.unitToggleButtonActive]}
+                  onPress={() => setUnitMode('units')}
+                >
+                  <Text style={[styles.unitToggleText, unitMode === 'units' && styles.unitToggleTextActive]}>
+                    Unités
+                  </Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.unitToggleButton, unitMode === 'cassiers' && styles.unitToggleButtonActive]}
+                  onPress={() => setUnitMode('cassiers')}
+                >
+                  <Text style={[styles.unitToggleText, unitMode === 'cassiers' && styles.unitToggleTextActive]}>
+                    Cassiers
+                  </Text>
+                </TouchableOpacity>
+              </View>
+
+              <Input
+                label={`Stock initial (${unitMode === 'units' ? 'unités' : 'cassiers'})`}
+                value={form.stock}
+                onChangeText={(text) => setForm({ ...form, stock: text })}
+                keyboardType="number-pad"
+                placeholder="0"
+              />
+
+              <Input
+                label={`Seuil d'alerte (${unitMode === 'units' ? 'unités' : 'cassiers'})`}
+                value={form.minStock}
+                onChangeText={(text) => setForm({ ...form, minStock: text })}
+                keyboardType="number-pad"
+                placeholder="0"
+              />
+
+              <Input
+                label="Fournisseur (optionnel)"
+                value={form.supplier}
+                onChangeText={(text) => setForm({ ...form, supplier: text })}
+                placeholder="Ex: Brasseries du Cameroun"
+              />
+            </Card>
+          </>
+        )}
 
         <View style={styles.buttons}>
           <Button
             onPress={handleSave}
             loading={saving}
-            disabled={saving}
+            disabled={saving || !selectedDrink}
             style={{ flex: 1 }}
           >
             Enregistrer
@@ -246,7 +268,7 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: '700',
     color: COLORS.slateDark,
-    marginBottom: 20,
+    marginBottom: 12,
   },
   label: {
     fontSize: 14,
@@ -254,33 +276,12 @@ const styles = StyleSheet.create({
     color: COLORS.slateDark,
     marginBottom: 8,
   },
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 20,
-  },
-  categoryButton: {
-    paddingHorizontal: 18,
-    paddingVertical: 12,
-    borderRadius: 10,
-    backgroundColor: COLORS.white,
-    borderWidth: 1.5,
-    borderColor: COLORS.border,
-    minWidth: 90,
-    alignItems: 'center',
-  },
-  categoryButtonActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
-  },
-  categoryButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+  helpText: {
+    fontSize: 13,
+    fontWeight: '400',
     color: COLORS.slate,
-  },
-  categoryButtonTextActive: {
-    color: COLORS.white,
+    marginBottom: 20,
+    lineHeight: 18,
   },
   unitToggle: {
     flexDirection: 'row',
@@ -312,22 +313,25 @@ const styles = StyleSheet.create({
   unitToggleTextActive: {
     color: COLORS.slateDark,
   },
-  summary: {
+  calculationCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    gap: 12,
+  },
+  calculationRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingTop: 16,
-    marginTop: 16,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.border,
   },
-  summaryText: {
-    fontSize: 13,
+  calculationLabel: {
+    fontSize: 14,
     fontWeight: '500',
     color: COLORS.slate,
   },
-  summaryValue: {
-    fontSize: 15,
+  calculationValue: {
+    fontSize: 16,
     fontWeight: '700',
     color: COLORS.slateDark,
   },

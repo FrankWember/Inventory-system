@@ -229,33 +229,39 @@ export default function TrendsScreen() {
           </View>
         </View>
 
-        <ExpandableChartCard
-          title="Revenu par jour"
-          data={revenueChartData}
-          height={isDesktop ? 240 : 200}
-          formatValue={fmtShortBare}
-          onExpand={isDesktop ? undefined : () => navigation.navigate('ChartDetail', {
-            title: 'Revenu par jour',
-            subtitle: `${period} derniers jours`,
-            chartData: revenueChartData,
-            rows: revenueRows,
-            valueIsMoney: true,
-          })}
-        />
+        <View style={isDesktop ? styles.chartRow : null}>
+          <View style={isDesktop ? styles.chartHalf : null}>
+            <ExpandableChartCard
+              title="Revenu par jour"
+              data={revenueChartData}
+              height={isDesktop ? 240 : 200}
+              formatValue={fmtShortBare}
+              onExpand={isDesktop ? undefined : () => navigation.navigate('ChartDetail', {
+                title: 'Revenu par jour',
+                subtitle: `${period} derniers jours`,
+                chartData: revenueChartData,
+                rows: revenueRows,
+                valueIsMoney: true,
+              })}
+            />
+          </View>
 
-        <ExpandableChartCard
-          title="Profit par jour"
-          data={profitChartData}
-          height={isDesktop ? 240 : 200}
-          formatValue={fmtShortBare}
-          onExpand={isDesktop ? undefined : () => navigation.navigate('ChartDetail', {
-            title: 'Profit par jour',
-            subtitle: `${period} derniers jours`,
-            chartData: profitChartData,
-            rows: profitRows,
-            valueIsMoney: true,
-          })}
-        />
+          <View style={isDesktop ? styles.chartHalf : null}>
+            <ExpandableChartCard
+              title="Profit par jour"
+              data={profitChartData}
+              height={isDesktop ? 240 : 200}
+              formatValue={fmtShortBare}
+              onExpand={isDesktop ? undefined : () => navigation.navigate('ChartDetail', {
+                title: 'Profit par jour',
+                subtitle: `${period} derniers jours`,
+                chartData: profitChartData,
+                rows: profitRows,
+                valueIsMoney: true,
+              })}
+            />
+          </View>
+        </View>
 
         <ExpandableChartCard
           title="Top boissons"
@@ -317,6 +323,8 @@ const styles = StyleSheet.create({
   container: { flex: 1 },
   scrollContent: { padding: 12, paddingBottom: 24 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.surface },
+  chartRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
+  chartHalf: { flex: 1 },
   periodSelector: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   periodButton: {
     flex: 1,

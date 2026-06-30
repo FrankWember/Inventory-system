@@ -1034,34 +1034,80 @@ export default function SessionScreen({ navigation }: any) {
   const renderDoneStep = () => (
     <StepContent stepKey="done">
       <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 32 }}>
-        {/* Calendar (desktop only in the main area) */}
-        {isDesktop && (
-          <View style={styles.calendarWrap}>
-            <Calendar
-              current={selectedDate}
-              onDayPress={day => setSelectedDate(day.dateString)}
-              markedDates={markedDates}
-              theme={{
-                calendarBackground: COLORS.white,
-                textSectionTitleColor: COLORS.slate,
-                selectedDayBackgroundColor: COLORS.primary,
-                selectedDayTextColor: COLORS.white,
-                todayTextColor: COLORS.primary,
-                dayTextColor: COLORS.slateDark,
-                textDisabledColor: COLORS.slateLight,
-                arrowColor: COLORS.primary,
-                monthTextColor: COLORS.slateDark,
-                textMonthFontFamily: FONT.bold,
-                textDayFontFamily: FONT.regular,
-                textDayHeaderFontFamily: FONT.semibold,
-              }}
-            />
-          </View>
-        )}
+        {/* Calendar */}
+        <View style={styles.calendarWrap}>
+          <Calendar
+            current={selectedDate}
+            onDayPress={day => setSelectedDate(day.dateString)}
+            markedDates={markedDates}
+            style={{ paddingBottom: 12 }}
+            theme={{
+              calendarBackground: COLORS.white,
+              textSectionTitleColor: COLORS.slate,
+              selectedDayBackgroundColor: COLORS.primary,
+              selectedDayTextColor: COLORS.white,
+              todayTextColor: COLORS.primary,
+              dayTextColor: COLORS.slateDark,
+              textDisabledColor: COLORS.slateLight,
+              arrowColor: COLORS.primary,
+              monthTextColor: COLORS.slateDark,
+              textMonthFontFamily: FONT.bold,
+              textDayFontFamily: FONT.regular,
+              textDayHeaderFontFamily: FONT.semibold,
+              textDayFontSize: 15,
+              textMonthFontSize: 18,
+              textDayHeaderFontSize: 13,
+              'stylesheet.calendar.header': {
+                week: {
+                  marginTop: 8,
+                  marginBottom: 8,
+                  flexDirection: 'row',
+                  justifyContent: 'space-around',
+                },
+              },
+              'stylesheet.calendar.main': {
+                week: {
+                  marginTop: 2,
+                  marginBottom: 6,
+                  flexDirection: 'row',
+                  justifyContent: 'space-around',
+                },
+              },
+              'stylesheet.day.basic': {
+                base: {
+                  width: 48,
+                  height: 48,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                },
+                text: {
+                  marginTop: 4,
+                  fontSize: 15,
+                  fontFamily: FONT.regular,
+                  color: COLORS.slateDark,
+                },
+                today: {
+                  backgroundColor: 'transparent',
+                },
+                todayText: {
+                  color: COLORS.primary,
+                  fontFamily: FONT.bold,
+                },
+                selected: {
+                  backgroundColor: COLORS.primary,
+                  borderRadius: 24,
+                },
+                selectedText: {
+                  color: COLORS.white,
+                  fontFamily: FONT.bold,
+                },
+              },
+            }}
+          />
+        </View>
 
-        {/* Status card for selected date (desktop) */}
-        {isDesktop && (
-          <View style={styles.dateStatusCard}>
+        {/* Status card for selected date */}
+        <View style={styles.dateStatusCard}>
             <View style={styles.dateStatusHeader}>
               <Text style={styles.dateStatusTitle}>{dateLabelLong(selectedDate)}</Text>
               {selectedDate === todayStr && (
@@ -1125,8 +1171,7 @@ export default function SessionScreen({ navigation }: any) {
                 </TouchableOpacity>
               </View>
             )}
-          </View>
-        )}
+        </View>
 
         {/* Mobile: new session button */}
         {!isDesktop && !closedToday && !openSession && (
@@ -1676,6 +1721,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: COLORS.border,
     backgroundColor: COLORS.white,
+    paddingBottom: 16,
   },
   dateStatusCard: {
     backgroundColor: COLORS.white,

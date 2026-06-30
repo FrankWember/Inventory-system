@@ -2,6 +2,7 @@ import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { COLORS } from '../utils/helpers'
+import { useSettings } from '../contexts/SettingsContext'
 import type { TabParamList } from '../../App'
 
 interface SidebarProps {
@@ -25,13 +26,15 @@ const navItems: NavItem[] = [
 ]
 
 export function Sidebar({ currentRoute, onNavigate }: SidebarProps) {
+  const { barInfo } = useSettings()
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.logo}>
           <Ionicons name="bar-chart" size={28} color={COLORS.primary} />
         </View>
-        <Text style={styles.appName}>BarTrack</Text>
+        <Text style={styles.appName}>{barInfo?.name || 'BarTrack'}</Text>
         <Text style={styles.appSubtitle}>Gestion d'inventaire</Text>
       </View>
 

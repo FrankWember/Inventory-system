@@ -14,10 +14,10 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { COLORS, FONT } from '../utils/helpers'
+import { COLORS, FONT, today } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
-import { clearCache, exportData } from '../lib/storage'
+import { exportData } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 
 export default function SettingsScreen() {
@@ -97,7 +97,7 @@ export default function SettingsScreen() {
         const a = (global as any).document?.createElement('a')
         if (a) {
           a.href = url
-          a.download = `bartrack-export-${new Date().toISOString().split('T')[0]}.json`
+          a.download = `bartrack-export-${today()}.json`
           a.click()
           URL.revokeObjectURL(url)
         }
@@ -124,27 +124,6 @@ export default function SettingsScreen() {
     }
   }
 
-  const handleClearCache = () => {
-    Alert.alert(
-      'Vider le cache',
-      'Êtes-vous sûr ? Les données de l\'app seront rechargées depuis le cloud.',
-      [
-        { text: 'Annuler', style: 'cancel' },
-        {
-          text: 'Vider',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await clearCache()
-              Alert.alert('Succès', 'Cache vidé avec succès')
-            } catch {
-              Alert.alert('Erreur', 'Impossible de vider le cache')
-            }
-          },
-        },
-      ]
-    )
-  }
 
   const handleChangePassword = async () => {
     if (!user) return
@@ -323,11 +302,9 @@ export default function SettingsScreen() {
         {/* Data */}
         <SectionTitle label="Données" />
         <SettingsCard>
-          <RowItem icon="download-outline" label="Exporter les données" iconBg="#F0F9FF" iconColor="#0369A1" onPress={handleExportData} />
+          <RowItem icon="download-outline" label="Exporter les données" onPress={handleExportData} />
           <View style={styles.separator} />
-          <RowItem icon="cloud-upload-outline" label="Sauvegarde cloud" iconBg="#F0FDF4" iconColor="#16A34A" onPress={handleBackupData} />
-          <View style={styles.separator} />
-          <RowItem icon="trash-outline" label="Vider le cache" iconBg="#FFF1F2" iconColor={COLORS.rose} destructive onPress={handleClearCache} />
+          <RowItem icon="cloud-upload-outline" label="Sauvegarde cloud" onPress={handleBackupData} />
         </SettingsCard>
 
         {/* Account */}
@@ -335,9 +312,9 @@ export default function SettingsScreen() {
           <>
             <SectionTitle label="Compte" />
             <SettingsCard>
-              <RowItem icon="key-outline" label="Changer le mot de passe" iconBg="#F5F3FF" iconColor="#7C3AED" onPress={handleChangePassword} />
+              <RowItem icon="key-outline" label="Changer le mot de passe" onPress={handleChangePassword} />
               <View style={styles.separator} />
-              <RowItem icon="log-out-outline" label="Déconnexion" iconBg="#FFF1F2" iconColor={COLORS.rose} destructive onPress={handleLogout} />
+              <RowItem icon="log-out-outline" label="Déconnexion" destructive onPress={handleLogout} />
             </SettingsCard>
           </>
         )}
@@ -346,11 +323,11 @@ export default function SettingsScreen() {
         <SectionTitle label="Application" />
         <SettingsCard>
           <View style={styles.aboutRow}>
-            <View style={[styles.iconBox, { backgroundColor: COLORS.primaryLight }]}>
+            <View style={styles.iconBox}>
               <Ionicons name="information-circle-outline" size={19} color={COLORS.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowLabel}>BarTrack</Text>
+              <Text style={styles.rowLabel}>{barInfo?.name || 'BarTrack'}</Text>
               <Text style={styles.aboutSub}>Version 1.0.0 · Gestion de bar</Text>
             </View>
           </View>
@@ -376,25 +353,18 @@ function RowItem({
   value,
   onPress,
   destructive,
-  iconBg,
-  iconColor,
 }: {
   icon: keyof typeof Ionicons.glyphMap
   label: string
   value?: string
   onPress: () => void
   destructive?: boolean
-  iconBg?: string
-  iconColor?: string
 }) {
-  const bg = iconBg || (destructive ? '#FFF1F2' : COLORS.primaryLight)
-  const color = iconColor || (destructive ? COLORS.rose : COLORS.primary)
-
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.rowLeft}>
-        <View style={[styles.iconBox, { backgroundColor: bg }]}>
-          <Ionicons name={icon} size={19} color={color} />
+        <View style={[styles.iconBox, destructive && styles.iconBoxDestructive]}>
+          <Ionicons name={icon} size={19} color={destructive ? COLORS.rose : COLORS.primary} />
         </View>
         <Text style={[styles.rowLabel, destructive && { color: COLORS.rose }]}>{label}</Text>
       </View>
@@ -406,13 +376,21 @@ function RowItem({
   )
 }
 
-function SegBtn({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
+function SegBtn({ label, icon, active, onPress }: { label: string; icon?: keyof typeof Ionicons.glyphMap; active: boolean; onPress: () => void }) {
   return (
     <TouchableOpacity
       style={[styles.segBtn, active && styles.segBtnActive]}
       onPress={onPress}
       activeOpacity={0.8}
     >
+      {icon && (
+        <Ionicons
+          name={icon}
+          size={14}
+          color={active ? COLORS.white : COLORS.slate}
+          style={{ marginRight: 4 }}
+        />
+      )}
       <Text style={[styles.segBtnText, active && styles.segBtnTextActive]}>{label}</Text>
     </TouchableOpacity>
   )
@@ -427,16 +405,21 @@ const styles = StyleSheet.create({
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 3,
     gap: 14,
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(12px)',
+      },
+    }),
   },
   avatarWrap: {},
   avatar: {
@@ -467,14 +450,19 @@ const styles = StyleSheet.create({
     marginLeft: 2,
   },
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 3,
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(12px)',
+      },
+    }),
   },
 
   // Row
@@ -494,6 +482,22 @@ const styles = StyleSheet.create({
     borderRadius: 9,
     alignItems: 'center',
     justifyContent: 'center',
+    backgroundColor: 'rgba(74, 144, 226, 0.12)',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(10px)',
+      },
+      default: {
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.1,
+        shadowRadius: 4,
+        elevation: 2,
+      },
+    }),
+  },
+  iconBoxDestructive: {
+    backgroundColor: '#FFF1F2',
   },
   rowLabel: { fontSize: 15, fontFamily: FONT.medium, color: COLORS.slateDark, flex: 1 },
   rowValue: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.slate, maxWidth: 120 },
@@ -511,6 +515,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
+    flexDirection: 'row',
+    alignItems: 'center',
+    ...Platform.select({
+      web: {
+        transition: 'all 0.2s ease',
+        cursor: 'pointer',
+      },
+    }),
   },
   segBtnActive: {
     backgroundColor: COLORS.primary,
@@ -519,6 +531,11 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.25,
     shadowRadius: 4,
     elevation: 2,
+    ...Platform.select({
+      web: {
+        transform: 'translateY(-1px)',
+      },
+    }),
   },
   segBtnText: { fontSize: 12, fontFamily: FONT.semibold, color: COLORS.slate },
   segBtnTextActive: { color: COLORS.white },
@@ -575,6 +592,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
+    ...Platform.select({
+      web: {
+        transition: 'all 0.2s ease',
+        cursor: 'pointer',
+      },
+    }),
   },
   modalCancelText: { fontSize: 15, fontFamily: FONT.medium, color: COLORS.slate },
   modalConfirm: {
@@ -583,6 +606,17 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+    ...Platform.select({
+      web: {
+        transition: 'all 0.2s ease',
+        cursor: 'pointer',
+      },
+    }),
   },
   modalConfirmText: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.white },
 })

@@ -16,7 +16,7 @@ import { Drink, Session } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { Badge } from '../components/Badge'
 import { ScreenSkeleton } from '../components/Skeleton'
-import { COLORS, FONT, fmt, fmtShort, today, dateLabel, formatWithCassiers } from '../utils/helpers'
+import { COLORS, FONT, fmt, fmtShort, fmtNum, today, dateLabel, formatWithCassiers } from '../utils/helpers'
 
 const BREAKPOINT = 768
 
@@ -131,12 +131,6 @@ export default function DashboardScreen({ navigation }: any) {
               {fmt(last7Profit)}
             </Text>
           </View>
-          <View style={styles.statBox}>
-            <Text style={styles.statLabel}>Marge 7j</Text>
-            <Text style={[styles.statValue, { color: last7Margin >= 0 ? COLORS.primary : COLORS.rose }]} adjustsFontSizeToFit numberOfLines={1}>
-              {last7Margin.toFixed(0)}%
-            </Text>
-          </View>
         </View>
 
         {/* ── 2. What needs my attention? ── */}
@@ -185,30 +179,90 @@ export default function DashboardScreen({ navigation }: any) {
           </View>
         )}
 
-        {/* ── 3. What's selling? ── */}
-        {top5.length > 0 && (
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Meilleures ventes</Text>
-              <Text style={styles.sectionHint}>7 derniers jours</Text>
-            </View>
-            {top5.map((item, i) => (
-              <View key={item.drink.id} style={styles.topRow}>
-                <Text style={styles.topRank}>{i + 1}</Text>
-                <View style={styles.topMain}>
-                  <Text style={styles.topName} numberOfLines={1}>{item.drink.name}</Text>
-                  <View style={styles.topBarTrack}>
-                    <View style={[styles.topBarFill, { width: `${Math.max(6, (item.revenue / topMax) * 100)}%` }]} />
-                  </View>
-                </View>
-                <View style={styles.topRight}>
-                  <Text style={styles.topRevenue} numberOfLines={1}>{fmtShort(item.revenue)}</Text>
-                  <Text style={styles.topSold}>{item.sold} vendus</Text>
+        {/* ── Profit trend & Best sellers row (desktop side-by-side) ── */}
+        <View style={isDesktop ? styles.dashboardRow : null}>
+          {/* ── Profit trend chart ── */}
+          {last7Sessions.length > 0 && (
+            <View style={[styles.section, isDesktop && styles.dashboardHalf]}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Tendance du profit</Text>
+                <Text style={styles.sectionHint}>7 derniers jours</Text>
+              </View>
+              <View style={styles.profitChartContainer}>
+                <View style={styles.profitChart}>
+                  {last7Sessions.slice().reverse().map((session, i) => {
+                    const maxProfit = Math.max(...last7Sessions.map(s => Math.abs(s.total_profit)), 1)
+                    const heightPercent = Math.max(4, (Math.abs(session.total_profit) / maxProfit) * 100)
+                    const isPositive = session.total_profit >= 0
+                    return (
+                      <View key={session.id} style={styles.profitBarContainer}>
+                        <View style={styles.profitBarTopSpace}>
+                          {isPositive && session.total_profit !== 0 && (
+                            <>
+                              <Text style={styles.profitBarValue}>{fmtNum(Math.round(session.total_profit / 1000))}k</Text>
+                              <View
+                                style={[
+                                  styles.profitBarUp,
+                                  {
+                                    height: `${heightPercent}%`,
+                                    backgroundColor: COLORS.primary,
+                                  },
+                                ]}
+                              />
+                            </>
+                          )}
+                        </View>
+                        <View style={styles.profitZeroLine} />
+                        <View style={styles.profitBarBottomSpace}>
+                          {isPositive === false && (
+                            <>
+                              <View
+                                style={[
+                                  styles.profitBarDown,
+                                  {
+                                    height: `${heightPercent}%`,
+                                    backgroundColor: COLORS.rose,
+                                  },
+                                ]}
+                              />
+                              <Text style={[styles.profitBarValue, { color: COLORS.rose }]}>{fmtNum(Math.round(session.total_profit / 1000))}k</Text>
+                            </>
+                          )}
+                        </View>
+                        <Text style={styles.profitBarLabel}>{session.date.slice(-2)}</Text>
+                      </View>
+                    )
+                  })}
                 </View>
               </View>
-            ))}
-          </View>
-        )}
+            </View>
+          )}
+
+          {/* ── 3. What's selling? ── */}
+          {top5.length > 0 && (
+            <View style={[styles.section, isDesktop && styles.dashboardHalf]}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Meilleures ventes</Text>
+                <Text style={styles.sectionHint}>7 derniers jours</Text>
+              </View>
+              {top5.map((item, i) => (
+                <View key={item.drink.id} style={styles.topRow}>
+                  <Text style={styles.topRank}>{i + 1}</Text>
+                  <View style={styles.topMain}>
+                    <Text style={styles.topName} numberOfLines={1}>{item.drink.name}</Text>
+                    <View style={styles.topBarTrack}>
+                      <View style={[styles.topBarFill, { width: `${Math.max(6, (item.revenue / topMax) * 100)}%` }]} />
+                    </View>
+                  </View>
+                  <View style={styles.topRight}>
+                    <Text style={styles.topRevenue} numberOfLines={1}>{fmtShort(item.revenue)}</Text>
+                    <Text style={styles.topSold}>{item.sold} vendus</Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+        </View>
 
         {attention.length === 0 && top5.length === 0 && (
           <View style={styles.emptyHint}>
@@ -248,47 +302,51 @@ const styles = StyleSheet.create({
       },
     }),
   },
+  dashboardRow: { flexDirection: 'row', gap: 16, marginBottom: 16 },
+  dashboardHalf: { flex: 1, marginBottom: 0 },
   statsRow: { flexDirection: 'row', gap: 16, marginBottom: 20 },
   statBox: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: 16,
     paddingVertical: 20,
     paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
     ...Platform.select({
       web: {
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
       },
       default: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
       },
     }),
   },
   statLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.slate, letterSpacing: 0.3, textTransform: 'uppercase' },
   statValue: { fontSize: 20, fontFamily: FONT.extrabold, color: COLORS.slateDark, marginTop: 8, fontVariant: ['tabular-nums'], letterSpacing: -0.5, minHeight: 28 },
   section: {
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: 18,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
     ...Platform.select({
       web: {
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 4px 12px rgba(0, 0, 0, 0.08)',
       },
       default: {
         shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.08,
+        shadowRadius: 12,
+        elevation: 3,
       },
     }),
   },
@@ -322,14 +380,31 @@ const styles = StyleSheet.create({
     gap: 16,
     padding: 18,
     marginBottom: 16,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: 'rgba(74, 144, 226, 0.12)',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.primary,
+    borderColor: 'rgba(74, 144, 226, 0.3)',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(10px)',
+      },
+      default: {
+        shadowColor: COLORS.primary,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.15,
+        shadowRadius: 8,
+        elevation: 3,
+      },
+    }),
   },
   healthyIcon: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)', alignItems: 'center', justifyContent: 'center',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(8px)',
+      },
+    }),
   },
   healthyText: { flex: 1, fontSize: 14, fontFamily: FONT.semibold, color: '#065F46' },
   topRow: {
@@ -342,8 +417,13 @@ const styles = StyleSheet.create({
   },
   topRank: {
     width: 28, height: 28, borderRadius: 8,
-    backgroundColor: COLORS.primarySoft, color: COLORS.primary,
+    backgroundColor: 'rgba(74, 144, 226, 0.15)', color: COLORS.primary,
     fontSize: 14, fontFamily: FONT.bold, textAlign: 'center', lineHeight: 28,
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(8px)',
+      },
+    }),
   },
   topMain: { flex: 1, minWidth: 0, gap: 7 },
   topName: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.slateDark },
@@ -357,10 +437,78 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 12,
     padding: 18,
-    backgroundColor: COLORS.white,
+    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: 'rgba(255, 255, 255, 0.5)',
+    ...Platform.select({
+      web: {
+        backdropFilter: 'blur(12px)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.05,
+        shadowRadius: 8,
+        elevation: 2,
+      },
+    }),
   },
   emptyHintText: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: COLORS.slate, lineHeight: 20 },
+  profitChartContainer: {
+    paddingTop: 8,
+  },
+  profitChart: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-around',
+    gap: 8,
+  },
+  profitBarContainer: {
+    flex: 1,
+    alignItems: 'center',
+    gap: 4,
+  },
+  profitBarValue: {
+    fontSize: 11,
+    fontFamily: FONT.semibold,
+    color: COLORS.slateDark,
+    fontVariant: ['tabular-nums'],
+    minHeight: 14,
+  },
+  profitBarTopSpace: {
+    width: '100%',
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'flex-end',
+    gap: 4,
+  },
+  profitBarBottomSpace: {
+    width: '100%',
+    height: 60,
+    alignItems: 'center',
+    justifyContent: 'flex-start',
+    gap: 4,
+  },
+  profitBarUp: {
+    width: '70%',
+    borderTopLeftRadius: 6,
+    borderTopRightRadius: 6,
+  },
+  profitBarDown: {
+    width: '70%',
+    borderBottomLeftRadius: 6,
+    borderBottomRightRadius: 6,
+  },
+  profitZeroLine: {
+    width: '100%',
+    height: 2,
+    backgroundColor: COLORS.border,
+  },
+  profitBarLabel: {
+    fontSize: 11,
+    fontFamily: FONT.medium,
+    color: COLORS.slate,
+    minHeight: 14,
+  },
 })

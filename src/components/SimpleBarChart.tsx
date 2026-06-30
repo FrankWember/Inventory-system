@@ -1,5 +1,5 @@
 import React from 'react'
-import { View, Text, StyleSheet } from 'react-native'
+import { View, Text, StyleSheet, Platform } from 'react-native'
 import { COLORS, FONT, fmtNum } from '../utils/helpers'
 
 export interface BarChartItem {
@@ -102,21 +102,21 @@ export function SimpleBarChart({
   const plot = height - 38 // room for value + axis labels
 
   if (hasNegative) {
-    // Calculate position for zero line
-    const zeroPosition = (maxVal / range) * plot
+    // Each half gets equal space
+    const halfPlot = plot / 2
 
     return (
       <View style={[styles.vWrap, { height }]}>
-        <View style={styles.vPlot}>
+        <View style={[styles.vPlot, { height: plot }]}>
           {data.map((d, i) => {
             const isNegative = d.value < 0
-            const barHeight = Math.max(3, (Math.abs(d.value) / max) * (plot / 2))
+            const barHeight = Math.max(4, (Math.abs(d.value) / max) * halfPlot)
             const barColor = d.color ?? (isNegative ? COLORS.rose : COLORS.primary)
 
             return (
               <View key={i} style={[styles.vCol, { justifyContent: 'center' }]}>
                 {/* Positive value area */}
-                <View style={{ height: zeroPosition, justifyContent: 'flex-end', alignItems: 'center' }}>
+                <View style={{ height: halfPlot, justifyContent: 'flex-end', alignItems: 'center', gap: 4 }}>
                   {!isNegative && d.value !== 0 && (
                     <>
                       <Text style={styles.vValue} numberOfLines={1}>{formatValue(d.value)}</Text>
@@ -129,11 +129,11 @@ export function SimpleBarChart({
                 <View style={styles.vZeroLine} />
 
                 {/* Negative value area */}
-                <View style={{ height: plot - zeroPosition, justifyContent: 'flex-start', alignItems: 'center' }}>
+                <View style={{ height: halfPlot, justifyContent: 'flex-start', alignItems: 'center', gap: 4 }}>
                   {isNegative && (
                     <>
                       <View style={[styles.vBarDown, { height: barHeight, backgroundColor: barColor }]} />
-                      <Text style={[styles.vValue, { color: COLORS.rose, marginTop: 4 }]} numberOfLines={1}>{formatValue(d.value)}</Text>
+                      <Text style={[styles.vValue, { color: COLORS.rose }]} numberOfLines={1}>{formatValue(d.value)}</Text>
                     </>
                   )}
                 </View>
@@ -153,11 +153,11 @@ export function SimpleBarChart({
   // Standard vertical chart for all positive values
   return (
     <View style={[styles.vWrap, { height }]}>
-      <View style={styles.vPlot}>
+      <View style={[styles.vPlot, { height: plot, alignItems: 'flex-end' }]}>
         {data.map((d, i) => {
           const h = Math.max(3, (Math.abs(d.value) / max) * plot)
           return (
-            <View key={i} style={styles.vCol}>
+            <View key={i} style={[styles.vCol, { justifyContent: 'flex-end' }]}>
               <Text style={styles.vValue} numberOfLines={1}>{d.value !== 0 ? formatValue(d.value) : ''}</Text>
               <View style={[styles.vBar, { height: h, backgroundColor: d.color ?? COLORS.primary }]} />
             </View>
@@ -178,13 +178,43 @@ const styles = StyleSheet.create({
 
   // vertical
   vWrap: { width: '100%' },
-  vPlot: { flex: 1, flexDirection: 'row', alignItems: 'flex-end' },
-  vCol: { flex: 1, alignItems: 'center', justifyContent: 'flex-end' },
+  vPlot: { flex: 1, flexDirection: 'row', alignItems: 'center' },
+  vCol: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   vValue: { fontSize: 10, color: COLORS.slate, fontFamily: FONT.semibold, marginBottom: 4, fontVariant: ['tabular-nums'] },
-  vBar: { width: '54%', maxWidth: 26, borderTopLeftRadius: 5, borderTopRightRadius: 5 },
-  vBarUp: { width: '54%', maxWidth: 26, borderTopLeftRadius: 5, borderTopRightRadius: 5 },
-  vBarDown: { width: '54%', maxWidth: 26, borderBottomLeftRadius: 5, borderBottomRightRadius: 5 },
-  vZeroLine: { width: '100%', height: 1, backgroundColor: COLORS.border },
+  vBar: {
+    width: '70%',
+    maxWidth: 32,
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
+    ...Platform.select({
+      web: {
+        transition: 'all 0.3s ease',
+      },
+    }),
+  },
+  vBarUp: {
+    width: '70%',
+    maxWidth: 32,
+    borderTopLeftRadius: 5,
+    borderTopRightRadius: 5,
+    ...Platform.select({
+      web: {
+        transition: 'all 0.3s ease',
+      },
+    }),
+  },
+  vBarDown: {
+    width: '70%',
+    maxWidth: 32,
+    borderBottomLeftRadius: 5,
+    borderBottomRightRadius: 5,
+    ...Platform.select({
+      web: {
+        transition: 'all 0.3s ease',
+      },
+    }),
+  },
+  vZeroLine: { width: '100%', height: 2, backgroundColor: COLORS.border },
   vAxis: { flexDirection: 'row', marginTop: 6 },
   vAxisLabel: { flex: 1, textAlign: 'center', fontSize: 10, color: COLORS.slate, fontFamily: FONT.medium },
 
@@ -192,8 +222,27 @@ const styles = StyleSheet.create({
   hWrap: { gap: 12, paddingVertical: 4 },
   hRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   hLabel: { width: 84, fontSize: 12, color: COLORS.slateDark, fontFamily: FONT.medium },
-  hTrack: { flex: 1, height: 8, borderRadius: 4, backgroundColor: COLORS.slateLight, overflow: 'hidden' },
-  hFill: { height: '100%', borderRadius: 4 },
+  hTrack: {
+    flex: 1,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: COLORS.slateLight,
+    overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.08)',
+      },
+    }),
+  },
+  hFill: {
+    height: '100%',
+    borderRadius: 4,
+    ...Platform.select({
+      web: {
+        transition: 'width 0.4s ease',
+      },
+    }),
+  },
   hBidirectionalTrack: { flex: 1, height: 8, flexDirection: 'row', alignItems: 'center' },
   hNegativeSide: { flex: 1, height: 8, flexDirection: 'row', justifyContent: 'flex-end' },
   hPositiveSide: { flex: 1, height: 8, flexDirection: 'row', justifyContent: 'flex-start' },
