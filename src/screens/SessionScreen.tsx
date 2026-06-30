@@ -896,7 +896,30 @@ export default function SessionScreen({ navigation }: any) {
   // ──────────────────────────── STEP: SUMMARY ──────────────────────────────────
   const renderSummaryStep = () => (
     <StepContent stepKey="summary">
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.summaryContent} keyboardShouldPersistTaps="handled">
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={styles.summaryContent}
+        keyboardShouldPersistTaps="handled"
+        // @ts-ignore - web-only className prop
+        className="recap-print-container"
+      >
+
+        {/* Print button - positioned at top to print entire recap page */}
+        {Platform.OS === 'web' && (
+          <View style={styles.printSection}>
+            <TouchableOpacity
+              style={styles.printRecapBtn}
+              onPress={() => {
+                if (Platform.OS === 'web') {
+                  (globalThis as any).window?.print?.()
+                }
+              }}
+            >
+              <Ionicons name="print-outline" size={18} color={COLORS.primary} />
+              <Text style={styles.printRecapBtnText}>Imprimer le récapitulatif complet</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* P&L Hero */}
         <View style={styles.plHero}>
@@ -931,70 +954,65 @@ export default function SessionScreen({ navigation }: any) {
           <View style={styles.tableCard}>
             <View style={styles.tableCardHeader}>
               <Text style={styles.sectionTitle}>Mouvements de stock</Text>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                <View style={styles.countBadge}>
-                  <Text style={styles.countBadgeText}>{activeDrinks.length} articles</Text>
-                </View>
-                {Platform.OS === 'web' && (
-                  <TouchableOpacity
-                    style={styles.printBtn}
-                    onPress={() => {
-                      if (Platform.OS === 'web') {
-                        (globalThis as any).window?.print?.()
-                      }
-                    }}
-                  >
-                    <Ionicons name="print-outline" size={14} color={COLORS.primary} />
-                    <Text style={styles.printBtnText}>Imprimer</Text>
-                  </TouchableOpacity>
-                )}
+              <View style={styles.countBadge}>
+                <Text style={styles.countBadgeText}>{activeDrinks.length} articles</Text>
               </View>
             </View>
 
-            {/* Table header */}
-            <View style={styles.tableHead}>
-              <Text style={[styles.th, { flex: 2 }]}>Article</Text>
-              <Text style={[styles.th, styles.thNum]}>Début</Text>
-              <Text style={[styles.th, styles.thNum]}>+Reçu</Text>
-              <Text style={[styles.th, styles.thNum]}>Dispo</Text>
-              <Text style={[styles.th, styles.thNum]}>Compté</Text>
-              <Text style={[styles.th, styles.thNum, styles.thAccent]}>Vendus</Text>
-              <Text style={[styles.th, styles.thMoney]}>Revenu</Text>
-            </View>
-
-            {activeDrinks.map((drink, i) => {
-              const opening = lineStates[drink.id]?.openingStock ?? drink.stock - (purchases[drink.id] ?? 0)
-              const purchased = lineStates[drink.id]?.purchased ?? purchases[drink.id] ?? 0
-              const expected = opening + purchased
-              const closing = closingCounts[drink.id] ?? expected
-              const sold = getSold(drink.id)
-              return (
-                <View key={drink.id} style={[styles.tableRow, i % 2 === 0 && styles.tableRowEven]}>
-                  <Text style={[styles.td, { flex: 2 }]} numberOfLines={1}>{drink.name}</Text>
-                  <Text style={[styles.td, styles.tdNum]}>{fmtNum(opening)}</Text>
-                  <Text style={[styles.td, styles.tdNum, purchased > 0 && styles.tdPositive]}>
-                    {purchased > 0 ? `+${fmtNum(purchased)}` : '—'}
-                  </Text>
-                  <Text style={[styles.td, styles.tdNum]}>{fmtNum(expected)}</Text>
-                  <Text style={[styles.td, styles.tdNum]}>{fmtNum(closing)}</Text>
-                  <Text style={[styles.td, styles.tdNum, sold > 0 && styles.tdAccent]}>{fmtNum(sold)}</Text>
-                  <Text style={[styles.td, styles.tdMoney]}>{sold > 0 ? fmt(sold * drink.price) : '—'}</Text>
+            {/* Scrollable table container for mobile */}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={true}
+              style={styles.tableScrollContainer}
+              contentContainerStyle={styles.tableScrollContent}
+            >
+              <View style={styles.tableWrapper}>
+                {/* Table header */}
+                <View style={styles.tableHead}>
+                  <Text style={[styles.th, styles.thArticle]}>Article</Text>
+                  <Text style={[styles.th, styles.thNum]}>Début</Text>
+                  <Text style={[styles.th, styles.thNum]}>+Reçu</Text>
+                  <Text style={[styles.th, styles.thNum]}>Dispo</Text>
+                  <Text style={[styles.th, styles.thNum]}>Compté</Text>
+                  <Text style={[styles.th, styles.thNum, styles.thAccent]}>Vendus</Text>
+                  <Text style={[styles.th, styles.thMoney]}>Revenu</Text>
                 </View>
-              )
-            })}
 
-            {/* Total row */}
-            <View style={styles.tableTotalRow}>
-              <Text style={[styles.tdTotal, { flex: 2 }]}>TOTAL</Text>
-              <Text style={[styles.tdTotal, styles.tdNum]}>—</Text>
-              <Text style={[styles.tdTotal, styles.tdNum, styles.tdPositive]}>
-                {totalPurchasedUnits > 0 ? `+${fmtNum(totalPurchasedUnits)}` : '—'}
-              </Text>
-              <Text style={[styles.tdTotal, styles.tdNum]}>—</Text>
-              <Text style={[styles.tdTotal, styles.tdNum]}>—</Text>
-              <Text style={[styles.tdTotal, styles.tdNum, styles.tdAccent]}>{fmtNum(totalSold)}</Text>
-              <Text style={[styles.tdTotal, styles.tdMoney, { color: COLORS.primary }]}>{fmt(totalRevenue)}</Text>
-            </View>
+                {activeDrinks.map((drink, i) => {
+                  const opening = lineStates[drink.id]?.openingStock ?? drink.stock - (purchases[drink.id] ?? 0)
+                  const purchased = lineStates[drink.id]?.purchased ?? purchases[drink.id] ?? 0
+                  const expected = opening + purchased
+                  const closing = closingCounts[drink.id] ?? expected
+                  const sold = getSold(drink.id)
+                  return (
+                    <View key={drink.id} style={[styles.tableRow, i % 2 === 0 && styles.tableRowEven]}>
+                      <Text style={[styles.td, styles.tdArticle]} numberOfLines={1}>{drink.name}</Text>
+                      <Text style={[styles.td, styles.tdNum]}>{fmtNum(opening)}</Text>
+                      <Text style={[styles.td, styles.tdNum, purchased > 0 && styles.tdPositive]}>
+                        {purchased > 0 ? `+${fmtNum(purchased)}` : '—'}
+                      </Text>
+                      <Text style={[styles.td, styles.tdNum]}>{fmtNum(expected)}</Text>
+                      <Text style={[styles.td, styles.tdNum]}>{fmtNum(closing)}</Text>
+                      <Text style={[styles.td, styles.tdNum, sold > 0 && styles.tdAccent]}>{fmtNum(sold)}</Text>
+                      <Text style={[styles.td, styles.tdMoney]}>{sold > 0 ? fmt(sold * drink.price) : '—'}</Text>
+                    </View>
+                  )
+                })}
+
+                {/* Total row */}
+                <View style={styles.tableTotalRow}>
+                  <Text style={[styles.tdTotal, styles.tdArticle]}>TOTAL</Text>
+                  <Text style={[styles.tdTotal, styles.tdNum]}>—</Text>
+                  <Text style={[styles.tdTotal, styles.tdNum, styles.tdPositive]}>
+                    {totalPurchasedUnits > 0 ? `+${fmtNum(totalPurchasedUnits)}` : '—'}
+                  </Text>
+                  <Text style={[styles.tdTotal, styles.tdNum]}>—</Text>
+                  <Text style={[styles.tdTotal, styles.tdNum]}>—</Text>
+                  <Text style={[styles.tdTotal, styles.tdNum, styles.tdAccent]}>{fmtNum(totalSold)}</Text>
+                  <Text style={[styles.tdTotal, styles.tdMoney, { color: COLORS.primary }]}>{fmt(totalRevenue)}</Text>
+                </View>
+              </View>
+            </ScrollView>
           </View>
         )}
 
@@ -1585,19 +1603,35 @@ const styles = StyleSheet.create({
   tableCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingBottom: 0 },
   countBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: COLORS.primaryLight },
   countBadgeText: { fontSize: 12, fontFamily: FONT.bold, color: COLORS.primary },
-  printBtn: {
+  tableScrollContainer: {
+    width: '100%',
+  },
+  tableScrollContent: {
+    paddingHorizontal: 0,
+  },
+  tableWrapper: {
+    minWidth: '100%',
+  },
+
+  // Print section styles
+  printSection: {
+    alignItems: 'flex-end',
+    marginBottom: 16,
+    ...Platform.select({ web: { '@media print': { display: 'none' } } }),
+  },
+  printRecapBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 8,
-    borderWidth: 1,
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 10,
+    borderWidth: 1.5,
     borderColor: COLORS.primary,
-    backgroundColor: COLORS.white,
-    ...Platform.select({ web: { cursor: 'pointer' } }),
+    backgroundColor: COLORS.primaryLight,
+    ...Platform.select({ web: { cursor: 'pointer', boxShadow: '0 2px 8px rgba(24,119,242,0.15)' } }),
   },
-  printBtnText: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.primary },
+  printRecapBtnText: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.primary },
   tableHead: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
@@ -1610,14 +1644,16 @@ const styles = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   th: { fontSize: 9, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
-  thNum: { width: 38, textAlign: 'right' },
-  thMoney: { width: 65, textAlign: 'right' },
+  thArticle: { width: 120, minWidth: 120, paddingRight: 12 },
+  thNum: { width: 50, minWidth: 50, textAlign: 'right', paddingHorizontal: 6 },
+  thMoney: { width: 70, minWidth: 70, textAlign: 'right', paddingHorizontal: 6 },
   thAccent: { color: COLORS.primary },
   tableRow: { flexDirection: 'row', paddingVertical: 8, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center' },
   tableRowEven: { backgroundColor: COLORS.surface + '60' },
   td: { fontSize: 11, fontFamily: FONT.medium, color: COLORS.slateDark },
-  tdNum: { width: 38, textAlign: 'right', fontFamily: FONT.semibold, fontVariant: ['tabular-nums'] },
-  tdMoney: { width: 65, textAlign: 'right', fontFamily: FONT.bold, color: COLORS.primary, fontVariant: ['tabular-nums'], fontSize: 10 },
+  tdArticle: { width: 120, minWidth: 120, paddingRight: 12 },
+  tdNum: { width: 50, minWidth: 50, textAlign: 'right', fontFamily: FONT.semibold, fontVariant: ['tabular-nums'], paddingHorizontal: 6 },
+  tdMoney: { width: 70, minWidth: 70, textAlign: 'right', fontFamily: FONT.bold, color: COLORS.primary, fontVariant: ['tabular-nums'], fontSize: 10, paddingHorizontal: 6 },
   tdPositive: { color: COLORS.primary },
   tdAccent: { color: COLORS.primary },
   tableTotalRow: {

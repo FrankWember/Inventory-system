@@ -1,18 +1,21 @@
-/* Print Styles for Session Detail */
+/* Print Styles for Session Detail and Recap Page */
 @media print {
   /* Hide everything by default */
   body * {
     visibility: hidden;
   }
 
-  /* Only show the session detail container and its children */
+  /* Only show the session detail container or recap container and their children */
   .session-detail-print,
-  .session-detail-print * {
+  .session-detail-print *,
+  .recap-print-container,
+  .recap-print-container * {
     visibility: visible;
   }
 
   /* Position the printable content at the top of the page */
-  .session-detail-print {
+  .session-detail-print,
+  .recap-print-container {
     position: absolute;
     left: 0;
     top: 0;
@@ -93,9 +96,17 @@
   }
 
   /* Print-specific adjustments */
-  .session-detail-print {
+  .session-detail-print,
+  .recap-print-container {
     padding: 0 !important;
     background: white !important;
+  }
+
+  /* Hide step indicators and other UI elements from recap page */
+  .recap-print-container button,
+  .recap-print-container [role="button"] {
+    display: none !important;
+    visibility: hidden !important;
   }
 
   /* Show print header */
