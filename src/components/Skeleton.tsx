@@ -38,15 +38,28 @@ export function ScreenSkeleton({ variant = 'list' }: { variant?: 'list' | 'dashb
     >
       {variant === 'dashboard' && (
         <>
-          <View style={[styles.card, { height: 140, marginBottom: SPACE.md }]}>
-            <Skeleton style={{ width: 80, height: 12, marginBottom: 16 }} />
-            <Skeleton style={{ width: '55%', height: 28, marginBottom: 10 }} />
-            <Skeleton style={{ width: '40%', height: 20 }} />
-          </View>
+          {/* Stats row */}
           <View style={styles.row}>
-            <SkeletonCard height={72} />
-            <SkeletonCard height={72} />
-            <SkeletonCard height={72} />
+            <SkeletonCard height={90} />
+            <SkeletonCard height={90} />
+            <SkeletonCard height={90} />
+          </View>
+
+          {/* À surveiller section */}
+          <View style={[styles.card, { height: 240, marginBottom: SPACE.md }]}>
+            <Skeleton style={{ width: 100, height: 14, marginBottom: 16 }} />
+            <Skeleton style={{ width: '100%', height: 50, marginBottom: 12 }} />
+            <Skeleton style={{ width: '100%', height: 50, marginBottom: 12 }} />
+            <Skeleton style={{ width: '100%', height: 50 }} />
+          </View>
+
+          {/* Meilleures ventes section */}
+          <View style={[styles.card, { height: 280 }]}>
+            <Skeleton style={{ width: 120, height: 14, marginBottom: 16 }} />
+            <Skeleton style={{ width: '100%', height: 44, marginBottom: 12 }} />
+            <Skeleton style={{ width: '100%', height: 44, marginBottom: 12 }} />
+            <Skeleton style={{ width: '100%', height: 44, marginBottom: 12 }} />
+            <Skeleton style={{ width: '100%', height: 44 }} />
           </View>
         </>
       )}

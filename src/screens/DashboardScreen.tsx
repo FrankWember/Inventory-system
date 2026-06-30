@@ -119,20 +119,21 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={styles.statsRow}>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Revenu 7j</Text>
-            <Text style={styles.statValue} numberOfLines={1}>{fmtShort(last7Revenue)}</Text>
+            <Text style={styles.statValue} adjustsFontSizeToFit numberOfLines={1}>{fmt(last7Revenue)}</Text>
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Profit 7j</Text>
             <Text
               style={[styles.statValue, { color: last7Profit >= 0 ? COLORS.primary : COLORS.rose }]}
+              adjustsFontSizeToFit
               numberOfLines={1}
             >
-              {fmtShort(last7Profit)}
+              {fmt(last7Profit)}
             </Text>
           </View>
           <View style={styles.statBox}>
             <Text style={styles.statLabel}>Marge 7j</Text>
-            <Text style={[styles.statValue, { color: last7Margin >= 0 ? COLORS.primary : COLORS.rose }]}>
+            <Text style={[styles.statValue, { color: last7Margin >= 0 ? COLORS.primary : COLORS.rose }]} adjustsFontSizeToFit numberOfLines={1}>
               {last7Margin.toFixed(0)}%
             </Text>
           </View>
@@ -150,16 +151,19 @@ export default function DashboardScreen({ navigation }: any) {
             </View>
             {attention.slice(0, 5).map(d => {
               const isOut = d.stock === 0
+              const isCritical = !isOut && d.stock <= d.min_stock / 2
+              const stockColor = isOut ? COLORS.rose : (isCritical ? COLORS.amber : COLORS.primary)
+              const stockText = isOut ? 'Rupture' : formatWithCassiers(d.stock, d.category)
               return (
                 <TouchableOpacity key={d.id} style={styles.alertRow} onPress={() => navigation.navigate('Inventory')} activeOpacity={0.7}>
-                  <View style={[styles.alertBar, { backgroundColor: isOut ? COLORS.rose : COLORS.primary }]} />
+                  <View style={[styles.alertBar, { backgroundColor: stockColor }]} />
                   <View style={styles.alertMain}>
                     <Text style={styles.alertName} numberOfLines={1}>{d.name}</Text>
                     <Text style={styles.alertSub}>Seuil {d.min_stock} · {d.category}</Text>
                   </View>
                   <View style={styles.alertRight}>
-                    <Text style={[styles.alertStock, { color: isOut ? COLORS.rose : COLORS.primary }]}>
-                      {isOut ? 'Rupture' : formatWithCassiers(d.stock, d.category)}
+                    <Text style={[styles.alertStock, { color: stockColor }]}>
+                      {stockText}
                     </Text>
                   </View>
                   <Ionicons name="chevron-forward" size={16} color={COLORS.slate400} />
@@ -266,8 +270,8 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  statLabel: { fontSize: 12, fontFamily: FONT.semibold, color: COLORS.slate, letterSpacing: 0.3, textTransform: 'uppercase' },
-  statValue: { fontSize: 24, fontFamily: FONT.extrabold, color: COLORS.slateDark, marginTop: 8, fontVariant: ['tabular-nums'], letterSpacing: -0.5 },
+  statLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.slate, letterSpacing: 0.3, textTransform: 'uppercase' },
+  statValue: { fontSize: 20, fontFamily: FONT.extrabold, color: COLORS.slateDark, marginTop: 8, fontVariant: ['tabular-nums'], letterSpacing: -0.5, minHeight: 28 },
   section: {
     backgroundColor: COLORS.white,
     borderRadius: 18,

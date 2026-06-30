@@ -276,8 +276,8 @@ export default function SettingsScreen() {
         <SettingsCard>
           <View style={styles.row}>
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#EEF2FF' }]}>
-                <Ionicons name="notifications-outline" size={19} color="#4F46E5" />
+              <View style={styles.iconBox}>
+                <Ionicons name="notifications-outline" size={19} color={COLORS.primary} />
               </View>
               <Text style={styles.rowLabel}>Notifications</Text>
             </View>
@@ -293,8 +293,8 @@ export default function SettingsScreen() {
 
           <View style={styles.row}>
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#F0FDF4' }]}>
-                <Ionicons name="globe-outline" size={19} color="#16A34A" />
+              <View style={styles.iconBox}>
+                <Ionicons name="globe-outline" size={19} color={COLORS.primary} />
               </View>
               <Text style={styles.rowLabel}>Langue</Text>
             </View>
@@ -308,14 +308,14 @@ export default function SettingsScreen() {
 
           <View style={styles.row}>
             <View style={styles.rowLeft}>
-              <View style={[styles.iconBox, { backgroundColor: '#FFFBEB' }]}>
-                <Ionicons name="color-palette-outline" size={19} color="#D97706" />
+              <View style={styles.iconBox}>
+                <Ionicons name="color-palette-outline" size={19} color={COLORS.primary} />
               </View>
               <Text style={styles.rowLabel}>Thème</Text>
             </View>
             <View style={styles.segmented}>
-              <SegBtn label="☀️ Clair" active={theme === 'light'} onPress={() => handleTheme('light')} />
-              <SegBtn label="🌙 Sombre" active={theme === 'dark'} onPress={() => handleTheme('dark')} />
+              <SegBtn label="Clair" icon="sunny-outline" active={theme === 'light'} onPress={() => handleTheme('light')} />
+              <SegBtn label="Sombre" icon="moon-outline" active={theme === 'dark'} onPress={() => handleTheme('dark')} />
             </View>
           </View>
         </SettingsCard>
