@@ -8,6 +8,7 @@ import {
   ActivityIndicator,
   Platform,
   Animated,
+  LayoutAnimation,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
@@ -129,10 +130,11 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
         title="Journal de caisse"
         subtitle={dateLabelLong(session.date)}
         onBack={() => navigation.goBack()}
+        style={s.header}
         right={
           Platform.OS === 'web' ? (
             <TouchableOpacity onPress={handlePrint} style={s.printBtn}>
-              <Ionicons name="print-outline" size={18} color={COLORS.primary} />
+              <Ionicons name="print-outline" size={18} color={COLORS.white} />
               <Text style={s.printBtnText}>Imprimer</Text>
             </TouchableOpacity>
           ) : undefined
@@ -325,20 +327,67 @@ function Section({
 }: {
   title: string; icon?: string; count?: number; children: React.ReactNode
 }) {
+  const [isExpanded, setIsExpanded] = useState(true)
+  const animationHeight = useRef(new Animated.Value(1)).current
+
+  const toggleSection = () => {
+    const newExpandedState = !isExpanded
+
+    // Configure layout animation for native
+    if (Platform.OS !== 'web') {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut)
+    }
+
+    // Animate the chevron
+    Animated.timing(animationHeight, {
+      toValue: newExpandedState ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start()
+
+    // Update state
+    setIsExpanded(newExpandedState)
+  }
+
   return (
     <View style={sc.wrap}>
-      <View style={sc.head}>
+      <TouchableOpacity onPress={toggleSection} style={sc.head} activeOpacity={0.7}>
         <View style={sc.headLeft}>
           {icon && <Ionicons name={icon as any} size={16} color={COLORS.primary} />}
           <Text style={sc.title}>{title}</Text>
         </View>
-        {count !== undefined && (
-          <View style={sc.countPill}>
-            <Text style={sc.countText}>{count}</Text>
-          </View>
-        )}
-      </View>
-      {children}
+        <View style={sc.headRight}>
+          {count !== undefined && (
+            <View style={sc.countPill}>
+              <Text style={sc.countText}>{count}</Text>
+            </View>
+          )}
+          <Animated.View
+            style={{
+              transform: [{
+                rotate: animationHeight.interpolate({
+                  inputRange: [0, 1],
+                  outputRange: ['180deg', '0deg'],
+                }),
+              }],
+            }}
+          >
+            <Ionicons name="chevron-down" size={18} color={COLORS.slate} />
+          </Animated.View>
+        </View>
+      </TouchableOpacity>
+      {isExpanded && (
+        <Animated.View
+          style={[
+            sc.content,
+            {
+              opacity: animationHeight,
+            },
+          ]}
+        >
+          {children}
+        </Animated.View>
+      )}
     </View>
   )
 }
@@ -355,6 +404,7 @@ const sc = StyleSheet.create({
       web: {
         backdropFilter: 'blur(12px)',
         boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+        transition: 'all 0.3s ease',
       },
       default: {
         shadowColor: '#000',
@@ -365,8 +415,21 @@ const sc = StyleSheet.create({
       },
     }),
   },
-  head: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  head: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 0,
+    paddingBottom: 14,
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        userSelect: 'none',
+      },
+    }),
+  },
   headLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  headRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   title: { fontSize: 15, fontFamily: FONT.bold, color: COLORS.slateDark },
   countPill: {
     paddingHorizontal: 10,
@@ -380,6 +443,14 @@ const sc = StyleSheet.create({
     }),
   },
   countText: { fontSize: 12, fontFamily: FONT.bold, color: COLORS.primary },
+  content: {
+    paddingTop: 14,
+    ...Platform.select({
+      web: {
+        transition: 'all 0.3s ease',
+      },
+    }),
+  },
 })
 
 function Divider() {
@@ -440,16 +511,45 @@ function SimpleTable({ headers, rows }: { headers: string[]; rows: string[][] })
 }
 
 const st = StyleSheet.create({
-  table: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, overflow: 'hidden', minWidth: '100%' },
+  table: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    overflow: 'hidden',
+    width: '100%',
+  },
   head: { flexDirection: 'row', backgroundColor: COLORS.surface, paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   th: { fontSize: 10, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
-  thFirst: { width: 140, minWidth: 140, paddingRight: 12 },
-  thRight: { width: 100, minWidth: 100, textAlign: 'right', paddingHorizontal: 8 },
+  thFirst: {
+    flex: 2,
+    minWidth: 140,
+    paddingRight: 12,
+    ...Platform.select({ web: { flex: 2 } }),
+  },
+  thRight: {
+    flex: 1,
+    minWidth: 100,
+    textAlign: 'right',
+    paddingHorizontal: 8,
+    ...Platform.select({ web: { flex: 1 } }),
+  },
   row: { flexDirection: 'row', paddingVertical: 11, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center' },
   rowEven: { backgroundColor: COLORS.surface + '60' },
   td: { fontSize: 13, fontFamily: FONT.medium, color: COLORS.slateDark },
-  tdFirst: { width: 140, minWidth: 140, paddingRight: 12 },
-  tdRight: { width: 100, minWidth: 100, textAlign: 'right', fontFamily: FONT.bold, paddingHorizontal: 8 },
+  tdFirst: {
+    flex: 2,
+    minWidth: 140,
+    paddingRight: 12,
+    ...Platform.select({ web: { flex: 2 } }),
+  },
+  tdRight: {
+    flex: 1,
+    minWidth: 100,
+    textAlign: 'right',
+    fontFamily: FONT.bold,
+    paddingHorizontal: 8,
+    ...Platform.select({ web: { flex: 1 } }),
+  },
 })
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -458,34 +558,59 @@ const s = StyleSheet.create({
   loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: COLORS.surface },
   loadingText: { fontSize: 14, fontFamily: FONT.regular, color: COLORS.slate },
 
+  header: {
+    ...Platform.select({
+      web: {
+        paddingHorizontal: 24,
+      },
+    }),
+  },
+
   printBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 8,
-    backgroundColor: 'rgba(74, 144, 226, 0.15)',
-    borderWidth: 1,
-    borderColor: 'rgba(74, 144, 226, 0.4)',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: COLORS.primary,
+    borderWidth: 0,
     ...Platform.select({
       web: {
         cursor: 'pointer',
-        backdropFilter: 'blur(10px)',
         transition: 'all 0.2s ease',
+        ':hover': {
+          opacity: 0.9,
+          transform: 'translateY(-1px)',
+        },
       },
       default: {
         shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
+        shadowOffset: { width: 0, height: 3 },
+        shadowOpacity: 0.3,
+        shadowRadius: 6,
+        elevation: 4,
       },
     }),
   },
-  printBtnText: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.primary },
+  printBtnText: {
+    fontSize: 13,
+    fontFamily: FONT.semibold,
+    color: COLORS.white,
+  },
 
-  body: { padding: 14, paddingBottom: 40 },
+  body: {
+    padding: 14,
+    paddingBottom: 40,
+    ...Platform.select({
+      web: {
+        maxWidth: 1000,
+        width: '100%',
+        alignSelf: 'center',
+        paddingHorizontal: 24,
+      },
+    }),
+  },
 
   // print header (only visible when printing via CSS)
   printHeader: { display: 'none', marginBottom: 20 },
@@ -523,10 +648,21 @@ const s = StyleSheet.create({
   // table scroll container
   tableScrollContainer: {
     width: '100%',
+    ...Platform.select({
+      web: {
+        overflow: 'visible',
+      },
+    }),
   },
 
   // stock movement table
-  stockTable: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, overflow: 'hidden', minWidth: '100%' },
+  stockTable: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    overflow: 'hidden',
+    width: '100%',
+  },
   stockHead: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
@@ -536,16 +672,56 @@ const s = StyleSheet.create({
     borderBottomColor: COLORS.border,
   },
   sth: { fontSize: 9, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
-  sthArticle: { width: 120, minWidth: 120, paddingRight: 12 },
-  sthNum: { width: 60, minWidth: 60, textAlign: 'right', paddingHorizontal: 6 },
-  sthMoney: { width: 90, minWidth: 90, textAlign: 'right', paddingHorizontal: 6 },
+  sthArticle: {
+    flex: 2,
+    minWidth: 120,
+    paddingRight: 12,
+    ...Platform.select({ web: { flex: 2 } }),
+  },
+  sthNum: {
+    flex: 1,
+    minWidth: 60,
+    textAlign: 'right',
+    paddingHorizontal: 6,
+    ...Platform.select({ web: { flex: 1 } }),
+  },
+  sthMoney: {
+    flex: 1.5,
+    minWidth: 90,
+    textAlign: 'right',
+    paddingHorizontal: 6,
+    ...Platform.select({ web: { flex: 1.5 } }),
+  },
   sthSalesArticle: { flex: 1, minWidth: 140, paddingRight: 12 },
   stockRow: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center' },
   stockRowEven: { backgroundColor: COLORS.surface + '60' },
   std: { fontSize: 12, fontFamily: FONT.medium, color: COLORS.slateDark },
-  stdArticle: { width: 120, minWidth: 120, paddingRight: 12 },
-  stdNum: { width: 60, minWidth: 60, textAlign: 'right', fontFamily: FONT.semibold, fontVariant: ['tabular-nums'], paddingHorizontal: 6 },
-  stdMoney: { width: 90, minWidth: 90, textAlign: 'right', fontFamily: FONT.bold, color: COLORS.primary, fontVariant: ['tabular-nums'], fontSize: 11, paddingHorizontal: 6 },
+  stdArticle: {
+    flex: 2,
+    minWidth: 120,
+    paddingRight: 12,
+    ...Platform.select({ web: { flex: 2 } }),
+  },
+  stdNum: {
+    flex: 1,
+    minWidth: 60,
+    textAlign: 'right',
+    fontFamily: FONT.semibold,
+    fontVariant: ['tabular-nums'],
+    paddingHorizontal: 6,
+    ...Platform.select({ web: { flex: 1 } }),
+  },
+  stdMoney: {
+    flex: 1.5,
+    minWidth: 90,
+    textAlign: 'right',
+    fontFamily: FONT.bold,
+    color: COLORS.primary,
+    fontVariant: ['tabular-nums'],
+    fontSize: 11,
+    paddingHorizontal: 6,
+    ...Platform.select({ web: { flex: 1.5 } }),
+  },
   stdSalesArticle: { flex: 1, minWidth: 140, paddingRight: 12 },
   stdPos: { color: COLORS.primary },
   stdAccent: { color: COLORS.primary },
@@ -561,7 +737,13 @@ const s = StyleSheet.create({
   stTotal: { fontSize: 12, fontFamily: FONT.bold, color: COLORS.slateDark },
 
   // sales table
-  salesTable: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, overflow: 'hidden', minWidth: '100%' },
+  salesTable: {
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    borderRadius: 10,
+    overflow: 'hidden',
+    width: '100%',
+  },
   salesHead: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,

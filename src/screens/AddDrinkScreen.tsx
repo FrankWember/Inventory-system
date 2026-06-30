@@ -8,6 +8,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
+  Dimensions,
 } from 'react-native'
 import { supabase } from '../lib/supabase'
 import { Category } from '../types'
@@ -18,6 +19,8 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { DrinkSelector } from '../components/DrinkSelector'
 import { DrinkTemplate } from '../data/cameroonianDrinks'
 import { COLORS, fmt, fmtNum, getCategoryColor } from '../utils/helpers'
+
+const BREAKPOINT = 768
 
 export default function AddDrinkScreen({ navigation }: any) {
   const [saving, setSaving] = useState(false)
@@ -31,6 +34,9 @@ export default function AddDrinkScreen({ navigation }: any) {
     minStock: '',
     supplier: '',
   })
+
+  const windowWidth = Dimensions.get('window').width
+  const isDesktop = Platform.OS === 'web' && windowWidth >= BREAKPOINT
 
   const isBeer = selectedDrink?.category === 'Bière'
 
@@ -112,16 +118,17 @@ export default function AddDrinkScreen({ navigation }: any) {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1 }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScreenHeader
-        title="Ajouter une boisson"
-        subtitle="Sélectionnez et configurez"
-        onBack={() => navigation.goBack()}
-      />
-      <ScrollView style={styles.container}>
+    <View style={[styles.wrapper, isDesktop && styles.wrapperDesktop]}>
+      <KeyboardAvoidingView
+        style={[{ flex: 1 }, isDesktop && styles.modalContent]}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScreenHeader
+          title="Ajouter une boisson"
+          subtitle="Sélectionnez et configurez"
+          onBack={() => navigation.goBack()}
+        />
+        <ScrollView style={styles.container} contentContainerStyle={isDesktop && styles.containerDesktop}>
         <Card>
           <Text style={styles.sectionTitle}>Boisson</Text>
           <Text style={styles.label}>Choisir une boisson *</Text>
@@ -255,13 +262,13 @@ export default function AddDrinkScreen({ navigation }: any) {
         <View style={{ height: 40 }} />
       </ScrollView>
     </KeyboardAvoidingView>
+    </View>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.surface,
     padding: 16,
   },
   sectionTitle: {
@@ -339,5 +346,40 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     gap: 12,
     paddingVertical: 16,
+  },
+  wrapper: {
+    flex: 1,
+  },
+  wrapperDesktop: {
+    backgroundColor: 'rgba(15,23,42,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  modalContent: {
+    flex: 0,
+    maxWidth: 600,
+    width: '100%',
+    maxHeight: '85vh',
+    backgroundColor: COLORS.surface,
+    borderRadius: 16,
+    overflow: 'hidden',
+    ...Platform.select({
+      web: {
+        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
+      },
+      default: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.3,
+        shadowRadius: 24,
+        elevation: 24,
+      },
+    }),
+  },
+  containerDesktop: {
+    maxWidth: 600,
+    width: '100%',
+    alignSelf: 'center',
   },
 })

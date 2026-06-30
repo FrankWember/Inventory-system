@@ -91,10 +91,20 @@ export default function DashboardScreen({ navigation }: any) {
   const last7Margin = last7Revenue > 0 ? (last7Profit / last7Revenue) * 100 : 0
 
   const alerts = drinks.filter(d => d.stock <= d.min_stock)
-  const outOfStock = alerts.filter(d => d.stock === 0)
-  const lowStock = alerts.filter(d => d.stock > 0)
-  // Ruptures first (money-blocking), then low stock — most urgent at the top.
-  const attention = [...outOfStock, ...lowStock]
+  // Sort by urgency: out of stock first, then by how far below min_stock (as percentage)
+  const attention = alerts.sort((a, b) => {
+    // Out of stock is most critical
+    if (a.stock === 0 && b.stock !== 0) return -1
+    if (b.stock === 0 && a.stock !== 0) return 1
+    if (a.stock === 0 && b.stock === 0) return 0
+
+    // For items with stock, sort by stock percentage relative to min_stock (lower is more urgent)
+    const aPercent = a.stock / Math.max(1, a.min_stock)
+    const bPercent = b.stock / Math.max(1, b.min_stock)
+    return aPercent - bPercent
+  })
+  const outOfStock = attention.filter(d => d.stock === 0)
+  const lowStock = attention.filter(d => d.stock > 0)
 
   const drinkSales = drinks.map(drink => {
     const sold = last7Sessions.reduce((sum, s) => {

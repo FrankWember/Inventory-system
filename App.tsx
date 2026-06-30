@@ -239,7 +239,14 @@ function RootNavigator() {
       ) : (
         <>
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-          <Stack.Screen name="AddDrink" component={AddDrinkScreen} options={{ headerShown: false }} />
+          <Stack.Screen
+            name="AddDrink"
+            component={AddDrinkScreen}
+            options={{
+              headerShown: false,
+              presentation: 'modal',
+            }}
+          />
           <Stack.Screen name="EditDrink" component={EditDrinkScreen} options={{ headerShown: false }} />
           <Stack.Screen name="SessionDetail" component={SessionDetailScreen} options={{ headerShown: false }} />
           <Stack.Screen name="ChartDetail" component={ChartDetailScreen} options={{ headerShown: false }} />

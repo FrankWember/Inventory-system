@@ -1040,7 +1040,7 @@ export default function SessionScreen({ navigation }: any) {
             current={selectedDate}
             onDayPress={day => setSelectedDate(day.dateString)}
             markedDates={markedDates}
-            style={{ paddingBottom: 12 }}
+            style={{ paddingBottom: isDesktop ? 12 : 4 }}
             theme={{
               calendarBackground: COLORS.white,
               textSectionTitleColor: COLORS.slate,
@@ -1054,35 +1054,35 @@ export default function SessionScreen({ navigation }: any) {
               textMonthFontFamily: FONT.bold,
               textDayFontFamily: FONT.regular,
               textDayHeaderFontFamily: FONT.semibold,
-              textDayFontSize: 15,
-              textMonthFontSize: 18,
-              textDayHeaderFontSize: 13,
+              textDayFontSize: isDesktop ? 15 : 14,
+              textMonthFontSize: isDesktop ? 18 : 16,
+              textDayHeaderFontSize: isDesktop ? 13 : 12,
               'stylesheet.calendar.header': {
                 week: {
-                  marginTop: 8,
-                  marginBottom: 8,
+                  marginTop: isDesktop ? 8 : 4,
+                  marginBottom: isDesktop ? 8 : 4,
                   flexDirection: 'row',
                   justifyContent: 'space-around',
                 },
               },
               'stylesheet.calendar.main': {
                 week: {
-                  marginTop: 2,
-                  marginBottom: 6,
+                  marginTop: isDesktop ? 2 : 0,
+                  marginBottom: isDesktop ? 6 : 3,
                   flexDirection: 'row',
                   justifyContent: 'space-around',
                 },
               },
               'stylesheet.day.basic': {
                 base: {
-                  width: 48,
-                  height: 48,
+                  width: isDesktop ? 48 : 40,
+                  height: isDesktop ? 48 : 40,
                   alignItems: 'center',
                   justifyContent: 'center',
                 },
                 text: {
-                  marginTop: 4,
-                  fontSize: 15,
+                  marginTop: isDesktop ? 4 : 2,
+                  fontSize: isDesktop ? 15 : 14,
                   fontFamily: FONT.regular,
                   color: COLORS.slateDark,
                 },
@@ -1095,7 +1095,7 @@ export default function SessionScreen({ navigation }: any) {
                 },
                 selected: {
                   backgroundColor: COLORS.primary,
-                  borderRadius: 24,
+                  borderRadius: isDesktop ? 24 : 20,
                 },
                 selectedText: {
                   color: COLORS.white,

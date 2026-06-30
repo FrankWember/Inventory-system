@@ -132,56 +132,63 @@ export function DrinkSelector({ selectedDrink, onSelectDrink, categoryFilter }: 
 
       {dropdownVisible && (customName.length > 0) && (
         <View style={styles.dropdown}>
-          {!categoryFilter && (
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.categoryScroll}
-              contentContainerStyle={styles.categoryScrollContent}
-            >
-              {categories.map((cat) => (
-                <TouchableOpacity
-                  key={cat}
-                  style={[
-                    styles.categoryChip,
-                    selectedCategory === cat && styles.categoryChipActive,
-                  ]}
-                  onPress={() => setSelectedCategory(cat)}
-                >
-                  <Text
-                    style={[
-                      styles.categoryChipText,
-                      selectedCategory === cat && styles.categoryChipTextActive,
-                    ]}
-                  >
-                    {cat}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          )}
-
-          {filteredDrinks.length > 0 && (
-            <>
-              <Text style={styles.dropdownLabel}>Suggestions</Text>
-              {filteredDrinks.map((drink, index) => (
-                <View key={`${drink.name}-${index}`}>
-                  {renderDrinkItem({ item: drink })}
-                </View>
-              ))}
-            </>
-          )}
-
-          <TouchableOpacity
-            style={styles.customOption}
-            onPress={handleSelectCustom}
+          <ScrollView
+            style={styles.dropdownScroll}
+            contentContainerStyle={styles.dropdownContent}
+            keyboardShouldPersistTaps="handled"
+            nestedScrollEnabled={true}
           >
-            <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-            <Text style={styles.customOptionText}>
-              Ajouter "{customName}"
-              {selectedCategory !== 'Tout' && ` (${selectedCategory})`}
-            </Text>
-          </TouchableOpacity>
+            {!categoryFilter && (
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                style={styles.categoryScroll}
+                contentContainerStyle={styles.categoryScrollContent}
+              >
+                {categories.map((cat) => (
+                  <TouchableOpacity
+                    key={cat}
+                    style={[
+                      styles.categoryChip,
+                      selectedCategory === cat && styles.categoryChipActive,
+                    ]}
+                    onPress={() => setSelectedCategory(cat)}
+                  >
+                    <Text
+                      style={[
+                        styles.categoryChipText,
+                        selectedCategory === cat && styles.categoryChipTextActive,
+                      ]}
+                    >
+                      {cat}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+
+            {filteredDrinks.length > 0 && (
+              <>
+                <Text style={styles.dropdownLabel}>Suggestions</Text>
+                {filteredDrinks.map((drink, index) => (
+                  <View key={`${drink.name}-${index}`}>
+                    {renderDrinkItem({ item: drink })}
+                  </View>
+                ))}
+              </>
+            )}
+
+            <TouchableOpacity
+              style={styles.customOption}
+              onPress={handleSelectCustom}
+            >
+              <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
+              <Text style={styles.customOptionText}>
+                Ajouter "{customName}"
+                {selectedCategory !== 'Tout' && ` (${selectedCategory})`}
+              </Text>
+            </TouchableOpacity>
+          </ScrollView>
         </View>
       )}
     </View>
@@ -245,9 +252,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.12,
     shadowRadius: 12,
     elevation: 8,
-    maxHeight: 320,
+    maxHeight: 280,
     overflow: 'hidden',
-    zIndex: 1001,
+    zIndex: 9999,
+  },
+  dropdownScroll: {
+    flex: 1,
+  },
+  dropdownContent: {
+    flexGrow: 1,
   },
   categoryScroll: {
     maxHeight: 44,
