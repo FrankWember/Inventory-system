@@ -248,10 +248,10 @@ function MiniStepper({
 }
 
 const ms = StyleSheet.create({
-  row: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  row: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   btn: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: 10,
     alignItems: 'center',
     justifyContent: 'center',
@@ -266,12 +266,12 @@ const ms = StyleSheet.create({
   },
   btnDisabled: { opacity: 0.35 },
   input: {
-    width: 56,
-    height: 36,
+    width: 50,
+    height: 34,
     borderWidth: 1.5,
     borderColor: COLORS.border,
     borderRadius: 8,
-    fontSize: 16,
+    fontSize: 15,
     fontFamily: FONT.bold,
     color: COLORS.slateDark,
     textAlign: 'center',
@@ -772,69 +772,111 @@ export default function SessionScreen({ navigation }: any) {
           const closing = closingCounts[drink.id] ?? expected
           const sold = Math.max(0, expected - closing)
           const hasSales = sold > 0
-          const isNegative = closing > expected
+          const rackSize = getRackSize(drink.id)
+          const racksVal = toRacks(closing, drink.id)
+          const unitsRemainder = closing % rackSize
 
           return (
             <View key={drink.id} style={[styles.inventoryCard, hasSales && styles.inventoryCardActive]}>
-              {/* Header */}
-              <View style={styles.inventoryCardTop}>
-                <Text style={styles.drinkName} numberOfLines={1}>{drink.name}</Text>
-                <View style={[styles.catBadge, { backgroundColor: COLORS.slateLight }]}>
-                  <Text style={styles.catBadgeText}>{drink.category}</Text>
-                </View>
-              </View>
-
-              {/* Stock flow row */}
-              <View style={styles.stockFlowRow}>
-                <View style={styles.stockFlowItem}>
-                  <Text style={styles.stockFlowLabel}>Début</Text>
-                  <Text style={styles.stockFlowValue}>{fmtNum(opening)}</Text>
-                </View>
-                {purchased > 0 && (
-                  <>
-                    <Ionicons name="add" size={14} color={COLORS.slate} style={{ marginTop: 14 }} />
-                    <View style={styles.stockFlowItem}>
-                      <Text style={styles.stockFlowLabel}>Reçu</Text>
-                      <Text style={[styles.stockFlowValue, { color: COLORS.primary }]}>+{fmtNum(purchased)}</Text>
-                    </View>
-                  </>
-                )}
-                <Ionicons name="arrow-forward" size={14} color={COLORS.slate} style={{ marginTop: 14 }} />
-                <View style={styles.stockFlowItem}>
-                  <Text style={styles.stockFlowLabel}>Disponible</Text>
-                  <Text style={[styles.stockFlowValue, { color: COLORS.slateDark }]}>{fmtNum(expected)}</Text>
-                </View>
-              </View>
-
-              <View style={styles.dividerLight} />
-
-              {/* Count input */}
-              <View style={styles.countInputRow}>
-                <View style={{ flex: 1 }}>
-                  <Text style={styles.inputLabel}>Stock compté</Text>
-                  {isNegative && (
-                    <Text style={styles.warningText}>⚠ Supérieur au stock disponible</Text>
+              <View style={[styles.inventoryMainRow, !isDesktop && styles.inventoryMainRowMobile]}>
+                {/* Left: Stock info */}
+                <View style={[styles.inventoryLeft, !isDesktop && styles.inventoryLeftMobile]}>
+                  {isDesktop ? (
+                    <>
+                      <Text style={styles.drinkName} numberOfLines={1}>{drink.name}</Text>
+                      {purchased > 0 ? (
+                        <View style={styles.stockBreakdown}>
+                          <View style={styles.stockItem}>
+                            <Text style={styles.stockItemLabel}>Départ</Text>
+                            <Text style={styles.stockItemValue}>{fmtNum(opening)}</Text>
+                          </View>
+                          <Text style={styles.stockOperator}>+</Text>
+                          <View style={styles.stockItem}>
+                            <Text style={styles.stockItemLabel}>Achat</Text>
+                            <Text style={[styles.stockItemValue, styles.stockItemValuePositive]}>{fmtNum(purchased)}</Text>
+                          </View>
+                          <Text style={styles.stockOperator}>=</Text>
+                          <View style={[styles.stockItem, styles.stockItemTotal]}>
+                            <Text style={styles.stockItemLabel}>Stock</Text>
+                            <Text style={[styles.stockItemValue, styles.stockItemValueTotal]}>{fmtNum(expected)}</Text>
+                          </View>
+                        </View>
+                      ) : (
+                        <Text style={styles.inventoryStockInfo}>Stock: {fmtNum(expected)}</Text>
+                      )}
+                    </>
+                  ) : (
+                    <>
+                      <View style={styles.mobileLeftInfo}>
+                        <Text style={styles.drinkName} numberOfLines={1}>{drink.name}</Text>
+                        {purchased > 0 && (
+                          <View style={styles.mobileBreakdown}>
+                            <View style={styles.stockItem}>
+                              <Text style={styles.stockItemLabel}>Départ</Text>
+                              <Text style={styles.mobileBreakdownValue}>{fmtNum(opening)}</Text>
+                            </View>
+                            <Text style={styles.mobileBreakdownOperator}>+</Text>
+                            <View style={styles.stockItem}>
+                              <Text style={styles.stockItemLabel}>Achat</Text>
+                              <Text style={[styles.mobileBreakdownValue, styles.mobileBreakdownValuePositive]}>{fmtNum(purchased)}</Text>
+                            </View>
+                          </View>
+                        )}
+                      </View>
+                      <View style={styles.mobileStockTotal}>
+                        <Text style={styles.mobileStockTotalLabel}>Stock</Text>
+                        <Text style={styles.mobileStockTotalValue}>{fmtNum(expected)}</Text>
+                      </View>
+                    </>
                   )}
                 </View>
-                <MiniStepper
-                  value={closing}
-                  onChange={v => setClosingCounts(prev => ({ ...prev, [drink.id]: v }))}
-                />
+
+                {/* Mobile divider */}
+                {!isDesktop && <View style={styles.inventoryDivider} />}
+
+                {/* Right: Counting controls */}
+                <View style={styles.inventoryRight}>
+                  <Text style={styles.countingLabel}>Stock compté</Text>
+                  <View style={styles.countingStepper}>
+                    <View style={styles.stepperGroup}>
+                      <Text style={styles.stepperLabel}>Casiers</Text>
+                      <MiniStepper
+                        value={racksVal}
+                        onChange={v => {
+                          const newClosing = Math.min(toUnits(v, drink.id) + unitsRemainder, expected)
+                          setClosingCounts(prev => ({ ...prev, [drink.id]: newClosing }))
+                        }}
+                        max={toRacks(expected, drink.id)}
+                      />
+                    </View>
+                    <View style={styles.stepperGroup}>
+                      <Text style={styles.stepperLabel}>Unités</Text>
+                      <MiniStepper
+                        value={unitsRemainder}
+                        onChange={v => {
+                          const newClosing = Math.min(toUnits(racksVal, drink.id) + v, expected)
+                          setClosingCounts(prev => ({ ...prev, [drink.id]: newClosing }))
+                        }}
+                        max={rackSize - 1}
+                      />
+                    </View>
+                  </View>
+                  {closing !== expected && (
+                    <Text style={styles.countTotal}>
+                      Total: {closing} unités {rackSize > 1 && `(1 casier = ${rackSize} u.)`}
+                    </Text>
+                  )}
+                </View>
               </View>
 
-              {/* Result row */}
-              {hasSales ? (
+              {/* Result */}
+              {hasSales && (
                 <View style={styles.soldResult}>
                   <View style={styles.soldResultLeft}>
                     <Text style={styles.soldResultLabel}>Vendus</Text>
                     <Text style={styles.soldResultQty}>{formatWithCassiers(sold, drink.category)}</Text>
                   </View>
-                  <Text style={styles.soldResultRevenue}>{fmt(sold * drink.price)}</Text>
-                </View>
-              ) : (
-                <View style={styles.noSalesRow}>
-                  <Ionicons name="remove-circle-outline" size={14} color={COLORS.slate} />
-                  <Text style={styles.noSalesText}>Aucune vente comptabilisée</Text>
+                  <Text style={styles.soldResultRevenue} numberOfLines={1}>{fmt(sold * drink.price)}</Text>
                 </View>
               )}
             </View>
@@ -889,8 +931,23 @@ export default function SessionScreen({ navigation }: any) {
           <View style={styles.tableCard}>
             <View style={styles.tableCardHeader}>
               <Text style={styles.sectionTitle}>Mouvements de stock</Text>
-              <View style={styles.countBadge}>
-                <Text style={styles.countBadgeText}>{activeDrinks.length} articles</Text>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={styles.countBadge}>
+                  <Text style={styles.countBadgeText}>{activeDrinks.length} articles</Text>
+                </View>
+                {Platform.OS === 'web' && (
+                  <TouchableOpacity
+                    style={styles.printBtn}
+                    onPress={() => {
+                      if (Platform.OS === 'web') {
+                        (globalThis as any).window?.print?.()
+                      }
+                    }}
+                  >
+                    <Ionicons name="print-outline" size={14} color={COLORS.primary} />
+                    <Text style={styles.printBtnText}>Imprimer</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </View>
 
@@ -1268,7 +1325,7 @@ const styles = StyleSheet.create({
     ...Platform.select({ web: { boxShadow: '0 2px 8px rgba(24,119,242,0.12)' } }),
   },
   purchaseCardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 12 },
-  drinkName: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.slateDark, marginBottom: 2 },
+  drinkName: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.slateDark, marginBottom: 2, flexShrink: 1 },
   drinkCat: { fontSize: 11, fontFamily: FONT.medium, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.5 },
   stockTag: {
     alignItems: 'center',
@@ -1282,8 +1339,8 @@ const styles = StyleSheet.create({
   stockTagValue: { fontSize: 13, fontFamily: FONT.bold, color: COLORS.slateDark },
   dividerLight: { height: 1, backgroundColor: COLORS.border, marginVertical: 12 },
   purchaseInputRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  inputLabel: { fontSize: 13, fontFamily: FONT.medium, color: COLORS.slate, marginBottom: 3 },
-  unitConversion: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.primary },
+  inputLabel: { fontSize: 12, fontFamily: FONT.medium, color: COLORS.slate, marginBottom: 2 },
+  unitConversion: { fontSize: 11, fontFamily: FONT.regular, color: COLORS.primary, marginTop: 2 },
   afterDelivery: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1299,7 +1356,7 @@ const styles = StyleSheet.create({
   inventoryCard: {
     backgroundColor: COLORS.white,
     borderRadius: 14,
-    padding: 16,
+    padding: 14,
     marginBottom: 10,
     borderWidth: 1,
     borderColor: COLORS.border,
@@ -1309,33 +1366,184 @@ const styles = StyleSheet.create({
     borderColor: COLORS.primary + '60',
     ...Platform.select({ web: { boxShadow: '0 2px 8px rgba(24,119,242,0.1)' } }),
   },
-  inventoryCardTop: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  catBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  catBadgeText: { fontSize: 10, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.5 },
-
-  // stock flow
-  stockFlowRow: { flexDirection: 'row', alignItems: 'flex-end', gap: 8, marginBottom: 4 },
-  stockFlowItem: { alignItems: 'center', minWidth: 48 },
-  stockFlowLabel: { fontSize: 10, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 4 },
-  stockFlowValue: { fontSize: 18, fontFamily: FONT.bold, color: COLORS.slate, fontVariant: ['tabular-nums'] },
-
-  countInputRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  warningText: { fontSize: 11, fontFamily: FONT.medium, color: COLORS.amber, marginTop: 2 },
+  inventoryMainRow: {
+    flexDirection: 'row',
+    gap: 16,
+    alignItems: 'flex-start',
+  },
+  inventoryMainRowMobile: {
+    flexDirection: 'column',
+    gap: 10,
+    alignItems: 'stretch',
+  },
+  inventoryLeft: {
+    flex: 1,
+    justifyContent: 'center',
+    minHeight: 60,
+  },
+  inventoryLeftMobile: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: 12,
+  },
+  mobileLeftInfo: {
+    flex: 1,
+    gap: 4,
+  },
+  mobileBreakdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+  },
+  mobileBreakdownValue: {
+    fontSize: 11,
+    fontFamily: FONT.semibold,
+    color: COLORS.slateDark,
+    fontVariant: ['tabular-nums'],
+  },
+  mobileBreakdownValuePositive: {
+    color: COLORS.emerald,
+  },
+  mobileBreakdownOperator: {
+    fontSize: 10,
+    fontFamily: FONT.medium,
+    color: COLORS.slate,
+    marginHorizontal: 2,
+  },
+  mobileStockTotal: {
+    alignItems: 'flex-end',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    backgroundColor: COLORS.slateLight + '40',
+    borderRadius: 8,
+  },
+  mobileStockTotalLabel: {
+    fontSize: 8,
+    fontFamily: FONT.bold,
+    color: COLORS.slate,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+    marginBottom: 2,
+  },
+  mobileStockTotalValue: {
+    fontSize: 14,
+    fontFamily: FONT.bold,
+    color: COLORS.slateDark,
+    fontVariant: ['tabular-nums'],
+  },
+  inventoryDivider: {
+    height: 1,
+    backgroundColor: COLORS.border,
+    marginVertical: 4,
+  },
+  inventoryRight: {
+    borderWidth: 1.5,
+    borderColor: COLORS.primary + '20',
+    borderRadius: 12,
+    padding: 12,
+    gap: 8,
+    backgroundColor: COLORS.primaryLight + '15',
+    minWidth: 280,
+    ...Platform.select({
+      web: { boxShadow: '0 1px 3px rgba(24,119,242,0.08)' },
+      default: { alignSelf: 'stretch', minWidth: 0 }
+    }),
+  },
+  inventoryStockInfo: {
+    fontSize: 11,
+    fontFamily: FONT.medium,
+    color: COLORS.slate,
+    marginTop: 3
+  },
+  stockBreakdown: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginTop: 4,
+    flexWrap: 'wrap',
+  },
+  stockItem: {
+    alignItems: 'center',
+    gap: 1,
+  },
+  stockItemTotal: {
+    backgroundColor: COLORS.slateLight + '40',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  stockItemLabel: {
+    fontSize: 8,
+    fontFamily: FONT.medium,
+    color: COLORS.slate,
+    textTransform: 'uppercase',
+    letterSpacing: 0.2,
+  },
+  stockItemValue: {
+    fontSize: 12,
+    fontFamily: FONT.semibold,
+    color: COLORS.slateDark,
+    fontVariant: ['tabular-nums'],
+  },
+  stockItemValuePositive: {
+    color: COLORS.emerald,
+  },
+  stockItemValueTotal: {
+    color: COLORS.slateDark,
+    fontSize: 12,
+  },
+  stockOperator: {
+    fontSize: 11,
+    fontFamily: FONT.medium,
+    color: COLORS.slate,
+    marginHorizontal: 1,
+  },
+  countingLabel: {
+    fontSize: 10,
+    fontFamily: FONT.bold,
+    color: COLORS.primary,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5
+  },
+  countingStepper: {
+    flexDirection: 'row',
+    gap: 12,
+    flexWrap: 'nowrap',
+  },
+  stepperGroup: {
+    flex: 1,
+    minWidth: 0,
+    gap: 4,
+  },
+  stepperLabel: {
+    fontSize: 11,
+    fontFamily: FONT.semibold,
+    color: COLORS.slateDark
+  },
+  countTotal: {
+    fontSize: 10,
+    fontFamily: FONT.medium,
+    color: COLORS.primary,
+    textAlign: 'center',
+    marginTop: 2
+  },
 
   soldResult: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 12,
+    justifyContent: 'space-between',
+    marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
     borderTopColor: COLORS.border,
   },
   soldResultLeft: { flex: 1 },
-  soldResultLabel: { fontSize: 11, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 },
-  soldResultQty: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.slateDark },
-  soldResultRevenue: { fontSize: 16, fontFamily: FONT.bold, color: COLORS.primary, fontVariant: ['tabular-nums'] },
-  noSalesRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 10, paddingTop: 8, borderTopWidth: 1, borderTopColor: COLORS.border },
-  noSalesText: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.slate, fontStyle: 'italic' },
+  soldResultLabel: { fontSize: 10, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 },
+  soldResultQty: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.slateDark },
+  soldResultRevenue: { fontSize: 15, fontFamily: FONT.bold, color: COLORS.emerald, fontVariant: ['tabular-nums'] },
 
   // SUMMARY
   summaryContent: { padding: 12 },
@@ -1377,6 +1585,19 @@ const styles = StyleSheet.create({
   tableCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingBottom: 0 },
   countBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: COLORS.primaryLight },
   countBadgeText: { fontSize: 12, fontFamily: FONT.bold, color: COLORS.primary },
+  printBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: COLORS.primary,
+    backgroundColor: COLORS.white,
+    ...Platform.select({ web: { cursor: 'pointer' } }),
+  },
+  printBtnText: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.primary },
   tableHead: {
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
@@ -1388,15 +1609,15 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
   },
-  th: { fontSize: 10, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
-  thNum: { width: 42, textAlign: 'right' },
-  thMoney: { width: 70, textAlign: 'right' },
+  th: { fontSize: 9, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
+  thNum: { width: 38, textAlign: 'right' },
+  thMoney: { width: 65, textAlign: 'right' },
   thAccent: { color: COLORS.primary },
-  tableRow: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center' },
+  tableRow: { flexDirection: 'row', paddingVertical: 8, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center' },
   tableRowEven: { backgroundColor: COLORS.surface + '60' },
-  td: { fontSize: 13, fontFamily: FONT.medium, color: COLORS.slateDark },
-  tdNum: { width: 42, textAlign: 'right', fontFamily: FONT.semibold, fontVariant: ['tabular-nums'] },
-  tdMoney: { width: 70, textAlign: 'right', fontFamily: FONT.bold, color: COLORS.primary, fontVariant: ['tabular-nums'], fontSize: 12 },
+  td: { fontSize: 11, fontFamily: FONT.medium, color: COLORS.slateDark },
+  tdNum: { width: 38, textAlign: 'right', fontFamily: FONT.semibold, fontVariant: ['tabular-nums'] },
+  tdMoney: { width: 65, textAlign: 'right', fontFamily: FONT.bold, color: COLORS.primary, fontVariant: ['tabular-nums'], fontSize: 10 },
   tdPositive: { color: COLORS.primary },
   tdAccent: { color: COLORS.primary },
   tableTotalRow: {

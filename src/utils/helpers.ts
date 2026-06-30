@@ -21,7 +21,7 @@ export const getCategoryColor = (cat: string): string => {
 
 // Formatting Functions
 export const fmt = (n: number): string => {
-  return Math.round(n).toLocaleString('fr-FR') + ' FCFA'
+  return Math.round(n).toLocaleString('fr-FR') + '\u00A0FCFA'
 }
 
 /** Full number with French locale — no abbreviation */
@@ -38,8 +38,8 @@ export const fmtNum = (n: number): string => {
 export const fmtShort = (n: number): string => {
   const a = Math.abs(n)
   const sign = n < 0 ? '-' : ''
-  if (a >= 1_000_000) return `${sign}${(a / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })} M FCFA`
-  if (a >= 10_000) return `${sign}${Math.round(a / 1000).toLocaleString('fr-FR')} k FCFA`
+  if (a >= 1_000_000) return `${sign}${(a / 1_000_000).toLocaleString('fr-FR', { maximumFractionDigits: 1 })}\u00A0M\u00A0FCFA`
+  if (a >= 10_000) return `${sign}${Math.round(a / 1000).toLocaleString('fr-FR')}\u00A0k\u00A0FCFA`
   return fmt(n)
 }
 
