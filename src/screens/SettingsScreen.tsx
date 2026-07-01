@@ -6,7 +6,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Platform,
-  Alert,
   Switch,
   Share,
   Modal,
@@ -17,6 +16,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { LoadingModal } from '../components/LoadingModal'
 import { COLORS, FONT, today, fmt, dateLabelLong } from '../utils/helpers'
+import { showAlert } from '../utils/appAlert'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
 import { exportData } from '../lib/storage'
@@ -26,7 +26,7 @@ import { PeriodType } from '../services/pdfService'
 
 export default function SettingsScreen() {
   const { user, signOut, updateProfile } = useAuth()
-  const { theme, language, notificationsEnabled, barInfo, colors, setTheme, setLanguage, setNotificationsEnabled, updateBarInfo } = useSettings()
+  const { theme, notificationsEnabled, barInfo, colors, setTheme, setNotificationsEnabled, updateBarInfo } = useSettings()
 
   const [editModal, setEditModal] = useState<null | 'barName' | 'displayName'>(null)
   const [editValue, setEditValue] = useState('')
@@ -70,7 +70,7 @@ export default function SettingsScreen() {
       }
       setEditModal(null)
     } catch {
-      Alert.alert('Erreur', 'Impossible de sauvegarder')
+      showAlert('Erreur', 'Impossible de sauvegarder')
     } finally {
       setEditLoading(false)
     }
@@ -80,7 +80,7 @@ export default function SettingsScreen() {
     try {
       await setNotificationsEnabled(value)
     } catch {
-      Alert.alert('Erreur', 'Impossible de modifier les notifications')
+      showAlert('Erreur', 'Impossible de modifier les notifications')
     }
   }
 
@@ -88,15 +88,7 @@ export default function SettingsScreen() {
     try {
       await setTheme(value)
     } catch {
-      Alert.alert('Erreur', 'Impossible de changer le thème')
-    }
-  }
-
-  const handleLanguage = async (value: 'fr' | 'en') => {
-    try {
-      await setLanguage(value)
-    } catch {
-      Alert.alert('Erreur', 'Impossible de changer la langue')
+      showAlert('Erreur', 'Impossible de changer le thème')
     }
   }
 
@@ -113,12 +105,12 @@ export default function SettingsScreen() {
           a.click()
           URL.revokeObjectURL(url)
         }
-        Alert.alert('Succès', 'Données exportées avec succès')
+        showAlert('Succès', 'Données exportées avec succès')
       } else {
         await Share.share({ message: data, title: 'Export BarTrack' })
       }
     } catch {
-      Alert.alert('Erreur', 'Impossible d\'exporter les données')
+      showAlert('Erreur', 'Impossible d\'exporter les données')
     }
   }
 
@@ -156,7 +148,7 @@ export default function SettingsScreen() {
       setDates(uniqueDates)
     } catch (error) {
       console.error('Error loading dates:', error)
-      Alert.alert('Erreur', 'Impossible de charger les dates')
+      showAlert('Erreur', 'Impossible de charger les dates')
     } finally {
       setLoadingDates(false)
     }
@@ -180,7 +172,7 @@ export default function SettingsScreen() {
       setSessions(data || [])
     } catch (error) {
       console.error('Error loading sessions:', error)
-      Alert.alert('Erreur', 'Impossible de charger les sessions')
+      showAlert('Erreur', 'Impossible de charger les sessions')
     } finally {
       setLoadingSessions(false)
     }
@@ -200,13 +192,13 @@ export default function SettingsScreen() {
     try {
       const { data: drinks, error } = await supabase.from('drinks').select('id')
       if (error) throw error
-      Alert.alert(
+      showAlert(
         '☁️ Sauvegarde cloud',
         `Synchronisation active\n${drinks?.length || 0} articles synchronisés`,
         [{ text: 'OK' }]
       )
     } catch {
-      Alert.alert('Erreur', 'Impossible d\'accéder à la sauvegarde cloud')
+      showAlert('Erreur', 'Impossible d\'accéder à la sauvegarde cloud')
     }
   }
 
@@ -215,10 +207,10 @@ export default function SettingsScreen() {
     if (!user) return
     const emailToReset = user.user_metadata?.actual_email || (isPhoneAccount ? null : user.email)
     if (!emailToReset) {
-      Alert.alert('Info', 'La réinitialisation par mot de passe nécessite une adresse email associée.')
+      showAlert('Info', 'La réinitialisation par mot de passe nécessite une adresse email associée.')
       return
     }
-    Alert.alert(
+    showAlert(
       'Changer le mot de passe',
       `Un email de réinitialisation sera envoyé à ${emailToReset}`,
       [
@@ -229,9 +221,9 @@ export default function SettingsScreen() {
             try {
               const { error } = await supabase.auth.resetPasswordForEmail(emailToReset)
               if (error) throw error
-              Alert.alert('Succès', 'Email de réinitialisation envoyé')
+              showAlert('Succès', 'Email de réinitialisation envoyé')
             } catch {
-              Alert.alert('Erreur', 'Impossible d\'envoyer l\'email')
+              showAlert('Erreur', 'Impossible d\'envoyer l\'email')
             }
           },
         },
@@ -240,7 +232,7 @@ export default function SettingsScreen() {
   }
 
   const handleLogout = () => {
-    Alert.alert(
+    showAlert(
       'Déconnexion',
       'Êtes-vous sûr de vouloir vous déconnecter ?',
       [
@@ -249,7 +241,7 @@ export default function SettingsScreen() {
           text: 'Déconnexion',
           style: 'destructive',
           onPress: async () => {
-            try { await signOut() } catch { Alert.alert('Erreur', 'Impossible de se déconnecter') }
+            try { await signOut() } catch { showAlert('Erreur', 'Impossible de se déconnecter') }
           },
         },
       ]
@@ -449,21 +441,6 @@ export default function SettingsScreen() {
               trackColor={{ false: COLORS.border, true: COLORS.primary }}
               thumbColor={COLORS.white}
             />
-          </View>
-
-          <View style={styles.separator} />
-
-          <View style={styles.row}>
-            <View style={styles.rowLeft}>
-              <View style={styles.iconBox}>
-                <Ionicons name="globe-outline" size={19} color={COLORS.primary} />
-              </View>
-              <Text style={styles.rowLabel}>Langue</Text>
-            </View>
-            <View style={styles.segmented}>
-              <SegBtn label="FR" active={language === 'fr'} onPress={() => handleLanguage('fr')} />
-              <SegBtn label="EN" active={language === 'en'} onPress={() => handleLanguage('en')} />
-            </View>
           </View>
 
           <View style={styles.separator} />

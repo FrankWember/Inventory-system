@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { StatusBar } from 'expo-status-bar'
-import { Platform, Dimensions, View, ActivityIndicator } from 'react-native'
+import { Platform, Dimensions, View, ActivityIndicator, Text as RNText, TouchableOpacity } from 'react-native'
 import { NavigationContainer, NavigationState, PartialState } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
@@ -44,6 +44,51 @@ import { WelcomeLoadingScreen } from './src/components/WelcomeLoadingScreen'
 import { BarChartItem } from './src/components/SimpleBarChart'
 
 const BREAKPOINT = 768
+
+// A render error anywhere used to blank the whole app (white screen, no
+// message). Catch it and offer a reload instead.
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean }> {
+  state = { hasError: false }
+
+  static getDerivedStateFromError() {
+    return { hasError: true }
+  }
+
+  componentDidCatch(error: unknown, info: unknown) {
+    console.error('Uncaught render error:', error, info)
+  }
+
+  handleReload = () => {
+    if (Platform.OS === 'web') {
+      ;(globalThis as any).window?.location?.reload?.()
+    } else {
+      this.setState({ hasError: false })
+    }
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface, padding: 24 }}>
+          <Ionicons name="alert-circle-outline" size={48} color={COLORS.rose} />
+          <RNText style={{ fontSize: 18, fontWeight: '700', color: COLORS.slateDark, marginTop: 16, textAlign: 'center' }}>
+            Une erreur est survenue
+          </RNText>
+          <RNText style={{ fontSize: 14, color: COLORS.slate, marginTop: 8, textAlign: 'center' }}>
+            Rechargez l'application pour continuer.
+          </RNText>
+          <TouchableOpacity
+            onPress={this.handleReload}
+            style={{ marginTop: 20, backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
+          >
+            <RNText style={{ color: COLORS.white, fontWeight: '700', fontSize: 15 }}>Recharger</RNText>
+          </TouchableOpacity>
+        </View>
+      )
+    }
+    return this.props.children
+  }
+}
 
 export type RootStackParamList = {
   SignIn: { mode?: 'signin' } | undefined
@@ -266,6 +311,7 @@ export default function App() {
   }
 
   return (
+    <ErrorBoundary>
     <SafeAreaProvider>
       <AuthProvider>
         <SettingsProvider>
@@ -290,5 +336,6 @@ export default function App() {
         </SettingsProvider>
       </AuthProvider>
     </SafeAreaProvider>
+    </ErrorBoundary>
   )
 }

@@ -4,12 +4,12 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Alert,
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
   Dimensions,
 } from 'react-native'
+import { showAlert } from '../utils/appAlert'
 import { supabase } from '../lib/supabase'
 import { Drink } from '../types'
 import { Card } from '../components/Card'
@@ -54,16 +54,17 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 
       if (error) throw error
       setDrink(data)
-      // Calculate cassier cost from unit cost and rack size
-      const calculatedCassierCost = data.cost * data.rack_size
+      const size = data.cassier_quantity ?? data.rack_size ?? 1
+      // Prefer the stored cassier cost; fall back to unit cost × rack size
+      const calculatedCassierCost = data.cassier_cost ?? data.cost * size
       setCassierCost(calculatedCassierCost.toString())
-      setRackSize(data.rack_size.toString())
+      setRackSize(size.toString())
       setStock(data.stock.toString())
       setMinStock(data.min_stock.toString())
       setPrice(data.price.toString())
     } catch (error) {
       console.error('Error loading drink:', error)
-      Alert.alert('Erreur', 'Erreur lors du chargement de la boisson')
+      showAlert('Erreur', 'Erreur lors du chargement de la boisson')
       navigation.goBack()
     } finally {
       setLoading(false)
@@ -91,6 +92,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
           stock: stockNum,
           min_stock: minStockNum,
           rack_size: rackSizeNum,
+          cassier_quantity: rackSizeNum,
           price: priceNum,
           cost: costPerUnit,
           cassier_cost: cassierCostNum,
@@ -99,19 +101,23 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 
       if (error) throw error
 
-      Alert.alert('Succès', 'Boisson mise à jour')
+      showAlert('Succès', 'Boisson mise à jour')
       navigation.goBack()
     } catch (error) {
       console.error('Error updating drink:', error)
-      Alert.alert('Erreur', 'Erreur lors de la mise à jour')
+      showAlert('Erreur', 'Erreur lors de la mise à jour')
     } finally {
       setSaving(false)
     }
   }
 
+  // Case/whitespace-insensitive: mobile keyboards capitalize and users add
+  // trailing spaces — that must not block a deliberate deletion.
+  const deleteConfirmMatches = !!drink && deleteConfirm.trim().toLowerCase() === drink.name.trim().toLowerCase()
+
   const handleDelete = async () => {
-    if (deleteConfirm !== drink?.name) {
-      Alert.alert('Erreur', 'Le nom ne correspond pas')
+    if (!deleteConfirmMatches) {
+      showAlert('Erreur', 'Le nom ne correspond pas')
       return
     }
 
@@ -123,11 +129,11 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 
       if (error) throw error
 
-      Alert.alert('Succès', 'Boisson supprimée')
+      showAlert('Succès', 'Boisson supprimée')
       navigation.goBack()
     } catch (error) {
       console.error('Error deleting drink:', error)
-      Alert.alert('Erreur', 'Erreur lors de la suppression')
+      showAlert('Erreur', 'Erreur lors de la suppression')
     }
   }
 
@@ -246,12 +252,13 @@ export default function EditDrinkScreen({ route, navigation }: any) {
             placeholder={drink.name}
             value={deleteConfirm}
             onChangeText={setDeleteConfirm}
-            autoCapitalize="characters"
+            autoCapitalize="none"
+            autoCorrect={false}
           />
           <Button
             onPress={handleDelete}
             variant="danger"
-            disabled={deleteConfirm !== drink.name}
+            disabled={!deleteConfirmMatches}
           >
             Supprimer cette boisson
           </Button>

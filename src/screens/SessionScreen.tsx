@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   TextInput,
-  Alert,
   Animated,
   Dimensions,
   Platform,
@@ -29,7 +28,9 @@ import {
   dateLabel,
   dateLabelLong,
   formatWithCassiers,
+  drinkRackSize,
 } from '../utils/helpers'
+import { showAlert } from '../utils/appAlert'
 
 LocaleConfig.locales['fr'] = {
   monthNames: ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'],
@@ -333,6 +334,9 @@ export default function SessionScreen({ navigation }: any) {
   const [pastSessions, setPastSessions] = useState<Session[]>([])
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
   const [selectedDate, setSelectedDate] = useState<string>(today())
+  // Date the active (open or being-created) session belongs to. Usually today,
+  // but the calendar allows starting/resuming a session for another date.
+  const [sessionDate, setSessionDate] = useState<string>(today())
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [allSessions, setAllSessions] = useState<Session[]>([])
   const [selectedDateSession, setSelectedDateSession] = useState<{ closed: Session | null; open: Session | null }>({ closed: null, open: null })
@@ -352,7 +356,10 @@ export default function SessionScreen({ navigation }: any) {
     return marks
   }, [allSessions, selectedDate])
 
-  const getRackSize = (drinkId: string) => drinks.find(d => d.id === drinkId)?.rack_size || 1
+  const getRackSize = (drinkId: string) => {
+    const drink = drinks.find(d => d.id === drinkId)
+    return drink ? drinkRackSize(drink) : 1
+  }
   const toUnits = (racks: number, drinkId: string) => racks * getRackSize(drinkId)
   const toRacks = (units: number, drinkId: string) => Math.floor(units / getRackSize(drinkId))
 
@@ -466,6 +473,7 @@ export default function SessionScreen({ navigation }: any) {
 
   const startNewSession = async (date: string) => {
     setSelectedDate(date)
+    setSessionDate(date)
     setStep('purchases')
     setPurchases({})
     setClosingCounts({})
@@ -473,11 +481,24 @@ export default function SessionScreen({ navigation }: any) {
     if (date !== todayStr) await loadDataForDate(date)
   }
 
+  // Supabase query builders resolve with { error } instead of throwing —
+  // a batch write that silently fails would desync stock and session lines.
+  const throwOnError = (results: Array<{ error: any } | null>) => {
+    const failed = results.find(r => r?.error)
+    if (failed?.error) throw failed.error
+  }
+
+  const reloadDrinks = async () => {
+    const { data } = await supabase.from('drinks').select('*').eq('active', true).order('name')
+    setDrinks(data || [])
+  }
+
   const savePurchases = async () => {
     setSaving(true)
     try {
       if (openSession) {
         const ops: any[] = []
+        const nextLines: Record<string, LineState> = { ...lineStates }
         for (const drink of drinks) {
           const newPurchased = purchases[drink.id] ?? 0
           const oldLine = lineStates[drink.id]
@@ -490,18 +511,20 @@ export default function SessionScreen({ navigation }: any) {
               .eq('session_id', openSession.id).eq('drink_id', drink.id)
           )
           if (delta !== 0) ops.push(supabase.from('drinks').update({ stock: drink.stock + delta }).eq('id', drink.id))
-          lineStates[drink.id] = { openingStock: opening, purchased: newPurchased, closingStock: expected }
+          nextLines[drink.id] = { openingStock: opening, purchased: newPurchased, closingStock: expected }
         }
-        await Promise.all(ops)
-        setLineStates({ ...lineStates })
+        throwOnError(await Promise.all(ops))
+        setLineStates(nextLines)
         setStep('inventory')
-        await loadData()
+        await reloadDrinks()
         return
       }
 
+      // The session belongs to the date the user started it for (via the
+      // calendar) — not necessarily today.
       const { data: session, error: sessionError } = await supabase
         .from('sessions')
-        .insert({ date: todayStr, label: dateLabelLong(todayStr), total_purchase: 0, total_revenue: 0, total_cost: 0, total_profit: 0, closed: false })
+        .insert({ date: sessionDate, label: dateLabelLong(sessionDate), total_purchase: 0, total_revenue: 0, total_cost: 0, total_profit: 0, closed: false })
         .select().single()
       if (sessionError) throw sessionError
 
@@ -523,7 +546,7 @@ export default function SessionScreen({ navigation }: any) {
 
       const { error: linesError } = await supabase.from('session_lines').insert(sessionLines)
       if (linesError) throw linesError
-      await Promise.all(stockUpdates)
+      throwOnError(await Promise.all(stockUpdates))
 
       const closingMap: Record<string, number> = {}
       for (const drink of drinks) closingMap[drink.id] = lines[drink.id].closingStock
@@ -532,10 +555,13 @@ export default function SessionScreen({ navigation }: any) {
       setLineStates(lines)
       setClosingCounts(closingMap)
       setStep('inventory')
-      await loadData()
+      // Don't run loadData() here: it reloads *today's* state and would clobber
+      // the freshly created session when it belongs to another date.
+      await reloadDrinks()
+      setTodayExpenses(await loadExpensesForDate(sessionDate))
     } catch (error) {
       console.error('Error saving purchases:', error)
-      Alert.alert('Erreur', "Impossible d'enregistrer les achats")
+      showAlert('Erreur', "Impossible d'enregistrer les achats. Vérifiez votre connexion et réessayez.")
     } finally {
       setSaving(false)
     }
@@ -571,29 +597,50 @@ export default function SessionScreen({ navigation }: any) {
         supabase.from('sessions').update({ total_purchase: totalPurchaseCost, total_revenue: totalRevenue, total_cost: totalPurchaseCost, total_profit: netProfit, closed: true })
           .eq('id', openSession.id)
       )
-      await Promise.all(ops)
+      throwOnError(await Promise.all(ops))
+      setSessionDate(todayStr)
       await loadData()
       const { data } = await supabase.from('sessions').select('*, session_lines (*)').eq('id', openSession.id).single()
       if (data) openJournal(data)
     } catch (error) {
       console.error('Error closing session:', error)
-      Alert.alert('Erreur', 'Erreur lors de la clôture')
+      showAlert('Erreur', 'Erreur lors de la clôture. Vérifiez votre connexion et réessayez.')
     } finally {
       setSaving(false)
     }
   }
 
-  const reopenForEdit = async () => {
-    const session = closedToday
+  const reopenForEdit = async (session: Session | null) => {
     if (!session) return
-    Alert.alert('Modifier la session', 'La session sera rouverte pour correction.', [
+    showAlert('Modifier la session', 'La session sera rouverte pour correction.', [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Rouvrir',
         onPress: async () => {
-          await supabase.from('sessions').update({ closed: false }).eq('id', session.id)
+          const { error } = await supabase.from('sessions').update({ closed: false }).eq('id', session.id)
+          if (error) {
+            showAlert('Erreur', 'Impossible de rouvrir la session.')
+            return
+          }
+          // Hydrate the wizard from the reopened session's lines — loadData()
+          // only rebuilds state for today's session, and this one can belong
+          // to any calendar date.
+          const lines: Record<string, LineState> = {}
+          const purchasesMap: Record<string, number> = {}
+          const closingMap: Record<string, number> = {}
+          for (const l of session.session_lines ?? []) {
+            lines[l.drink_id] = { openingStock: l.opening_stock, purchased: l.purchased, closingStock: l.closing_stock }
+            purchasesMap[l.drink_id] = l.purchased
+            closingMap[l.drink_id] = l.closing_stock
+          }
+          setLineStates(lines)
+          setPurchases(purchasesMap)
+          setClosingCounts(closingMap)
+          setOpenSession({ ...session, closed: false })
+          if (session.date === todayStr) setClosedToday(null)
+          setSessionDate(session.date)
+          setTodayExpenses(await loadExpensesForDate(session.date))
           setStep('inventory')
-          await loadData()
         },
       },
     ])
@@ -1023,8 +1070,12 @@ export default function SessionScreen({ navigation }: any) {
           </View>
         )}
 
-        {/* Expenses */}
-        <SessionExpensesPanel date={todayStr} expenses={todayExpenses} onChange={loadData} />
+        {/* Expenses — tied to the active session's date, not necessarily today */}
+        <SessionExpensesPanel
+          date={openSession?.date ?? sessionDate}
+          expenses={todayExpenses}
+          onChange={async () => setTodayExpenses(await loadExpensesForDate(openSession?.date ?? sessionDate))}
+        />
         <View style={{ height: 24 }} />
       </ScrollView>
     </StepContent>
@@ -1139,6 +1190,15 @@ export default function SessionScreen({ navigation }: any) {
                   <Ionicons name="document-text-outline" size={18} color={COLORS.white} />
                   <Text style={styles.primaryBtnText}>Voir le journal</Text>
                 </TouchableOpacity>
+                <TouchableOpacity
+                  style={styles.secondaryBtn}
+                  onPress={() => reopenForEdit(selectedDateSession.closed)}
+                  // @ts-ignore - web-only className
+                  className="glass-button"
+                >
+                  <Ionicons name="create-outline" size={18} color={COLORS.primary} />
+                  <Text style={styles.secondaryBtnText}>Modifier la session</Text>
+                </TouchableOpacity>
               </View>
             ) : selectedDateSession.open ? (
               <View style={{ gap: 12 }}>
@@ -1153,7 +1213,11 @@ export default function SessionScreen({ navigation }: any) {
                 </View>
                 <TouchableOpacity
                   style={styles.primaryBtn}
-                  onPress={() => { setOpenSession(selectedDateSession.open); setStep('inventory') }}
+                  onPress={() => {
+                    setOpenSession(selectedDateSession.open)
+                    setSessionDate(selectedDateSession.open!.date)
+                    setStep('inventory')
+                  }}
                   // @ts-ignore - web-only className
                   className="glass-primary"
                 >
@@ -1271,8 +1335,8 @@ export default function SessionScreen({ navigation }: any) {
   const content = (
     <View style={styles.container}>
       <ScreenHeader
-        title="Session du jour"
-        subtitle={dateLabel(todayStr)}
+        title={step === 'done' || sessionDate === todayStr ? 'Session du jour' : 'Session'}
+        subtitle={dateLabel(step === 'done' ? todayStr : (openSession?.date ?? sessionDate))}
         onBack={step !== 'done' ? () => setStep('done') : undefined}
         right={step === 'done' && !isDesktop ? (
           <TouchableOpacity onPress={() => {
@@ -1768,6 +1832,24 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     borderRadius: 12,
     ...Platform.select({ web: { boxShadow: '0 4px 12px rgba(24,119,242,0.25)', cursor: 'pointer' } }),
+  },
+  secondaryBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    backgroundColor: COLORS.white,
+    borderWidth: 1.5,
+    borderColor: COLORS.border,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    borderRadius: 12,
+    ...Platform.select({ web: { cursor: 'pointer' } }),
+  },
+  secondaryBtnText: {
+    fontSize: 15,
+    fontFamily: FONT.bold,
+    color: COLORS.primary,
   },
   primaryBtnText: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.white },
 

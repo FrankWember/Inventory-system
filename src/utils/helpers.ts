@@ -107,56 +107,34 @@ export const dateLabelLong = (iso: string): string => {
 }
 
 // Cassier (Rack) Formatting for Beers
-// 1 cassier = 12 beers
-export const formatWithCassiers = (stock: number, category: string): string => {
+// Rack size is per-drink (drink.cassier_quantity, falling back to rack_size);
+// pass it explicitly — the old version hardcoded 12 and misformatted drinks
+// sold in 24- or 6-unit cassiers.
+import { cassierLabel, stockStatus } from './calculations'
+
+/** Rack size for a drink, preferring cassier_quantity over legacy rack_size. */
+export const drinkRackSize = (drink: { cassier_quantity?: number | null; rack_size?: number | null }): number => {
+  const size = drink.cassier_quantity ?? drink.rack_size ?? 1
+  return size >= 1 ? Math.floor(size) : 1
+}
+
+export const formatWithCassiers = (stock: number, category: string, rackSize = 12): string => {
   if (category !== 'Bière') {
     return `${stock} unités`
   }
-
-  const cassiers = Math.floor(stock / 12)
-  const remaining = stock % 12
-
-  if (cassiers === 0) {
-    return `${remaining} unité${remaining > 1 ? 's' : ''}`
-  }
-
-  if (remaining === 0) {
-    return `${cassiers} cassier${cassiers > 1 ? 's' : ''}`
-  }
-
-  return `${cassiers} cassier${cassiers > 1 ? 's' : ''} + ${remaining} unité${remaining > 1 ? 's' : ''}`
+  return cassierLabel(stock, rackSize)
 }
 
-export const formatWithCassiersShort = (stock: number, category: string): string => {
+export const formatWithCassiersShort = (stock: number, category: string, rackSize = 12): string => {
   if (category !== 'Bière') {
     return `${stock}`
   }
-
-  const cassiers = Math.floor(stock / 12)
-  const remaining = stock % 12
-
-  if (cassiers === 0) {
-    return `${remaining}u`
-  }
-
-  if (remaining === 0) {
-    return `${cassiers}c`
-  }
-
-  return `${cassiers}c + ${remaining}u`
+  return cassierLabel(stock, rackSize, true)
 }
 
-// Stock Status
-export const getStockStatus = (stock: number, minStock: number): 'rupture' | 'low' | 'medium' | 'ok' => {
-  if (stock === 0) return 'rupture'
-  if (stock <= minStock) return 'low'
-  if (stock <= minStock * 1.5) return 'medium'
-  return 'ok'
-}
-
-export const getStockPct = (stock: number, minStock: number): number => {
-  return Math.min(100, Math.round((stock / Math.max(stock, minStock * 2)) * 100))
-}
+// Stock Status — single source of truth in calculations.ts (treats negative
+// stock as rupture, unlike the old copy here that only matched exactly 0).
+export const getStockStatus = stockStatus
 
 export const getStockColor = (status: 'rupture' | 'low' | 'medium' | 'ok'): string => {
   switch (status) {

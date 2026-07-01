@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Platform, Alert } from 'react-native'
+import { Platform } from 'react-native'
 import { fetchPdfData, PeriodType } from '../services/pdfService'
+import { showAlert } from '../utils/appAlert'
 import { today } from '../utils/helpers'
 
 interface UsePdfExportOptions {
@@ -13,7 +14,7 @@ export function usePdfExport({ barName }: UsePdfExportOptions) {
 
   const generatePdf = async (periodType: PeriodType, specificDate?: string, userName?: string) => {
     if (Platform.OS !== 'web') {
-      Alert.alert('Non disponible', 'L\'export PDF n\'est disponible que sur le web.')
+      showAlert('Non disponible', 'L\'export PDF n\'est disponible que sur le web.')
       return
     }
 
@@ -50,10 +51,10 @@ export function usePdfExport({ barName }: UsePdfExportOptions) {
       // Small delay before hiding modal for better UX
       await new Promise(resolve => setTimeout(resolve, 500))
 
-      Alert.alert('Succès', 'Le rapport PDF a été généré avec succès')
+      showAlert('Succès', 'Le rapport PDF a été généré avec succès')
     } catch (error) {
       console.error('PDF generation error:', error)
-      Alert.alert('Erreur', 'Impossible de générer le rapport PDF')
+      showAlert('Erreur', 'Impossible de générer le rapport PDF')
     } finally {
       setLoading(false)
       setProgress(0)

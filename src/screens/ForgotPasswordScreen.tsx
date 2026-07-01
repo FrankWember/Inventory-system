@@ -8,7 +8,6 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Alert,
 } from 'react-native'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
@@ -24,6 +23,9 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
   const { resetPassword } = useAuth()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
+  // Inline feedback — Alert.alert is a no-op on web, where this screen is used
+  const [error, setError] = useState<string | null>(null)
+  const [sent, setSent] = useState(false)
 
   const validateEmail = (email: string) => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
@@ -31,33 +33,26 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
   }
 
   const handleResetPassword = async () => {
+    setError(null)
+
     if (!email.trim()) {
-      Alert.alert('Erreur', 'Veuillez entrer votre adresse email')
+      setError('Veuillez entrer votre adresse email')
       return
     }
 
     if (!validateEmail(email.trim())) {
-      Alert.alert('Erreur', 'Veuillez entrer une adresse email valide')
+      setError('Veuillez entrer une adresse email valide')
       return
     }
 
     setLoading(true)
-    const { error } = await resetPassword(email.trim())
+    const { error: resetError } = await resetPassword(email.trim())
     setLoading(false)
 
-    if (error) {
-      Alert.alert('Erreur', error.message || 'Une erreur est survenue')
+    if (resetError) {
+      setError(resetError.message || 'Une erreur est survenue')
     } else {
-      Alert.alert(
-        'Email envoyé',
-        'Un lien de réinitialisation a été envoyé à votre adresse email',
-        [
-          {
-            text: 'OK',
-            onPress: () => navigation.goBack(),
-          },
-        ]
-      )
+      setSent(true)
     }
   }
 
@@ -82,24 +77,42 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
           </View>
 
           <View style={styles.form}>
-            <Input
-              label="Email"
-              value={email}
-              onChangeText={setEmail}
-              placeholder="votre@email.com"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              autoCorrect={false}
-              editable={!loading}
-            />
+            {sent ? (
+              <View style={styles.successBox}>
+                <Ionicons name="checkmark-circle" size={20} color={COLORS.emerald} />
+                <Text style={styles.successText}>
+                  Un lien de réinitialisation a été envoyé à {email.trim()}. Vérifiez votre boîte de réception.
+                </Text>
+              </View>
+            ) : (
+              <Input
+                label="Email"
+                value={email}
+                onChangeText={t => { setEmail(t); setError(null) }}
+                placeholder="votre@email.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                editable={!loading}
+              />
+            )}
 
-            <Button
-              onPress={handleResetPassword}
-              disabled={loading}
-              style={styles.button}
-            >
-              {loading ? 'Envoi...' : 'Envoyer le lien'}
-            </Button>
+            {error && (
+              <View style={styles.errorBox}>
+                <Ionicons name="alert-circle" size={18} color={COLORS.rose} />
+                <Text style={styles.errorText}>{error}</Text>
+              </View>
+            )}
+
+            {!sent && (
+              <Button
+                onPress={handleResetPassword}
+                disabled={loading}
+                style={styles.button}
+              >
+                {loading ? 'Envoi...' : 'Envoyer le lien'}
+              </Button>
+            )}
 
             {loading && (
               <ActivityIndicator
@@ -191,5 +204,36 @@ const styles = StyleSheet.create({
     fontFamily: FONT.semibold,
     color: COLORS.primary,
     textAlign: 'center',
+  },
+  errorBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.roseLight,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 12,
+  },
+  errorText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: FONT.medium,
+    color: COLORS.rose,
+    lineHeight: 18,
+  },
+  successBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: COLORS.emeraldLight,
+    borderRadius: 10,
+    padding: 12,
+  },
+  successText: {
+    flex: 1,
+    fontSize: 13,
+    fontFamily: FONT.medium,
+    color: COLORS.emerald,
+    lineHeight: 18,
   },
 })

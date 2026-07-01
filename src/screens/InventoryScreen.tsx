@@ -30,6 +30,7 @@ import {
   getStockStatus,
   getStockColor,
   formatWithCassiersShort,
+  drinkRackSize,
 } from '../utils/helpers'
 
 const GRID_GAP = 12
@@ -149,7 +150,7 @@ export default function InventoryScreen({ navigation }: any) {
           </View>
           <Text style={styles.gridName} numberOfLines={2}>{drink.name}</Text>
           <Text style={styles.gridStock}>
-            {formatWithCassiersShort(drink.stock, drink.category)}
+            {formatWithCassiersShort(drink.stock, drink.category, drinkRackSize(drink))}
           </Text>
           <StockProgressBar stock={drink.stock} minStock={drink.min_stock} />
           {(status === 'rupture' || status === 'low') && (

@@ -4,13 +4,13 @@ import {
   Text,
   ScrollView,
   StyleSheet,
-  Alert,
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
   Dimensions,
 } from 'react-native'
 import { supabase } from '../lib/supabase'
+import { showAlert } from '../utils/appAlert'
 import { Card } from '../components/Card'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
@@ -72,7 +72,7 @@ export default function AddDrinkScreen({ navigation, route }: any) {
 
       if (existingDrinks && existingDrinks.length > 0) {
         // Drink already exists - navigate to edit mode
-        Alert.alert(
+        showAlert(
           'Boisson existante',
           'Cette boisson existe déjà dans votre stock. Voulez-vous la modifier?',
           [
@@ -109,40 +109,29 @@ export default function AddDrinkScreen({ navigation, route }: any) {
   }
 
   const handleSave = async () => {
-    console.log('handleSave called')
     if (!selectedDrink) {
-      Alert.alert('Erreur', 'Veuillez sélectionner une boisson')
+      showAlert('Erreur', 'Veuillez sélectionner une boisson')
       return
     }
 
     if (!form.cassierQuantity || cassierQuantity === 0) {
-      Alert.alert('Erreur', 'Veuillez entrer le nombre d\'unités par cassier')
+      showAlert('Erreur', 'Veuillez entrer le nombre d\'unités par cassier')
       return
     }
 
     if (!form.cassierCost || cassierCost === 0) {
-      Alert.alert('Erreur', 'Veuillez entrer le coût du cassier')
+      showAlert('Erreur', 'Veuillez entrer le coût du cassier')
       return
     }
 
     if (!form.price || sellingPrice === 0) {
-      Alert.alert('Erreur', 'Veuillez entrer le prix de vente')
+      showAlert('Erreur', 'Veuillez entrer le prix de vente')
       return
     }
 
     setSaving(true)
     try {
-      console.log('Inserting drink:', {
-        name: selectedDrink.name,
-        category: selectedDrink.category,
-        price: sellingPrice,
-        cost: Math.round(costPerUnit),
-        stock: getUnitsValue(form.stock),
-        min_stock: getUnitsValue(form.minStock),
-        rack_size: cassierQuantity,
-      })
-
-      const { data, error } = await supabase.from('drinks').insert({
+      const { error } = await supabase.from('drinks').insert({
         name: selectedDrink.name,
         category: selectedDrink.category,
         price: sellingPrice,
@@ -157,17 +146,13 @@ export default function AddDrinkScreen({ navigation, route }: any) {
         active: true,
       })
 
-      if (error) {
-        console.error('Supabase error:', error)
-        throw error
-      }
+      if (error) throw error
 
-      console.log('Successfully added drink:', data)
-      Alert.alert('Succès', 'Boisson ajoutée avec succès!')
+      showAlert('Succès', 'Boisson ajoutée avec succès!')
       navigation.goBack()
     } catch (error: any) {
       console.error('Error adding drink:', error)
-      Alert.alert('Erreur', `Erreur lors de l'ajout de la boisson: ${error.message || error}`)
+      showAlert('Erreur', `Erreur lors de l'ajout de la boisson: ${error.message || error}`)
     } finally {
       setSaving(false)
     }

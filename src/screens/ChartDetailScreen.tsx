@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import {
   View,
   Text,
@@ -20,7 +20,22 @@ export interface ChartDetailRow {
 type Props = NativeStackScreenProps<RootStackParamList, 'ChartDetail'>
 
 export default function ChartDetailScreen({ route, navigation }: Props) {
-  const { title, subtitle, chartData, rows, horizontal, formatValue, valueIsMoney } = route.params
+  // This screen only makes sense with params passed in-app. On web, /chart-detail
+  // is a routable URL: a page refresh or direct visit lands here with no params —
+  // destructuring them blindly used to crash to a white screen. Redirect home.
+  const params = route.params
+  const hasData = !!params?.chartData && !!params?.rows
+
+  useEffect(() => {
+    if (!hasData) {
+      // @ts-ignore — MainTabs takes no params
+      navigation.replace('MainTabs')
+    }
+  }, [hasData, navigation])
+
+  if (!hasData) return null
+
+  const { title, subtitle, chartData, rows, horizontal, formatValue, valueIsMoney } = params
 
   const format = (n: number) => (valueIsMoney ? fmt(n) : fmtNum(n))
   const chartFormat = formatValue ?? (n => (valueIsMoney ? fmtNum(n) : fmtNum(n)))

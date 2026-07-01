@@ -63,6 +63,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const isRestoredSession = useRef(false)
 
   useEffect(() => {
+    let welcomeTimer: ReturnType<typeof setTimeout> | null = null
+
     // Get initial session — if one exists, this is a page refresh, not a fresh login
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
@@ -78,7 +80,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Fresh login (not a page refresh or token refresh)
         isRestoredSession.current = true
         setIsWelcomeLoading(true)
-        setTimeout(() => {
+        welcomeTimer = setTimeout(() => {
           setIsWelcomeLoading(false)
           setSession(session)
           setUser(session?.user ?? null)
@@ -90,6 +92,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
         if (_event === 'SIGNED_OUT') {
           isRestoredSession.current = false
+          // A pending welcome timer would re-apply the stale session after sign-out
+          if (welcomeTimer) {
+            clearTimeout(welcomeTimer)
+            welcomeTimer = null
+          }
+          setIsWelcomeLoading(false)
         }
         setSession(session)
         setUser(session?.user ?? null)
@@ -97,7 +105,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false)
     })
 
-    return () => subscription.unsubscribe()
+    return () => {
+      if (welcomeTimer) clearTimeout(welcomeTimer)
+      subscription.unsubscribe()
+    }
   }, [])
 
   const signIn = async (email: string, password: string) => {

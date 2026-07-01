@@ -5,10 +5,10 @@ import {
   TextInput,
   TouchableOpacity,
   StyleSheet,
-  Alert,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../lib/supabase'
+import { showAlert } from '../utils/appAlert'
 import { Expense, ExpenseCategory } from '../types'
 import { COLORS, fmt } from '../utils/helpers'
 
@@ -35,7 +35,7 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
   const addExpense = async () => {
     const amt = parseInt(amount, 10)
     if (!description.trim() || !amt || amt <= 0) {
-      Alert.alert('Erreur', 'Description et montant requis')
+      showAlert('Erreur', 'Description et montant requis')
       return
     }
     setSaving(true)
@@ -53,20 +53,24 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
       setShowForm(false)
       onChange()
     } catch (e) {
-      Alert.alert('Erreur', 'Impossible d\'ajouter la dépense')
+      showAlert('Erreur', 'Impossible d\'ajouter la dépense')
     } finally {
       setSaving(false)
     }
   }
 
   const deleteExpense = async (id: string) => {
-    Alert.alert('Supprimer', 'Retirer cette dépense ?', [
+    showAlert('Supprimer', 'Retirer cette dépense ?', [
       { text: 'Annuler', style: 'cancel' },
       {
         text: 'Supprimer',
         style: 'destructive',
         onPress: async () => {
-          await supabase.from('expenses').delete().eq('id', id)
+          const { error } = await supabase.from('expenses').delete().eq('id', id)
+          if (error) {
+            showAlert('Erreur', 'Impossible de supprimer la dépense')
+            return
+          }
           onChange()
         },
       },

@@ -98,3 +98,52 @@ export function splitRacks(units: number, rackSize: number): { racks: number; re
   const u = Math.max(0, Math.floor(units))
   return { racks: Math.floor(u / size), remainder: u % size }
 }
+
+/**
+ * French label for a stock count expressed in cassiers + units,
+ * e.g. "2 cassiers + 6 unités" (long) or "2c + 6u" (short).
+ */
+export function cassierLabel(units: number, rackSize: number, short = false): string {
+  const { racks, remainder } = splitRacks(units, rackSize)
+
+  if (short) {
+    if (racks === 0) return `${remainder}u`
+    if (remainder === 0) return `${racks}c`
+    return `${racks}c + ${remainder}u`
+  }
+
+  const unitWord = (n: number) => `${n} unité${n > 1 ? 's' : ''}`
+  const rackWord = (n: number) => `${n} cassier${n > 1 ? 's' : ''}`
+  if (racks === 0) return unitWord(remainder)
+  if (remainder === 0) return rackWord(racks)
+  return `${rackWord(racks)} + ${unitWord(remainder)}`
+}
+
+/**
+ * True when `dateISO` (YYYY-MM-DD) falls within the last `days` days ending at
+ * `todayISO` inclusive — e.g. days=7 covers today and the 6 days before.
+ * Pure string/date math on local dates; no timezone conversion.
+ */
+export function isWithinLastDays(dateISO: string, days: number, todayISO: string): boolean {
+  const parse = (iso: string) => {
+    const [y, m, d] = iso.split('-').map(Number)
+    return new Date(y, m - 1, d).getTime()
+  }
+  const date = parse(dateISO)
+  const today = parse(todayISO)
+  if (Number.isNaN(date) || Number.isNaN(today)) return false
+  const dayMs = 24 * 60 * 60 * 1000
+  const diffDays = Math.round((today - date) / dayMs)
+  return diffDays >= 0 && diffDays < days
+}
+
+/** ISO date (YYYY-MM-DD) `days` days before `todayISO`, on local dates. */
+export function isoDaysAgo(days: number, todayISO: string): string {
+  const [y, m, d] = todayISO.split('-').map(Number)
+  const date = new Date(y, m - 1, d)
+  date.setDate(date.getDate() - days)
+  const yy = date.getFullYear()
+  const mm = String(date.getMonth() + 1).padStart(2, '0')
+  const dd = String(date.getDate()).padStart(2, '0')
+  return `${yy}-${mm}-${dd}`
+}

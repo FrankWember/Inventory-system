@@ -83,16 +83,19 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
   const loadData = async () => {
     setLoading(true)
     try {
-      const [sessionRes, expensesRes, drinksRes] = await Promise.all([
-        supabase.from('sessions').select('*, session_lines (*)').eq('id', sessionId).single(),
-        supabase.from('expenses').select('*').order('created_at'),
-        supabase.from('drinks').select('id, category'),
-      ])
-
+      const sessionRes = await supabase.from('sessions').select('*, session_lines (*)').eq('id', sessionId).single()
       if (sessionRes.error) throw sessionRes.error
       const sessionData = sessionRes.data
 
-      const filteredExpenses = (expensesRes.data ?? []).filter(e => e.date === sessionData.date)
+      // Filter expenses by date server-side — the old code downloaded the
+      // entire expenses table on every journal open.
+      const [expensesRes, drinksRes] = await Promise.all([
+        supabase.from('expenses').select('*').eq('date', sessionData.date).order('created_at'),
+        supabase.from('drinks').select('id, category'),
+      ])
+      if (expensesRes.error) throw expensesRes.error
+
+      const filteredExpenses = expensesRes.data ?? []
 
       const categoryMap: Record<string, string> = {}
       drinksRes.data?.forEach(d => { categoryMap[d.id] = d.category })

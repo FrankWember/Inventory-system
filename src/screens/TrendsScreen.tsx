@@ -20,7 +20,8 @@ import { supabase } from '../lib/supabase'
 import { Session, Drink } from '../types'
 import { Card, CardHeader, CardContent } from '../components/Card'
 import { Badge } from '../components/Badge'
-import { COLORS, fmt, fmtNum, fmtShort, fmtShortBare, dateLabel, dateLabelLong, getCategoryColor } from '../utils/helpers'
+import { COLORS, fmt, fmtNum, fmtShort, fmtShortBare, dateLabel, dateLabelLong, getCategoryColor, today } from '../utils/helpers'
+import { isoDaysAgo } from '../utils/calculations'
 
 const BREAKPOINT = 768
 
@@ -39,12 +40,14 @@ export default function TrendsScreen() {
 
   const loadData = async () => {
     try {
+      // "N derniers jours" = sessions dated within the window, not the last N
+      // rows (a bar closed some days would otherwise pull in older sessions).
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('sessions')
         .select(`*, session_lines (*)`)
         .eq('closed', true)
+        .gte('date', isoDaysAgo(period, today()))
         .order('date', { ascending: false })
-        .limit(period)
 
       if (sessionsError) throw sessionsError
 
@@ -68,6 +71,13 @@ export default function TrendsScreen() {
   useEffect(() => {
     loadData()
   }, [period])
+
+  // Refetch when the tab regains focus so a freshly closed session shows up
+  // (RefreshControl doesn't work on web).
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', loadData)
+    return unsubscribe
+  }, [navigation, period])
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -106,11 +116,14 @@ export default function TrendsScreen() {
   const drinkPerformance = useMemo(() => {
     return drinks
       .map(drink => {
-        const sold = closedSessions.reduce((sum, s) => {
+        let sold = 0
+        let revenue = 0
+        for (const s of closedSessions) {
           const line = s.session_lines?.find(l => l.drink_id === drink.id)
-          return sum + (line?.sold || 0)
-        }, 0)
-        const revenue = sold * drink.price
+          sold += line?.sold || 0
+          // Revenue recorded at sale time — price changes must not rewrite history.
+          revenue += line?.revenue || 0
+        }
         const avgDaily = sold / Math.max(1, closedSessions.length)
         const rotation = avgDaily >= 8 ? 'Fort' : avgDaily >= 3 ? 'Moyen' : 'Lent'
         return { drink, sold, revenue, avgDaily, rotation }

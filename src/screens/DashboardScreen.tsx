@@ -17,7 +17,8 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { Badge } from '../components/Badge'
 import { ScreenSkeleton } from '../components/Skeleton'
 import { ProfessionalBarChart } from '../components/ProfessionalBarChart'
-import { COLORS, FONT, fmt, fmtShort, fmtNum, today, dateLabel, formatWithCassiers } from '../utils/helpers'
+import { COLORS, FONT, fmt, fmtShort, fmtNum, today, dateLabel, formatWithCassiers, drinkRackSize } from '../utils/helpers'
+import { isWithinLastDays, isoDaysAgo } from '../utils/calculations'
 
 const BREAKPOINT = 768
 
@@ -43,8 +44,9 @@ export default function DashboardScreen({ navigation }: any) {
       const { data: sessionsData, error: sessionsError } = await supabase
         .from('sessions')
         .select(`*, session_lines (*)`)
+        .eq('closed', true)
+        .gte('date', isoDaysAgo(7, today()))
         .order('date', { ascending: false })
-        .limit(14)
 
       if (sessionsError) throw sessionsError
 
@@ -61,6 +63,13 @@ export default function DashboardScreen({ navigation }: any) {
   useEffect(() => {
     loadData()
   }, [])
+
+  // Refetch when the tab regains focus so numbers update after a session
+  // closes or stock changes (RefreshControl doesn't work on web).
+  useEffect(() => {
+    const unsubscribe = navigation.addListener('focus', loadData)
+    return unsubscribe
+  }, [navigation])
 
   useEffect(() => {
     const subscription = Dimensions.addEventListener('change', ({ window }) => {
@@ -84,12 +93,13 @@ export default function DashboardScreen({ navigation }: any) {
   }
 
   const todayStr = today()
-  const todaySession = sessions.find(s => s.date === todayStr && s.closed)
-  const last7Sessions = sessions.slice(0, 7)
+  // "7 derniers jours" = closed sessions dated within the last 7 calendar days
+  // (not the last 7 rows, which could span weeks and included open sessions
+  // whose totals are still 0).
+  const last7Sessions = sessions.filter(s => s.closed && isWithinLastDays(s.date, 7, todayStr))
 
   const last7Revenue = last7Sessions.reduce((sum, s) => sum + s.total_revenue, 0)
   const last7Profit = last7Sessions.reduce((sum, s) => sum + s.total_profit, 0)
-  const last7Margin = last7Revenue > 0 ? (last7Profit / last7Revenue) * 100 : 0
 
   const alerts = drinks.filter(d => d.stock <= d.min_stock)
   // Sort by urgency: out of stock first, then by how far below min_stock (as percentage)
@@ -108,11 +118,16 @@ export default function DashboardScreen({ navigation }: any) {
   const lowStock = attention.filter(d => d.stock > 0)
 
   const drinkSales = drinks.map(drink => {
-    const sold = last7Sessions.reduce((sum, s) => {
+    let sold = 0
+    let revenue = 0
+    for (const s of last7Sessions) {
       const line = s.session_lines?.find(l => l.drink_id === drink.id)
-      return sum + (line?.sold || 0)
-    }, 0)
-    return { drink, sold, revenue: sold * drink.price }
+      sold += line?.sold || 0
+      // Use the revenue recorded at sale time, not the current price —
+      // price changes must not rewrite past revenue.
+      revenue += line?.revenue || 0
+    }
+    return { drink, sold, revenue }
   })
   const top5 = drinkSales.filter(d => d.sold > 0).sort((a, b) => b.revenue - a.revenue).slice(0, 5)
   const topMax = top5[0]?.revenue || 1
@@ -161,7 +176,7 @@ export default function DashboardScreen({ navigation }: any) {
               const isOut = d.stock === 0
               const isCritical = !isOut && d.stock <= d.min_stock / 2
               const stockColor = isOut ? COLORS.rose : (isCritical ? COLORS.amber : COLORS.primary)
-              const stockText = isOut ? 'Rupture' : formatWithCassiers(d.stock, d.category)
+              const stockText = isOut ? 'Rupture' : formatWithCassiers(d.stock, d.category, drinkRackSize(d))
               return (
                 <TouchableOpacity key={d.id} style={styles.alertRow} onPress={() => navigation.navigate('Inventory')} activeOpacity={0.7}>
                   <View style={[styles.alertBar, { backgroundColor: stockColor }]} />
