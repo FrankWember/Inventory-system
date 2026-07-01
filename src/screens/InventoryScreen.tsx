@@ -200,13 +200,16 @@ export default function InventoryScreen({ navigation }: any) {
       >
         {categories.map(cat => {
           const count = cat === 'Tout' ? drinks.length : drinks.filter(d => d.category === cat).length
+          const isActive = categoryFilter === cat
           return (
             <TouchableOpacity
               key={cat}
               onPress={() => setCategoryFilter(cat)}
-              style={[styles.categoryTab, categoryFilter === cat && styles.categoryTabActive]}
+              style={[styles.categoryTab, isActive && styles.categoryTabActive]}
+              // @ts-ignore - className is web-only
+              className={isActive ? "glass-primary" : "glass-button"}
             >
-              <Text style={[styles.categoryTabText, categoryFilter === cat && styles.categoryTabTextActive]}>
+              <Text style={[styles.categoryTabText, isActive && styles.categoryTabTextActive]}>
                 {cat} ({count})
               </Text>
             </TouchableOpacity>
@@ -234,6 +237,8 @@ export default function InventoryScreen({ navigation }: any) {
       <TouchableOpacity
         style={styles.fab}
         onPress={() => navigation.navigate('AddDrink')}
+        // @ts-ignore - className is web-only
+        className="glass-primary"
       >
         <Ionicons name="add" size={28} color={COLORS.white} style={styles.fabIcon} />
       </TouchableOpacity>
@@ -250,7 +255,12 @@ export default function InventoryScreen({ navigation }: any) {
           <SlideIn style={styles.desktopRight} duration={250}>
             <View style={styles.editHeader}>
               <Text style={styles.editHeaderTitle}>Modifier le stock</Text>
-              <TouchableOpacity onPress={() => setSelectedDrinkId(null)} style={styles.closeButton}>
+              <TouchableOpacity
+                onPress={() => setSelectedDrinkId(null)}
+                style={styles.closeButton}
+                // @ts-ignore - className is web-only
+                className="glass-button"
+              >
                 <Ionicons name="close" size={20} color={COLORS.slate} />
               </TouchableOpacity>
             </View>

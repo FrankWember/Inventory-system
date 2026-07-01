@@ -14,11 +14,14 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { LoadingModal } from '../components/LoadingModal'
 import { COLORS, FONT, today } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
 import { exportData } from '../lib/storage'
 import { supabase } from '../lib/supabase'
+import { usePdfExport } from '../hooks/usePdfExport'
+import { PeriodType } from '../services/pdfService'
 
 export default function SettingsScreen() {
   const { user, signOut, updateProfile } = useAuth()
@@ -27,6 +30,10 @@ export default function SettingsScreen() {
   const [editModal, setEditModal] = useState<null | 'barName' | 'displayName'>(null)
   const [editValue, setEditValue] = useState('')
   const [editLoading, setEditLoading] = useState(false)
+  const [datePickerVisible, setDatePickerVisible] = useState(false)
+  const [selectedDate, setSelectedDate] = useState(today())
+
+  const { loading: pdfLoading, progress: pdfProgress, generatePdf } = usePdfExport({ barName: barInfo?.name || 'BarTrack' })
 
   const isPhoneAccount = user?.email?.includes('@phone.bartrack.app')
   const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Utilisateur'
@@ -110,6 +117,19 @@ export default function SettingsScreen() {
     }
   }
 
+  const handlePdfExport = (periodType: PeriodType) => {
+    if (periodType === 'day') {
+      setDatePickerVisible(true)
+    } else {
+      generatePdf(periodType)
+    }
+  }
+
+  const handleDateConfirm = () => {
+    setDatePickerVisible(false)
+    generatePdf('day', selectedDate)
+  }
+
   const handleBackupData = async () => {
     try {
       const { data: drinks, error } = await supabase.from('drinks').select('id')
@@ -174,6 +194,47 @@ export default function SettingsScreen() {
     <View style={styles.wrapper}>
       <ScreenHeader title="Paramètres" />
 
+      {/* Loading Modal for PDF generation */}
+      <LoadingModal
+        visible={pdfLoading}
+        message="Génération du rapport PDF..."
+        progress={pdfProgress}
+      />
+
+      {/* Date Picker Modal */}
+      <Modal visible={datePickerVisible} transparent animationType="fade" onRequestClose={() => setDatePickerVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={styles.modalCard}>
+            <Text style={styles.modalTitle}>Sélectionner une date</Text>
+            <TextInput
+              style={styles.modalInput}
+              value={selectedDate}
+              onChangeText={setSelectedDate}
+              placeholder="YYYY-MM-DD"
+              placeholderTextColor={COLORS.slate}
+            />
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={styles.modalCancel}
+                onPress={() => setDatePickerVisible(false)}
+                // @ts-ignore - web-only className
+                className="glass-button"
+              >
+                <Text style={styles.modalCancelText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.modalConfirm}
+                onPress={handleDateConfirm}
+                // @ts-ignore - web-only className
+                className="glass-primary"
+              >
+                <Text style={styles.modalConfirmText}>Confirmer</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
       {/* Edit Modal */}
       <Modal visible={editModal !== null} transparent animationType="fade" onRequestClose={() => setEditModal(null)}>
         <View style={styles.modalBackdrop}>
@@ -195,6 +256,8 @@ export default function SettingsScreen() {
                 style={styles.modalCancel}
                 onPress={() => setEditModal(null)}
                 disabled={editLoading}
+                // @ts-ignore - web-only className
+                className="glass-button"
               >
                 <Text style={styles.modalCancelText}>Annuler</Text>
               </TouchableOpacity>
@@ -202,6 +265,8 @@ export default function SettingsScreen() {
                 style={[styles.modalConfirm, editLoading && { opacity: 0.6 }]}
                 onPress={confirmEdit}
                 disabled={editLoading}
+                // @ts-ignore - web-only className
+                className="glass-primary"
               >
                 <Text style={styles.modalConfirmText}>{editLoading ? 'Enregistrement...' : 'Enregistrer'}</Text>
               </TouchableOpacity>
@@ -302,9 +367,37 @@ export default function SettingsScreen() {
         {/* Data */}
         <SectionTitle label="Données" />
         <SettingsCard>
-          <RowItem icon="download-outline" label="Exporter les données" onPress={handleExportData} />
+          <RowItem icon="download-outline" label="Exporter les données (JSON)" onPress={handleExportData} />
           <View style={styles.separator} />
           <RowItem icon="cloud-upload-outline" label="Sauvegarde cloud" onPress={handleBackupData} />
+        </SettingsCard>
+
+        {/* PDF Reports */}
+        <SectionTitle label="Rapports PDF" />
+        <SettingsCard>
+          <RowItem
+            icon="document-text-outline"
+            label="Rapport d'une journée"
+            onPress={() => handlePdfExport('day')}
+          />
+          <View style={styles.separator} />
+          <RowItem
+            icon="calendar-outline"
+            label="Rapport 7 derniers jours"
+            onPress={() => handlePdfExport('7days')}
+          />
+          <View style={styles.separator} />
+          <RowItem
+            icon="calendar-outline"
+            label="Rapport 30 derniers jours"
+            onPress={() => handlePdfExport('30days')}
+          />
+          <View style={styles.separator} />
+          <RowItem
+            icon="time-outline"
+            label="Rapport toutes les périodes"
+            onPress={() => handlePdfExport('all')}
+          />
         </SettingsCard>
 
         {/* Account */}
@@ -382,6 +475,8 @@ function SegBtn({ label, icon, active, onPress }: { label: string; icon?: keyof 
       style={[styles.segBtn, active && styles.segBtnActive]}
       onPress={onPress}
       activeOpacity={0.8}
+      // @ts-ignore - web-only className
+      className={active ? "glass-primary" : ""}
     >
       {icon && (
         <Ionicons

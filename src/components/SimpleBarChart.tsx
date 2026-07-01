@@ -25,11 +25,20 @@ export function SimpleBarChart({
 }: SimpleBarChartProps) {
   if (data.length === 0) return <Text style={styles.empty}>Aucune donnée</Text>
 
-  const maxVal = Math.max(...data.map(d => d.value), 0)
-  const minVal = Math.min(...data.map(d => d.value), 0)
+  // Calculate values with improved scaling
+  const values = data.map(d => d.value)
+  const maxVal = Math.max(...values, 0)
+  const minVal = Math.min(...values, 0)
   const hasNegative = minVal < 0
   const range = maxVal - minVal
-  const max = Math.max(Math.abs(maxVal), Math.abs(minVal), 1)
+
+  // Add 15% padding to max value for better visualization
+  const padding = Math.max(range * 0.15, 1) // At least 1 unit padding
+  const paddedMaxVal = maxVal + padding
+  const paddedMinVal = minVal - padding
+
+  // Calculate max with padding for proportional scaling
+  const max = Math.max(Math.abs(paddedMaxVal), Math.abs(paddedMinVal), 1)
 
   if (horizontal) {
     // For horizontal charts, show negative bars extending left from center
@@ -104,13 +113,15 @@ export function SimpleBarChart({
   if (hasNegative) {
     // Each half gets equal space
     const halfPlot = plot / 2
+    // Use padded max for better proportions
+    const maxForScale = Math.max(Math.abs(paddedMaxVal), Math.abs(paddedMinVal), 1)
 
     return (
       <View style={[styles.vWrap, { height }]}>
         <View style={[styles.vPlot, { height: plot }]}>
           {data.map((d, i) => {
             const isNegative = d.value < 0
-            const barHeight = Math.max(4, (Math.abs(d.value) / max) * halfPlot)
+            const barHeight = Math.max(4, (Math.abs(d.value) / maxForScale) * halfPlot)
             const barColor = d.color ?? (isNegative ? COLORS.rose : COLORS.primary)
 
             return (
@@ -151,11 +162,14 @@ export function SimpleBarChart({
   }
 
   // Standard vertical chart for all positive values
+  // Use padded max for better proportions
+  const maxForScale = paddedMaxVal || 1
+
   return (
     <View style={[styles.vWrap, { height }]}>
       <View style={[styles.vPlot, { height: plot, alignItems: 'flex-end' }]}>
         {data.map((d, i) => {
-          const h = Math.max(3, (Math.abs(d.value) / max) * plot)
+          const h = Math.max(3, (Math.abs(d.value) / maxForScale) * plot)
           return (
             <View key={i} style={[styles.vCol, { justifyContent: 'flex-end' }]}>
               <Text style={styles.vValue} numberOfLines={1}>{d.value !== 0 ? formatValue(d.value) : ''}</Text>

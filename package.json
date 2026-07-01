@@ -26,6 +26,7 @@
     "@react-navigation/bottom-tabs": "^6.6.1",
     "@react-navigation/native": "^6.1.18",
     "@react-navigation/native-stack": "^6.11.0",
+    "@react-pdf/renderer": "^4.5.1",
     "@supabase/supabase-js": "^2.45.4",
     "expo": "~54.0.0",
     "expo-font": "^56.0.7",
@@ -42,7 +43,7 @@
     "react-native-svg": "15.12.1",
     "react-native-url-polyfill": "^2.0.0",
     "react-native-web": "^0.21.0",
-    "recharts": "^3.9.0"
+    "recharts": "^3.9.1"
   },
   "devDependencies": {
     "@babel/core": "^7.24.0",

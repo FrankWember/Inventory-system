@@ -17,6 +17,7 @@ import { supabase } from '../lib/supabase'
 import { Session, Expense } from '../types'
 import { SessionExpensesPanel } from '../components/SessionExpensesPanel'
 import { ScreenHeader } from '../components/ScreenHeader'
+import { LoadingModal } from '../components/LoadingModal'
 import { useSettings } from '../contexts/SettingsContext'
 import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers, formatWithCassiersShort, today } from '../utils/helpers'
 
@@ -52,16 +53,29 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
   const [session, setSession] = useState<Session | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
+  const [printLoading, setPrintLoading] = useState(false)
   const [drinksCategoryMap, setDrinksCategoryMap] = useState<Record<string, string>>({})
 
   const fadeAnim = useRef(new Animated.Value(0)).current
   usePrintStyles()
 
-  const handlePrint = () => {
+  const handlePrint = async () => {
     if (Platform.OS !== 'web') return
-    // @ts-ignore – window and document are available on web
-    const w = window as any
-    w.print()
+
+    setPrintLoading(true)
+
+    // Small delay to show the loading modal
+    await new Promise(resolve => setTimeout(resolve, 300))
+
+    try {
+      // @ts-ignore – window and document are available on web
+      const w = window as any
+      w.print()
+    } finally {
+      // Keep modal visible for a bit longer for better UX
+      await new Promise(resolve => setTimeout(resolve, 500))
+      setPrintLoading(false)
+    }
   }
 
   useEffect(() => { loadData() }, [sessionId])
@@ -126,6 +140,11 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
 
   return (
     <Animated.View style={[s.container, { opacity: fadeAnim }]}>
+      <LoadingModal
+        visible={printLoading}
+        message="Préparation de l'impression..."
+      />
+
       <ScreenHeader
         title="Journal de caisse"
         subtitle={dateLabelLong(session.date)}
@@ -256,21 +275,29 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
         {/* ── Purchases detail ── */}
         {purchaseLines.length > 0 && (
           <Section title="Réceptions / Achats" icon="cube-outline" count={purchaseLines.length}>
-            <SimpleTable
-              headers={['Article', 'Quantité', 'Coût']}
-              rows={purchaseLines.map(l => [l.drink_name, fmtNum(l.purchased), fmt(l.cost)])}
-            />
+            <View style={s.simpleTableWrapper}>
+              <View style={st.table}>
+                <View style={st.head}>
+                  {['Article', 'Quantité', 'Coût'].map((h, i) => (
+                    <Text key={i} style={[st.th, i === 0 ? st.thFirst : st.thRight]}>{h}</Text>
+                  ))}
+                </View>
+                {purchaseLines.map((l, ri) => (
+                  <View key={ri} style={[st.row, ri % 2 === 0 && st.rowEven]}>
+                    <Text style={[st.td, st.tdFirst]} numberOfLines={1}>{l.drink_name}</Text>
+                    <Text style={[st.td, st.tdRight]} numberOfLines={1}>{fmtNum(l.purchased)}</Text>
+                    <Text style={[st.td, st.tdRight]} numberOfLines={1}>{fmt(l.cost)}</Text>
+                  </View>
+                ))}
+              </View>
+            </View>
           </Section>
         )}
 
         {/* ── Sales detail ── */}
         {saleLines.length > 0 && (
           <Section title="Détail des ventes" icon="trending-up-outline" count={saleLines.length}>
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={true}
-              style={s.tableScrollContainer}
-            >
+            <View style={s.simpleTableWrapper}>
               <View style={s.salesTable}>
                 <View style={s.salesHead}>
                   <Text style={[s.sth, s.sthSalesArticle]}>Article</Text>
@@ -300,7 +327,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
                   <Text style={[s.stTotal, s.stdMoney, { color: COLORS.primary }]}>{fmt(session.total_revenue)}</Text>
                 </View>
               </View>
-            </ScrollView>
+            </View>
           </Section>
         )}
 
@@ -648,11 +675,17 @@ const s = StyleSheet.create({
   // table scroll container
   tableScrollContainer: {
     width: '100%',
+    maxWidth: '100%',
     ...Platform.select({
       web: {
-        overflow: 'visible',
+        overflow: 'auto',
       },
     }),
+  },
+
+  simpleTableWrapper: {
+    width: '100%',
+    overflow: 'hidden',
   },
 
   // stock movement table
@@ -661,7 +694,8 @@ const s = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: 10,
     overflow: 'hidden',
-    width: '100%',
+    minWidth: '100%',
+    ...Platform.select({ web: { minWidth: 900 } }),
   },
   stockHead: {
     flexDirection: 'row',

@@ -16,6 +16,7 @@ import { Drink, Session } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { Badge } from '../components/Badge'
 import { ScreenSkeleton } from '../components/Skeleton'
+import { ProfessionalBarChart } from '../components/ProfessionalBarChart'
 import { COLORS, FONT, fmt, fmtShort, fmtNum, today, dateLabel, formatWithCassiers } from '../utils/helpers'
 
 const BREAKPOINT = 768
@@ -199,55 +200,29 @@ export default function DashboardScreen({ navigation }: any) {
             // @ts-ignore - web-only className
             <View style={[styles.section, isDesktop && styles.dashboardHalf]} className="glass-card">
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Tendance du profit</Text>
+                <Text style={styles.sectionTitle}>Profit par jour</Text>
                 <Text style={styles.sectionHint}>7 derniers jours</Text>
               </View>
               <View style={styles.profitChartContainer}>
-                <View style={styles.profitChart}>
-                  {last7Sessions.slice().reverse().map((session, i) => {
-                    const maxProfit = Math.max(...last7Sessions.map(s => Math.abs(s.total_profit)), 1)
-                    const heightPercent = Math.max(4, (Math.abs(session.total_profit) / maxProfit) * 100)
-                    const isPositive = session.total_profit >= 0
-                    return (
-                      <View key={session.id} style={styles.profitBarContainer}>
-                        <View style={styles.profitBarTopSpace}>
-                          {isPositive && session.total_profit !== 0 && (
-                            <>
-                              <Text style={styles.profitBarValue}>{fmtNum(Math.round(session.total_profit / 1000))}k</Text>
-                              <View
-                                style={[
-                                  styles.profitBarUp,
-                                  {
-                                    height: `${heightPercent}%`,
-                                    backgroundColor: COLORS.primary,
-                                  },
-                                ]}
-                              />
-                            </>
-                          )}
-                        </View>
-                        <View style={styles.profitZeroLine} />
-                        <View style={styles.profitBarBottomSpace}>
-                          {isPositive === false && (
-                            <>
-                              <View
-                                style={[
-                                  styles.profitBarDown,
-                                  {
-                                    height: `${heightPercent}%`,
-                                    backgroundColor: COLORS.rose,
-                                  },
-                                ]}
-                              />
-                              <Text style={[styles.profitBarValue, { color: COLORS.rose }]}>{fmtNum(Math.round(session.total_profit / 1000))}k</Text>
-                            </>
-                          )}
-                        </View>
-                        <Text style={styles.profitBarLabel}>{session.date.slice(-2)}</Text>
-                      </View>
-                    )
+                <ProfessionalBarChart
+                  data={last7Sessions.slice().reverse().map(s => {
+                    const unitsSold = s.session_lines?.reduce((sum, line) => sum + line.sold, 0) || 0
+                    return {
+                      label: s.date.slice(-5),
+                      value: s.total_profit,
+                      color: s.total_profit >= 0 ? COLORS.primary : COLORS.rose,
+                      revenue: s.total_revenue,
+                      unitsSold: unitsSold,
+                      cost: s.total_cost,
+                      date: dateLabel(s.date),
+                    }
                   })}
-                </View>
+                  height={isDesktop ? 320 : 280}
+                  formatValue={(n) => {
+                    const thousands = Math.round(n / 1000)
+                    return `${thousands.toLocaleString('fr-FR')}k`
+                  }}
+                />
               </View>
             </View>
           )}
@@ -472,58 +447,6 @@ const styles = StyleSheet.create({
   emptyHintText: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: COLORS.slate, lineHeight: 20 },
   profitChartContainer: {
     paddingTop: 8,
-  },
-  profitChart: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-around',
-    gap: 8,
-  },
-  profitBarContainer: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-  },
-  profitBarValue: {
-    fontSize: 11,
-    fontFamily: FONT.semibold,
-    color: COLORS.slateDark,
-    fontVariant: ['tabular-nums'],
-    minHeight: 14,
-  },
-  profitBarTopSpace: {
     width: '100%',
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'flex-end',
-    gap: 4,
-  },
-  profitBarBottomSpace: {
-    width: '100%',
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'flex-start',
-    gap: 4,
-  },
-  profitBarUp: {
-    width: '70%',
-    borderTopLeftRadius: 6,
-    borderTopRightRadius: 6,
-  },
-  profitBarDown: {
-    width: '70%',
-    borderBottomLeftRadius: 6,
-    borderBottomRightRadius: 6,
-  },
-  profitZeroLine: {
-    width: '100%',
-    height: 2,
-    backgroundColor: COLORS.border,
-  },
-  profitBarLabel: {
-    fontSize: 11,
-    fontFamily: FONT.medium,
-    color: COLORS.slate,
-    minHeight: 14,
   },
 })
