@@ -22,7 +22,8 @@ import { COLORS, fmt, fmtNum, getCategoryColor } from '../utils/helpers'
 
 const BREAKPOINT = 768
 
-export default function AddDrinkScreen({ navigation }: any) {
+export default function AddDrinkScreen({ navigation, route }: any) {
+  const hideHeader = route?.params?.hideHeader
   const [saving, setSaving] = useState(false)
   const [unitMode, setUnitMode] = useState<'units' | 'cassiers'>('cassiers')
   const [selectedDrink, setSelectedDrink] = useState<DrinkTemplate | null>(null)
@@ -38,6 +39,7 @@ export default function AddDrinkScreen({ navigation }: any) {
 
   const windowWidth = Dimensions.get('window').width
   const isDesktop = Platform.OS === 'web' && windowWidth >= BREAKPOINT
+  const isMobile = Platform.OS !== 'web'
 
   const isBeer = selectedDrink?.category === 'Bière'
 
@@ -119,17 +121,22 @@ export default function AddDrinkScreen({ navigation }: any) {
   }
 
   return (
-    <View style={[styles.wrapper, isDesktop && styles.wrapperDesktop]}>
-      <KeyboardAvoidingView
-        style={[{ flex: 1 }, isDesktop && styles.modalContent]}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+    <View style={styles.wrapper}>
+      {!hideHeader && (
         <ScreenHeader
           title="Ajouter une boisson"
           subtitle="Sélectionnez et configurez"
           onBack={() => navigation.goBack()}
         />
-        <ScrollView style={styles.container} contentContainerStyle={isDesktop && styles.containerDesktop}>
+      )}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={[styles.scrollContent, isDesktop && styles.containerDesktop]}
+        >
         <Card>
           <Text style={styles.sectionTitle}>Boisson</Text>
           <Text style={styles.label}>Choisir une boisson *</Text>
@@ -267,7 +274,6 @@ export default function AddDrinkScreen({ navigation }: any) {
         <View style={{ height: 40 }} />
       </ScrollView>
     </KeyboardAvoidingView>
-    </View>
   )
 }
 
@@ -354,33 +360,7 @@ const styles = StyleSheet.create({
   },
   wrapper: {
     flex: 1,
-  },
-  wrapperDesktop: {
-    backgroundColor: 'rgba(15,23,42,0.6)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 40,
-  },
-  modalContent: {
-    flex: 0,
-    maxWidth: 600,
-    width: '100%',
     backgroundColor: COLORS.surface,
-    borderRadius: 16,
-    overflow: 'hidden',
-    ...Platform.select({
-      web: {
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        maxHeight: '85vh',
-      } as any,
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 8 },
-        shadowOpacity: 0.3,
-        shadowRadius: 24,
-        elevation: 24,
-      },
-    }),
   },
   containerDesktop: {
     maxWidth: 600,

@@ -54,7 +54,12 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     backgroundColor: COLORS.surface,
-    height: '100%',
+    ...Platform.select({
+      web: {
+        height: '100vh',
+        overflow: 'hidden',
+      } as any,
+    }),
   },
   content: {
     flex: 1,
@@ -62,11 +67,13 @@ const styles = StyleSheet.create({
     marginLeft: 16,
     backgroundColor: COLORS.white,
     borderRadius: 20,
-    overflow: 'hidden',
+    overflow: 'auto',
     ...Platform.select({
       web: {
         boxShadow: '0 2px 16px rgba(0, 0, 0, 0.08)',
-      },
+        display: 'flex',
+        flexDirection: 'column',
+      } as any,
       default: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },

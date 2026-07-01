@@ -367,7 +367,6 @@ const styles = StyleSheet.create({
   chartWrapper: {
     ...Platform.select({
       web: {
-        outline: 'none !important',
         userSelect: 'none',
         WebkitTapHighlightColor: 'transparent',
       } as any,

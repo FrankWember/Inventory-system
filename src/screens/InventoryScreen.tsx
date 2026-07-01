@@ -21,6 +21,8 @@ import { ScreenSkeleton } from '../components/Skeleton'
 import { FadeIn } from '../components/FadeIn'
 import { SlideIn } from '../components/SlideIn'
 import EditDrinkScreen from './EditDrinkScreen'
+import AddDrinkScreen from './AddDrinkScreen'
+import { FloatingModal } from '../components/FloatingModal'
 import {
   COLORS,
   FONT,
@@ -41,6 +43,7 @@ export default function InventoryScreen({ navigation }: any) {
   const [search, setSearch] = useState('')
   const [categoryFilter, setCategoryFilter] = useState<string>('Tout')
   const [selectedDrinkId, setSelectedDrinkId] = useState<string | null>(null)
+  const [showAddDrink, setShowAddDrink] = useState(false)
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
 
   const isDesktop = Platform.OS === 'web' && windowWidth >= BREAKPOINT
@@ -48,7 +51,7 @@ export default function InventoryScreen({ navigation }: any) {
   // Calculate responsive columns: mobile 2, tablet 3, desktop 4+
   const getNumColumns = () => {
     if (!isDesktop) return 2
-    const availableWidth = selectedDrinkId ? windowWidth / 2 : windowWidth
+    const availableWidth = (selectedDrinkId || showAddDrink) ? windowWidth / 2 : windowWidth
     if (availableWidth >= 1400) return 5
     if (availableWidth >= 1100) return 4
     if (availableWidth >= 900) return 3
@@ -236,7 +239,10 @@ export default function InventoryScreen({ navigation }: any) {
 
       <TouchableOpacity
         style={styles.fab}
-        onPress={() => navigation.navigate('AddDrink')}
+        onPress={() => {
+          setSelectedDrinkId(null)
+          setShowAddDrink(true)
+        }}
         // @ts-ignore - className is web-only
         className="glass-primary"
       >
@@ -248,7 +254,7 @@ export default function InventoryScreen({ navigation }: any) {
   if (isDesktop) {
     return (
       <FadeIn style={styles.desktopContainer}>
-        <View style={[styles.desktopLeft, !selectedDrinkId && styles.desktopLeftFull]}>
+        <View style={[styles.desktopLeft, !selectedDrinkId && !showAddDrink && styles.desktopLeftFull]}>
           {drinkListContent}
         </View>
         {selectedDrinkId && (
@@ -276,6 +282,31 @@ export default function InventoryScreen({ navigation }: any) {
             />
           </SlideIn>
         )}
+        {showAddDrink && (
+          <SlideIn style={styles.desktopRight} duration={250}>
+            <View style={styles.editHeader}>
+              <Text style={styles.editHeaderTitle}>Ajouter une boisson</Text>
+              <TouchableOpacity
+                onPress={() => setShowAddDrink(false)}
+                style={styles.closeButton}
+                // @ts-ignore - className is web-only
+                className="glass-button"
+              >
+                <Ionicons name="close" size={20} color={COLORS.slate} />
+              </TouchableOpacity>
+            </View>
+            <AddDrinkScreen
+              route={{ params: { hideHeader: true } }}
+              navigation={{
+                ...navigation,
+                goBack: () => {
+                  setShowAddDrink(false)
+                  loadDrinks()
+                }
+              }}
+            />
+          </SlideIn>
+        )}
       </FadeIn>
     )
   }
@@ -283,6 +314,22 @@ export default function InventoryScreen({ navigation }: any) {
   return (
     <FadeIn style={styles.container}>
       {drinkListContent}
+      <FloatingModal
+        visible={showAddDrink}
+        onClose={() => setShowAddDrink(false)}
+        title="Ajouter une boisson"
+      >
+        <AddDrinkScreen
+          route={{ params: { hideHeader: true } }}
+          navigation={{
+            ...navigation,
+            goBack: () => {
+              setShowAddDrink(false)
+              loadDrinks()
+            }
+          }}
+        />
+      </FloatingModal>
     </FadeIn>
   )
 }

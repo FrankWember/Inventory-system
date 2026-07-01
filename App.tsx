@@ -33,7 +33,6 @@ import InventoryScreen from './src/screens/InventoryScreen'
 import SessionScreen from './src/screens/SessionScreen'
 import TrendsScreen from './src/screens/TrendsScreen'
 import SettingsScreen from './src/screens/SettingsScreen'
-import AddDrinkScreen from './src/screens/AddDrinkScreen'
 import EditDrinkScreen from './src/screens/EditDrinkScreen'
 import SessionDetailScreen from './src/screens/SessionDetailScreen'
 import ChartDetailScreen, { ChartDetailRow } from './src/screens/ChartDetailScreen'
@@ -51,7 +50,6 @@ export type RootStackParamList = {
   SignUp: { mode?: 'signup' } | undefined
   ForgotPassword: undefined
   MainTabs: undefined
-  AddDrink: undefined
   EditDrink: { drinkId: string; hideHeader?: boolean }
   SessionDetail: { sessionId: string }
   ChartDetail: {
@@ -98,7 +96,6 @@ const linking = Platform.OS === 'web' ? {
           Settings: 'settings',
         },
       },
-      AddDrink: 'add-drink',
       EditDrink: 'edit-drink/:drinkId',
       SessionDetail: 'session-detail/:sessionId',
       ChartDetail: 'chart-detail',
@@ -239,14 +236,6 @@ function RootNavigator() {
       ) : (
         <>
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-          <Stack.Screen
-            name="AddDrink"
-            component={AddDrinkScreen}
-            options={{
-              headerShown: false,
-              presentation: 'modal',
-            }}
-          />
           <Stack.Screen name="EditDrink" component={EditDrinkScreen} options={{ headerShown: false }} />
           <Stack.Screen name="SessionDetail" component={SessionDetailScreen} options={{ headerShown: false }} />
           <Stack.Screen name="ChartDetail" component={ChartDetailScreen} options={{ headerShown: false }} />
