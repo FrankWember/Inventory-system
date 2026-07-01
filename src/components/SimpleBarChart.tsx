@@ -116,17 +116,6 @@ export function SimpleBarChart({
     // Use padded max for better proportions
     const maxForScale = Math.max(Math.abs(paddedMaxVal), Math.abs(paddedMinVal), 1)
 
-    console.log('SimpleBarChart DEBUG:', {
-      hasNegative,
-      data: data.map(d => ({ label: d.label, value: d.value })),
-      paddedMaxVal,
-      paddedMinVal,
-      maxForScale,
-      halfPlot,
-      plot,
-      height
-    })
-
     return (
       <View style={[styles.vWrap, { height }]}>
         <View style={[styles.vPlot, { height: plot }]}>
@@ -134,8 +123,6 @@ export function SimpleBarChart({
             const isNegative = d.value < 0
             const barHeight = Math.max(4, (Math.abs(d.value) / maxForScale) * halfPlot)
             const barColor = d.color ?? (isNegative ? COLORS.rose : COLORS.primary)
-
-            console.log(`Bar ${i}:`, { label: d.label, value: d.value, isNegative, barHeight, barColor })
 
             return (
               <View key={i} style={[styles.vCol, { justifyContent: 'center' }]}>

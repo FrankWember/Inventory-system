@@ -1,9 +1,13 @@
 import React from 'react'
 import { View, Platform, StyleSheet, Text } from 'react-native'
 import { COLORS, FONT, fmt, fmtNum } from '../utils/helpers'
-import { SimpleBarChart, BarChartItem } from './SimpleBarChart'
+import { BarChart } from 'react-native-gifted-charts'
+import { SimpleBarChart } from './SimpleBarChart'
 
-export interface ProfessionalBarChartItem extends BarChartItem {
+export interface ProfessionalBarChartItem {
+  label: string
+  value: number
+  color?: string
   revenue?: number
   unitsSold?: number
   cost?: number
@@ -16,14 +20,14 @@ interface ProfessionalBarChartProps {
   formatValue?: (n: number) => string
 }
 
-// Professional chart component that uses recharts on web and SimpleBarChart on native
+// Professional chart component that uses recharts on web and gifted-charts on native
 export function ProfessionalBarChart({ data, height = 260, formatValue }: ProfessionalBarChartProps) {
   if (Platform.OS === 'web') {
     return <WebProfessionalChart data={data} height={height} formatValue={formatValue} />
   }
 
-  // Fallback to SimpleBarChart on native
-  return <SimpleBarChart data={data} height={height} formatValue={formatValue} />
+  // Use react-native-gifted-charts on native
+  return <NativeBarChart data={data} height={height} formatValue={formatValue} />
 }
 
 // Web-only component using recharts
@@ -290,6 +294,71 @@ function WebProfessionalChart({ data, height, formatValue }: ProfessionalBarChar
         </Bar>
       </BarChart>
     </ResponsiveContainer>
+    </View>
+  )
+}
+
+// Native component using react-native-gifted-charts
+function NativeBarChart({ data, height = 260, formatValue }: ProfessionalBarChartProps) {
+  // Transform data for gifted-charts
+  const chartData = data.map((item) => ({
+    value: item.value,
+    label: item.label,
+    frontColor: item.value >= 0 ? COLORS.primary : COLORS.rose,
+    topLabelComponent: () => (
+      <Text style={{
+        fontSize: 10,
+        color: item.value >= 0 ? COLORS.primary : COLORS.rose,
+        fontFamily: FONT.semibold,
+        marginBottom: 4
+      }}>
+        {formatValue ? formatValue(item.value) : fmtNum(item.value)}
+      </Text>
+    ),
+  }))
+
+  // Calculate max/min for chart scaling
+  const values = data.map(d => d.value)
+  const maxVal = Math.max(...values, 0)
+  const minVal = Math.min(...values, 0)
+  const hasNegative = minVal < 0
+
+  // Calculate sections for negative values
+  const noOfSectionsBelowXAxis = hasNegative ? 3 : 0
+
+  return (
+    <View style={{ width: '100%', height, paddingTop: 20 }}>
+      <BarChart
+        data={chartData}
+        height={height - 60}
+        barWidth={22}
+        spacing={24}
+        roundedTop
+        roundedBottom={hasNegative}
+        xAxisThickness={1}
+        xAxisColor={COLORS.border}
+        yAxisThickness={0}
+        yAxisTextStyle={{
+          color: COLORS.slate,
+          fontSize: 10,
+          fontFamily: FONT.medium,
+        }}
+        xAxisLabelTextStyle={{
+          color: COLORS.slate,
+          fontSize: 10,
+          fontFamily: FONT.medium,
+        }}
+        noOfSections={5}
+        noOfSectionsBelowXAxis={noOfSectionsBelowXAxis}
+        maxValue={maxVal * 1.2}
+        mostNegativeValue={hasNegative ? minVal * 1.2 : undefined}
+        yAxisLabelPrefix=""
+        formatYLabel={(value) => formatValue ? formatValue(parseFloat(value)) : value}
+        showGradient
+        gradientColor={COLORS.primary}
+        isAnimated
+        animationDuration={800}
+      />
     </View>
   )
 }
