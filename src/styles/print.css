@@ -1,6 +1,14 @@
 /* Print Styles for Session Detail and Recap Page */
 @media print {
   /* Hide everything by default */
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: white !important;
+    height: auto;
+    overflow: visible;
+  }
+
   body * {
     visibility: hidden;
   }
@@ -9,13 +17,16 @@
   .session-detail-print,
   .session-detail-print *,
   .recap-print-container,
-  .recap-print-container * {
-    visibility: visible;
+  .recap-print-container *,
+  #bartrack-print-root,
+  #bartrack-print-root * {
+    visibility: visible !important;
   }
 
   /* Position the printable content at the top of the page */
   .session-detail-print,
-  .recap-print-container {
+  .recap-print-container,
+  #bartrack-print-root {
     position: absolute;
     left: 0;
     top: 0;
@@ -42,28 +53,8 @@
 
   /* Optimize page layout for printing */
   @page {
-    margin: 1.5cm 1.5cm 2cm 1.5cm;
+    margin: 1cm;
     size: A4 portrait;
-
-    @bottom-right {
-      content: "Page " counter(page) " sur " counter(pages);
-      font-size: 9pt;
-      color: #64748B;
-    }
-
-    @bottom-left {
-      content: "BarTrack - Imprimé le " date();
-      font-size: 9pt;
-      color: #64748B;
-    }
-  }
-
-  html, body {
-    margin: 0;
-    padding: 0;
-    background: white !important;
-    height: auto;
-    overflow: visible;
   }
 
   /* Ensure content fits on page */

@@ -127,11 +127,13 @@ export default function DashboardScreen({ navigation }: any) {
       >
         {/* ── 7-day pulse ── */}
         <View style={styles.statsRow}>
-          <View style={styles.statBox}>
+          {/* @ts-ignore - web-only className */}
+          <View style={styles.statBox} className="glass-card">
             <Text style={styles.statLabel}>Revenu 7j</Text>
             <Text style={styles.statValue} adjustsFontSizeToFit numberOfLines={1}>{fmt(last7Revenue)}</Text>
           </View>
-          <View style={styles.statBox}>
+          {/* @ts-ignore - web-only className */}
+          <View style={styles.statBox} className="glass-card">
             <Text style={styles.statLabel}>Profit 7j</Text>
             <Text
               style={[styles.statValue, { color: last7Profit >= 0 ? COLORS.primary : COLORS.rose }]}
@@ -145,7 +147,8 @@ export default function DashboardScreen({ navigation }: any) {
 
         {/* ── 2. What needs my attention? ── */}
         {attention.length > 0 ? (
-          <View style={styles.section}>
+          // @ts-ignore - web-only className
+          <View style={styles.section} className="glass-card">
             <View style={styles.sectionHeader}>
               <Text style={styles.sectionTitle}>À surveiller</Text>
               <View style={styles.badgeRow}>
@@ -193,7 +196,8 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={isDesktop ? styles.dashboardRow : null}>
           {/* ── Profit trend chart ── */}
           {last7Sessions.length > 0 && (
-            <View style={[styles.section, isDesktop && styles.dashboardHalf]}>
+            // @ts-ignore - web-only className
+            <View style={[styles.section, isDesktop && styles.dashboardHalf]} className="glass-card">
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Tendance du profit</Text>
                 <Text style={styles.sectionHint}>7 derniers jours</Text>
@@ -250,7 +254,8 @@ export default function DashboardScreen({ navigation }: any) {
 
           {/* ── 3. What's selling? ── */}
           {top5.length > 0 && (
-            <View style={[styles.section, isDesktop && styles.dashboardHalf]}>
+            // @ts-ignore - web-only className
+            <View style={[styles.section, isDesktop && styles.dashboardHalf]} className="glass-card">
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Meilleures ventes</Text>
                 <Text style={styles.sectionHint}>7 derniers jours</Text>

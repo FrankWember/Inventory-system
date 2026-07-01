@@ -1130,7 +1130,12 @@ export default function SessionScreen({ navigation }: any) {
                     </Text>
                   </View>
                 </View>
-                <TouchableOpacity style={styles.primaryBtn} onPress={() => openJournal(selectedDateSession.closed!)}>
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={() => openJournal(selectedDateSession.closed!)}
+                  // @ts-ignore - web-only className
+                  className="glass-primary"
+                >
                   <Ionicons name="document-text-outline" size={18} color={COLORS.white} />
                   <Text style={styles.primaryBtnText}>Voir le journal</Text>
                 </TouchableOpacity>
@@ -1149,6 +1154,8 @@ export default function SessionScreen({ navigation }: any) {
                 <TouchableOpacity
                   style={styles.primaryBtn}
                   onPress={() => { setOpenSession(selectedDateSession.open); setStep('inventory') }}
+                  // @ts-ignore - web-only className
+                  className="glass-primary"
                 >
                   <Ionicons name="play" size={18} color={COLORS.white} />
                   <Text style={styles.primaryBtnText}>Reprendre</Text>
@@ -1165,7 +1172,12 @@ export default function SessionScreen({ navigation }: any) {
                     <Text style={styles.statusSub}>Démarrer pour cette date</Text>
                   </View>
                 </View>
-                <TouchableOpacity style={styles.primaryBtn} onPress={() => startNewSession(selectedDate)}>
+                <TouchableOpacity
+                  style={styles.primaryBtn}
+                  onPress={() => startNewSession(selectedDate)}
+                  // @ts-ignore - web-only className
+                  className="glass-primary"
+                >
                   <Ionicons name="add" size={18} color={COLORS.white} />
                   <Text style={styles.primaryBtnText}>Démarrer la session</Text>
                 </TouchableOpacity>
@@ -1175,7 +1187,12 @@ export default function SessionScreen({ navigation }: any) {
 
         {/* Mobile: new session button */}
         {!isDesktop && !closedToday && !openSession && (
-          <TouchableOpacity style={[styles.primaryBtn, { marginHorizontal: 16, marginTop: 16 }]} onPress={() => startNewSession(todayStr)}>
+          <TouchableOpacity
+            style={[styles.primaryBtn, { marginHorizontal: 16, marginTop: 16 }]}
+            onPress={() => startNewSession(todayStr)}
+            // @ts-ignore - web-only className
+            className="glass-primary"
+          >
             <Ionicons name="add" size={18} color={COLORS.white} />
             <Text style={styles.primaryBtnText}>Démarrer la session d'aujourd'hui</Text>
           </TouchableOpacity>
@@ -1238,6 +1255,8 @@ export default function SessionScreen({ navigation }: any) {
             style={[styles.footerBtn, b.secondary ? styles.footerBtnSecondary : styles.footerBtnPrimary, (b.loading) && { opacity: 0.7 }]}
             onPress={b.onPress}
             disabled={b.loading}
+            // @ts-ignore - web-only className
+            className={b.secondary ? "glass-button" : "glass-primary"}
           >
             {b.loading
               ? <ActivityIndicator color={COLORS.white} size="small" />
