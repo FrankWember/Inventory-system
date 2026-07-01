@@ -1,7 +1,5 @@
 import { useState } from 'react'
 import { Platform, Alert } from 'react-native'
-import { pdf } from '@react-pdf/renderer'
-import { PdfDocument } from '../components/PdfDocument'
 import { fetchPdfData, PeriodType } from '../services/pdfService'
 import { today } from '../utils/helpers'
 
@@ -23,6 +21,10 @@ export function usePdfExport({ barName }: UsePdfExportOptions) {
     setProgress(0)
 
     try {
+      // Dynamically import PDF modules (web-only)
+      const { pdf } = await import('@react-pdf/renderer')
+      const { PdfDocument } = await import('../components/PdfDocument')
+
       // Step 1: Fetch data (40% progress)
       setProgress(40)
       const data = await fetchPdfData(periodType, specificDate)

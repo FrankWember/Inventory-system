@@ -116,6 +116,17 @@ export function SimpleBarChart({
     // Use padded max for better proportions
     const maxForScale = Math.max(Math.abs(paddedMaxVal), Math.abs(paddedMinVal), 1)
 
+    console.log('SimpleBarChart DEBUG:', {
+      hasNegative,
+      data: data.map(d => ({ label: d.label, value: d.value })),
+      paddedMaxVal,
+      paddedMinVal,
+      maxForScale,
+      halfPlot,
+      plot,
+      height
+    })
+
     return (
       <View style={[styles.vWrap, { height }]}>
         <View style={[styles.vPlot, { height: plot }]}>
@@ -124,13 +135,16 @@ export function SimpleBarChart({
             const barHeight = Math.max(4, (Math.abs(d.value) / maxForScale) * halfPlot)
             const barColor = d.color ?? (isNegative ? COLORS.rose : COLORS.primary)
 
+            console.log(`Bar ${i}:`, { label: d.label, value: d.value, isNegative, barHeight, barColor })
+
             return (
               <View key={i} style={[styles.vCol, { justifyContent: 'center' }]}>
                 {/* Positive value area */}
-                <View style={{ height: halfPlot, justifyContent: 'flex-end', alignItems: 'center', gap: 4 }}>
+                <View style={{ height: halfPlot, justifyContent: 'flex-end', alignItems: 'center' }}>
                   {!isNegative && d.value !== 0 && (
                     <>
                       <Text style={styles.vValue} numberOfLines={1}>{formatValue(d.value)}</Text>
+                      <View style={styles.vValueSpacer} />
                       <View style={[styles.vBarUp, { height: barHeight, backgroundColor: barColor }]} />
                     </>
                   )}
@@ -140,10 +154,11 @@ export function SimpleBarChart({
                 <View style={styles.vZeroLine} />
 
                 {/* Negative value area */}
-                <View style={{ height: halfPlot, justifyContent: 'flex-start', alignItems: 'center', gap: 4 }}>
+                <View style={{ height: halfPlot, justifyContent: 'flex-start', alignItems: 'center' }}>
                   {isNegative && (
                     <>
                       <View style={[styles.vBarDown, { height: barHeight, backgroundColor: barColor }]} />
+                      <View style={styles.vValueSpacer} />
                       <Text style={[styles.vValue, { color: COLORS.rose }]} numberOfLines={1}>{formatValue(d.value)}</Text>
                     </>
                   )}
@@ -196,8 +211,7 @@ const styles = StyleSheet.create({
   vCol: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   vValue: { fontSize: 10, color: COLORS.slate, fontFamily: FONT.semibold, marginBottom: 4, fontVariant: ['tabular-nums'] },
   vBar: {
-    width: '70%',
-    maxWidth: 32,
+    width: 24,
     borderTopLeftRadius: 5,
     borderTopRightRadius: 5,
     ...Platform.select({
@@ -207,8 +221,7 @@ const styles = StyleSheet.create({
     }),
   },
   vBarUp: {
-    width: '70%',
-    maxWidth: 32,
+    width: 24,
     borderTopLeftRadius: 5,
     borderTopRightRadius: 5,
     ...Platform.select({
@@ -218,8 +231,7 @@ const styles = StyleSheet.create({
     }),
   },
   vBarDown: {
-    width: '70%',
-    maxWidth: 32,
+    width: 24,
     borderBottomLeftRadius: 5,
     borderBottomRightRadius: 5,
     ...Platform.select({
@@ -229,6 +241,7 @@ const styles = StyleSheet.create({
     }),
   },
   vZeroLine: { width: '100%', height: 2, backgroundColor: COLORS.border },
+  vValueSpacer: { height: 4 },
   vAxis: { flexDirection: 'row', marginTop: 6 },
   vAxisLabel: { flex: 1, textAlign: 'center', fontSize: 10, color: COLORS.slate, fontFamily: FONT.medium },
 
