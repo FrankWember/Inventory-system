@@ -1,5 +1,8 @@
 import { Platform } from 'react-native'
 
+// Type declaration for window object on web
+declare const window: any
+
 /**
  * Get the current app URL based on environment
  * - Production web: Uses EXPO_PUBLIC_PRODUCTION_URL
@@ -13,14 +16,15 @@ export function getAppUrl(): string {
   }
 
   // Check if we're in production by looking at the hostname
-  const isProduction = typeof window !== 'undefined' &&
-    (window.location.hostname !== 'localhost' &&
-     window.location.hostname !== '127.0.0.1' &&
-     !window.location.hostname.includes('192.168'))
+  const windowObj = typeof window !== 'undefined' ? window : null
+  const isProduction = windowObj &&
+    (windowObj.location.hostname !== 'localhost' &&
+     windowObj.location.hostname !== '127.0.0.1' &&
+     !windowObj.location.hostname.includes('192.168'))
 
-  if (isProduction) {
+  if (isProduction && windowObj) {
     // Use production URL from env or fallback to current origin
-    return process.env.EXPO_PUBLIC_PRODUCTION_URL || window.location.origin
+    return process.env.EXPO_PUBLIC_PRODUCTION_URL || windowObj.location.origin
   }
 
   // Use local development URL

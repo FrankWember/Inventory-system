@@ -1102,7 +1102,7 @@ export default function SessionScreen({ navigation }: any) {
                   fontFamily: FONT.bold,
                 },
               },
-            }}
+            } as any}
           />
         </View>
 

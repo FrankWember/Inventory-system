@@ -679,7 +679,7 @@ const s = StyleSheet.create({
     ...Platform.select({
       web: {
         overflow: 'auto',
-      },
+      } as any,
     }),
   },
 

@@ -298,7 +298,11 @@ const styles = StyleSheet.create({
   desktopLeft: {
     width: '50%',
     backgroundColor: COLORS.surface,
-    transition: Platform.OS === 'web' ? 'width 0.3s ease' : undefined,
+    ...Platform.select({
+      web: {
+        transition: 'width 0.3s ease',
+      } as any,
+    }),
   },
   desktopLeftFull: {
     width: '100%',

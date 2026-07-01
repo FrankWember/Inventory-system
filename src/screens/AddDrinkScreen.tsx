@@ -26,6 +26,7 @@ export default function AddDrinkScreen({ navigation }: any) {
   const [saving, setSaving] = useState(false)
   const [unitMode, setUnitMode] = useState<'units' | 'cassiers'>('cassiers')
   const [selectedDrink, setSelectedDrink] = useState<DrinkTemplate | null>(null)
+  const [dropdownOpen, setDropdownOpen] = useState(false)
   const [form, setForm] = useState({
     cassierQuantity: '',
     cassierCost: '',
@@ -135,6 +136,7 @@ export default function AddDrinkScreen({ navigation }: any) {
           <DrinkSelector
             selectedDrink={selectedDrink}
             onSelectDrink={handleDrinkSelect}
+            onDropdownChange={setDropdownOpen}
           />
         </Card>
 
@@ -239,6 +241,9 @@ export default function AddDrinkScreen({ navigation }: any) {
             </Card>
           </>
         )}
+
+        {/* Add spacing when dropdown is open to prevent button overlap */}
+        {dropdownOpen && <View style={{ height: 320 }} />}
 
         <View style={styles.buttons}>
           <Button
@@ -360,14 +365,14 @@ const styles = StyleSheet.create({
     flex: 0,
     maxWidth: 600,
     width: '100%',
-    maxHeight: '85vh',
     backgroundColor: COLORS.surface,
     borderRadius: 16,
     overflow: 'hidden',
     ...Platform.select({
       web: {
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-      },
+        maxHeight: '85vh',
+      } as any,
       default: {
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 8 },

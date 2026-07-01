@@ -19,14 +19,20 @@ interface DrinkSelectorProps {
   selectedDrink: DrinkTemplate | null
   onSelectDrink: (drink: DrinkTemplate) => void
   categoryFilter?: Category
+  onDropdownChange?: (isOpen: boolean) => void
 }
 
-export function DrinkSelector({ selectedDrink, onSelectDrink, categoryFilter }: DrinkSelectorProps) {
+export function DrinkSelector({ selectedDrink, onSelectDrink, categoryFilter, onDropdownChange }: DrinkSelectorProps) {
   const [dropdownVisible, setDropdownVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [customName, setCustomName] = useState('')
   const [selectedCategory, setSelectedCategory] = useState<Category | 'Tout'>('Tout')
   const inputRef = useRef<TextInput>(null)
+
+  // Notify parent when dropdown visibility changes
+  useEffect(() => {
+    onDropdownChange?.(dropdownVisible)
+  }, [dropdownVisible, onDropdownChange])
 
   const categories: Array<Category | 'Tout'> = [
     'Tout', 'Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre',
