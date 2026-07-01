@@ -36,6 +36,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
   const [saving, setSaving] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [unitMode, setUnitMode] = useState<'units' | 'cassiers'>('units')
+  const [cassierCost, setCassierCost] = useState<string>('')
 
   useEffect(() => {
     loadDrink()
@@ -51,6 +52,9 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 
       if (error) throw error
       setDrink(data)
+      // Calculate cassier cost from unit cost and rack size
+      const calculatedCassierCost = data.cost * data.rack_size
+      setCassierCost(calculatedCassierCost.toString())
     } catch (error) {
       console.error('Error loading drink:', error)
       Alert.alert('Erreur', 'Erreur lors du chargement de la boisson')
@@ -63,6 +67,10 @@ export default function EditDrinkScreen({ route, navigation }: any) {
   const handleSave = async () => {
     if (!drink) return
 
+    // Calculate unit cost from cassier cost
+    const cassierCostNum = parseInt(cassierCost) || 0
+    const costPerUnit = drink.rack_size > 0 ? Math.round(cassierCostNum / drink.rack_size) : 0
+
     setSaving(true)
     try {
       const { error } = await supabase
@@ -72,7 +80,8 @@ export default function EditDrinkScreen({ route, navigation }: any) {
           min_stock: drink.min_stock,
           rack_size: drink.rack_size,
           price: drink.price,
-          cost: drink.cost,
+          cost: costPerUnit,
+          cassier_cost: cassierCostNum,
         })
         .eq('id', drinkId)
 
@@ -120,8 +129,11 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 
   if (!drink) return null
 
-  const margin = ((drink.price - drink.cost) / drink.price * 100).toFixed(0)
-  const profitPerUnit = drink.price - drink.cost
+  // Calculate cost per unit from cassier cost
+  const cassierCostNum = parseInt(cassierCost) || 0
+  const costPerUnit = drink.rack_size > 0 ? cassierCostNum / drink.rack_size : 0
+  const profitPerUnit = drink.price - costPerUnit
+  const margin = drink.price > 0 ? ((profitPerUnit / drink.price) * 100).toFixed(1) : '0'
   const isBeer = drink.category === 'Bière'
 
   // Helper functions for unit conversion using drink's rack_size
@@ -209,22 +221,41 @@ export default function EditDrinkScreen({ route, navigation }: any) {
             keyboardType="number-pad"
           />
           <Input
-            label="Prix de vente (FCFA)"
+            label="Combien coûte le cassier? (FCFA) *"
+            value={cassierCost}
+            onChangeText={setCassierCost}
+            keyboardType="number-pad"
+            placeholder="Ex: 6000"
+          />
+
+          <Input
+            label="Prix de vente par unité (FCFA) *"
             value={drink.price.toString()}
             onChangeText={(text) => setDrink({ ...drink, price: parseInt(text) || 0 })}
             keyboardType="number-pad"
-          />
-          <Input
-            label="Coût d'achat (FCFA)"
-            value={drink.cost.toString()}
-            onChangeText={(text) => setDrink({ ...drink, cost: parseInt(text) || 0 })}
-            keyboardType="number-pad"
+            placeholder="Ex: 600"
           />
 
-          <View style={styles.summary}>
-            <Text style={styles.summaryText}>Marge: {margin}%</Text>
-            <Text style={styles.summaryValue}>{fmt(profitPerUnit)}/unité</Text>
-          </View>
+          {cassierCostNum > 0 && drink.price > 0 && drink.rack_size > 0 && (
+            <View style={styles.calculationCard}>
+              <View style={styles.calculationRow}>
+                <Text style={styles.calculationLabel}>Coût par unité (COGS)</Text>
+                <Text style={styles.calculationValue}>{fmt(costPerUnit)}</Text>
+              </View>
+              <View style={styles.calculationRow}>
+                <Text style={styles.calculationLabel}>Profit par unité</Text>
+                <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
+                  {fmt(profitPerUnit)}
+                </Text>
+              </View>
+              <View style={styles.calculationRow}>
+                <Text style={styles.calculationLabel}>Marge bénéficiaire</Text>
+                <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
+                  {margin}%
+                </Text>
+              </View>
+            </View>
+          )}
         </Card>
 
         <View style={styles.buttons}>
@@ -363,5 +394,27 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: COLORS.slate,
     marginBottom: 16,
+  },
+  calculationCard: {
+    backgroundColor: COLORS.surface,
+    borderRadius: 12,
+    padding: 16,
+    marginTop: 16,
+    gap: 12,
+  },
+  calculationRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  calculationLabel: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: COLORS.slate,
+  },
+  calculationValue: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: COLORS.slateDark,
   },
 })

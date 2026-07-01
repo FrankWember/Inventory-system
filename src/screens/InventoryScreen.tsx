@@ -302,6 +302,10 @@ export default function InventoryScreen({ navigation }: any) {
                 goBack: () => {
                   setShowAddDrink(false)
                   loadDrinks()
+                },
+                switchToEdit: (drinkId: string) => {
+                  setShowAddDrink(false)
+                  setSelectedDrinkId(drinkId)
                 }
               }}
             />
@@ -326,6 +330,10 @@ export default function InventoryScreen({ navigation }: any) {
             goBack: () => {
               setShowAddDrink(false)
               loadDrinks()
+            },
+            switchToEdit: (drinkId: string) => {
+              setShowAddDrink(false)
+              navigation.navigate('EditDrink', { drinkId })
             }
           }}
         />

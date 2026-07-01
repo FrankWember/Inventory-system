@@ -63,7 +63,6 @@ const styles = StyleSheet.create({
     maxHeight: '85%',
     backgroundColor: COLORS.white,
     borderRadius: 20,
-    overflow: 'hidden',
     ...Platform.select({
       web: {
         boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
@@ -86,6 +85,8 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: COLORS.border,
     backgroundColor: COLORS.white,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   headerTitle: {
     fontSize: 18,
