@@ -23,6 +23,7 @@
       "bundler": "metro",
       "favicon": "./assets/favicon.png",
       "output": "single",
+      "template": "./web/index.html",
       "name": "BarTrack - Inventory Management",
       "shortName": "BarTrack",
       "lang": "fr",
@@ -35,6 +36,8 @@
       "preferRelatedApplications": false,
       "display": "standalone"
     },
-    "plugins": []
+    "plugins": [
+      "expo-font"
+    ]
   }
 }

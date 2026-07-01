@@ -124,11 +124,12 @@ function WebProfessionalChart({ data, height, formatValue }: ProfessionalBarChar
     const isNegative = value < 0
 
     // Calculate position based on bar orientation
-    // For negative bars, position label inside the bar at the bottom to ensure visibility
-    // For very large negative bars, position at a fixed offset to keep label visible
+    // For negative bars, position label at a fixed offset below the zero line (y position)
+    // to ensure it stays visible and inside the bar regardless of bar size
+    // For positive bars, position above the bar
     const labelY = isNegative
-      ? (Math.abs(height) > 40 ? y + Math.abs(height) - 8 : y + Math.abs(height) + 16)
-      : y - 6
+      ? y + 20  // Fixed position below the zero line for negative bars
+      : y - 6   // Above the bar for positive bars
     const labelColor = isNegative ? COLORS.rose : COLORS.primary
 
     return (
