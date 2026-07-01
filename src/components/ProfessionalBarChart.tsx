@@ -28,8 +28,16 @@ export function ProfessionalBarChart({ data, height = 260, formatValue }: Profes
 
 // Web-only component using recharts
 function WebProfessionalChart({ data, height, formatValue }: ProfessionalBarChartProps) {
-  // Dynamic import for web-only recharts
-  const Recharts = require('recharts')
+  // Dynamic import for web-only recharts - wrapped in try-catch to handle bundler issues
+  let Recharts
+  try {
+    Recharts = require('recharts')
+  } catch (error) {
+    console.error('Failed to load recharts:', error)
+    // Fallback to SimpleBarChart if recharts fails to load
+    return <SimpleBarChart data={data} height={height} formatValue={formatValue} />
+  }
+
   const { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Cell, LabelList } = Recharts
 
   // Calculate dynamic domain for Y-axis with padding
