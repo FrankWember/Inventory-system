@@ -2,7 +2,7 @@ import { Category } from '../types'
 
 // Design tokens live in src/styles/theme.ts — re-export here so every screen
 // that imports COLORS from '../utils/helpers' is themed from one source.
-export { COLORS, FONT, TYPE, SPACE, RADIUS, shadow, MAX_CONTENT } from '../styles/theme'
+export { COLORS, FONT, TYPE, SPACE, RADIUS, shadow, MAX_CONTENT, getColors, LIGHT_COLORS, DARK_COLORS } from '../styles/theme'
 import { COLORS } from '../styles/theme'
 
 // Category colors — a single tonal indigo→slate ramp keeps charts minimal

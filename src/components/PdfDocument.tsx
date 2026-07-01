@@ -1,11 +1,12 @@
 import React from 'react'
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import { PdfData, calculateSummary } from '../services/pdfService'
-import { fmt, fmtNum, dateLabelLong } from '../utils/helpers'
+import { PdfData, calculateSummary, getTopProducts, getCategoryBreakdown, getDailyTrends } from '../services/pdfService'
+import { fmt, fmtNum, dateLabelLong, fmtShortBare } from '../utils/helpers'
 
 interface PdfDocumentProps {
   data: PdfData
   barName: string
+  userName?: string
 }
 
 // Create styles for PDF
@@ -19,92 +20,94 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 24,
     paddingBottom: 16,
-    borderBottom: '2 solid #4A90E2',
+    borderBottom: '2 solid #1E293B',
   },
   title: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 4,
+    color: '#0F172A',
+    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 12,
-    color: '#64748b',
-    marginBottom: 2,
+    fontSize: 11,
+    color: '#64748B',
+    marginBottom: 3,
   },
   section: {
     marginBottom: 20,
   },
   sectionTitle: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: 'bold',
-    color: '#1e293b',
-    marginBottom: 8,
-    paddingBottom: 4,
-    borderBottom: '1 solid #e2e8f0',
+    color: '#0F172A',
+    marginBottom: 12,
+    paddingBottom: 6,
+    borderBottom: '1 solid #E2E8F0',
   },
   row: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    paddingVertical: 4,
+    paddingVertical: 5,
   },
   rowHighlight: {
-    backgroundColor: '#f1f5f9',
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    marginHorizontal: -8,
-    borderRadius: 4,
+    backgroundColor: '#F8FAFC',
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginHorizontal: -12,
+    marginVertical: 4,
   },
   label: {
     fontSize: 10,
-    color: '#64748b',
+    color: '#64748B',
   },
   value: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#1e293b',
+    color: '#0F172A',
   },
   valueLarge: {
-    fontSize: 14,
+    fontSize: 16,
     fontWeight: 'bold',
+    color: '#0F172A',
   },
   positive: {
-    color: '#10b981',
+    color: '#059669',
   },
   negative: {
-    color: '#ef4444',
+    color: '#0F172A',
   },
   primary: {
-    color: '#4A90E2',
+    color: '#0F172A',
   },
   table: {
     marginTop: 8,
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#f8fafc',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderBottom: '1 solid #e2e8f0',
+    backgroundColor: '#F8FAFC',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottom: '1.5 solid #E2E8F0',
   },
   tableRow: {
     flexDirection: 'row',
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    borderBottom: '0.5 solid #f1f5f9',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderBottom: '0.5 solid #E2E8F0',
   },
   tableRowEven: {
-    backgroundColor: '#f8fafc',
+    backgroundColor: '#FAFBFC',
   },
   th: {
-    fontSize: 8,
+    fontSize: 9,
     fontWeight: 'bold',
-    color: '#64748b',
+    color: '#475569',
     textTransform: 'uppercase',
+    letterSpacing: 0.5,
   },
   td: {
-    fontSize: 9,
-    color: '#1e293b',
+    fontSize: 10,
+    color: '#0F172A',
   },
   col1: { width: '40%' },
   col2: { width: '20%', textAlign: 'right' },
@@ -115,25 +118,70 @@ const styles = StyleSheet.create({
     bottom: 30,
     left: 40,
     right: 40,
-    fontSize: 8,
-    color: '#94a3b8',
-    borderTop: '0.5 solid #e2e8f0',
-    paddingTop: 8,
+    fontSize: 9,
+    color: '#64748B',
+    borderTop: '1 solid #E2E8F0',
+    paddingTop: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   divider: {
     height: 1,
-    backgroundColor: '#e2e8f0',
-    marginVertical: 8,
+    backgroundColor: '#E2E8F0',
+    marginVertical: 6,
+  },
+  // Chart styles
+  chartContainer: {
+    marginTop: 12,
+    marginBottom: 12,
+  },
+  chartBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  chartLabel: {
+    width: '35%',
+    fontSize: 9,
+    color: '#0F172A',
+    paddingRight: 10,
+  },
+  chartBarFill: {
+    height: 20,
+    backgroundColor: '#0F172A',
+  },
+  chartBarValue: {
+    fontSize: 9,
+    color: '#64748B',
+    marginLeft: 8,
+    fontWeight: 'normal',
+  },
+  insightBox: {
+    backgroundColor: '#F8FAFC',
+    padding: 12,
+    borderLeft: '3 solid #0F172A',
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  insightText: {
+    fontSize: 10,
+    color: '#475569',
+    lineHeight: 1.5,
   },
 })
 
-export function PdfDocument({ data, barName }: PdfDocumentProps) {
+export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
   const summary = calculateSummary(data)
+  const topProducts = getTopProducts(data, 10)
+  const categories = getCategoryBreakdown(data)
+  const trends = getDailyTrends(data)
   const periodLabel = getPeriodLabel(data.periodType, data.startDate, data.endDate)
   const now = new Date()
   const timestamp = `${now.toLocaleDateString('fr-FR')} ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
+
+  // Calculate max values for charts
+  const maxRevenue = Math.max(...topProducts.map(p => p.revenue), 1)
+  const maxCategoryRevenue = Math.max(...categories.map(c => c.revenue), 1)
 
   return (
     <Document>
@@ -142,6 +190,7 @@ export function PdfDocument({ data, barName }: PdfDocumentProps) {
         <View style={styles.header}>
           <Text style={styles.title}>{barName} - Rapport d'activité</Text>
           <Text style={styles.subtitle}>{periodLabel}</Text>
+          {userName && <Text style={styles.subtitle}>Préparé pour: {userName}</Text>}
           <Text style={styles.subtitle}>Généré le {timestamp}</Text>
         </View>
 
@@ -207,6 +256,94 @@ export function PdfDocument({ data, barName }: PdfDocumentProps) {
           </View>
         </View>
 
+        {/* Top Selling Products Chart */}
+        {topProducts.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Top 10 Produits par Revenu</Text>
+            <View style={styles.chartContainer}>
+              {topProducts.map((product, index) => {
+                const barWidthPercent = maxRevenue > 0 ? (product.revenue / maxRevenue) * 65 : 0
+                const barWidth = `${barWidthPercent}%`
+                return (
+                  <View key={index} style={styles.chartBar}>
+                    <Text style={styles.chartLabel}>{product.name}</Text>
+                    <View style={[styles.chartBarFill, { width: barWidth }]} />
+                    <Text style={styles.chartBarValue}>{fmt(product.revenue)}</Text>
+                  </View>
+                )
+              })}
+            </View>
+            <View style={styles.insightBox}>
+              <Text style={styles.insightText}>
+                {topProducts.length > 0 && `Produit le plus vendu: ${topProducts[0].name} avec ${fmt(topProducts[0].revenue)} de revenu (${fmtNum(topProducts[0].sold)} unités vendues)`}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Category Breakdown Chart */}
+        {categories.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Répartition par Catégorie</Text>
+            <View style={styles.chartContainer}>
+              {categories.map((category, index) => {
+                const barWidthPercent = maxCategoryRevenue > 0 ? (category.revenue / maxCategoryRevenue) * 65 : 0
+                const barWidth = `${barWidthPercent}%`
+                return (
+                  <View key={index} style={styles.chartBar}>
+                    <Text style={styles.chartLabel}>{category.name}</Text>
+                    <View style={[styles.chartBarFill, { width: barWidth }]} />
+                    <Text style={styles.chartBarValue}>{fmt(category.revenue)}</Text>
+                  </View>
+                )
+              })}
+            </View>
+            <View style={styles.insightBox}>
+              <Text style={styles.insightText}>
+                {categories.length > 0 && `Catégorie dominante: ${categories[0].name} représente ${fmt(categories[0].revenue)} de revenu (${fmtNum(categories[0].sold)} unités)`}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Key Insights */}
+        {summary.sessionCount > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Analyses et Insights</Text>
+
+            <View style={styles.insightBox}>
+              <Text style={styles.insightText}>
+                Revenu moyen par session: {fmt(summary.totalRevenue / summary.sessionCount)}
+              </Text>
+            </View>
+
+            <View style={styles.insightBox}>
+              <Text style={styles.insightText}>
+                Marge bénéficiaire: Marge brute de {summary.grossMarginPercent.toFixed(1)}% et marge nette de {summary.netMarginPercent.toFixed(1)}%.
+                {summary.netMarginPercent < 20 && ' Considérez optimiser vos coûts opérationnels.'}
+                {summary.netMarginPercent >= 20 && summary.netMarginPercent < 30 && ' Performance satisfaisante.'}
+                {summary.netMarginPercent >= 30 && ' Excellente rentabilité.'}
+              </Text>
+            </View>
+
+            {summary.totalUnitsSold > 0 && (
+              <View style={styles.insightBox}>
+                <Text style={styles.insightText}>
+                  Volume de vente: {fmtNum(summary.totalUnitsSold)} unités vendues pour un prix moyen de {fmt(summary.totalRevenue / summary.totalUnitsSold)} par unité.
+                </Text>
+              </View>
+            )}
+
+            {data.expenses.length > 0 && (
+              <View style={styles.insightBox}>
+                <Text style={styles.insightText}>
+                  Dépenses: {data.expenses.length} dépense(s) pour un total de {fmt(summary.totalExpenses)} ({((summary.totalExpenses / summary.totalRevenue) * 100).toFixed(1)}% du revenu).
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
         {/* Sessions Table */}
         {data.sessions.length > 0 && (
           <View style={styles.section}>
@@ -231,6 +368,115 @@ export function PdfDocument({ data, barName }: PdfDocumentProps) {
                 </View>
               ))}
             </View>
+          </View>
+        )}
+
+        {/* Detailed Products Table */}
+        {topProducts.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Détail des Produits Vendus</Text>
+
+            <View style={styles.table}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.th, { width: '40%' }]}>Produit</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>Qté</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>Revenu</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>Prix moy.</Text>
+              </View>
+
+              {topProducts.map((product, index) => {
+                const avgPrice = product.sold > 0 ? product.revenue / product.sold : 0
+                return (
+                  <View key={index} style={index % 2 === 0 ? [styles.tableRow, styles.tableRowEven] : styles.tableRow}>
+                    <Text style={[styles.td, { width: '40%' }]}>{product.name}</Text>
+                    <Text style={[styles.td, { width: '20%', textAlign: 'right' }]}>{fmtNum(product.sold)}</Text>
+                    <Text style={[styles.td, { width: '20%', textAlign: 'right' }]}>{fmt(product.revenue)}</Text>
+                    <Text style={[styles.td, { width: '20%', textAlign: 'right' }]}>{fmt(avgPrice)}</Text>
+                  </View>
+                )
+              })}
+            </View>
+
+            {topProducts.length > 0 && (
+              <View style={styles.insightBox}>
+                <Text style={styles.insightText}>
+                  Les {topProducts.length} produits ci-dessus représentent {fmt(topProducts.reduce((sum, p) => sum + p.revenue, 0))} de revenu total
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
+
+        {/* Category Performance Breakdown */}
+        {categories.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Performance par Catégorie</Text>
+
+            <View style={styles.table}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.th, { width: '35%' }]}>Catégorie</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>Unités</Text>
+                <Text style={[styles.th, { width: '25%', textAlign: 'right' }]}>Revenu</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>% Total</Text>
+              </View>
+
+              {categories.map((category, index) => {
+                const percentOfTotal = summary.totalRevenue > 0 ? (category.revenue / summary.totalRevenue) * 100 : 0
+                return (
+                  <View key={index} style={index % 2 === 0 ? [styles.tableRow, styles.tableRowEven] : styles.tableRow}>
+                    <Text style={[styles.td, { width: '35%' }]}>{category.name}</Text>
+                    <Text style={[styles.td, { width: '20%', textAlign: 'right' }]}>{fmtNum(category.sold)}</Text>
+                    <Text style={[styles.td, { width: '25%', textAlign: 'right' }]}>{fmt(category.revenue)}</Text>
+                    <Text style={[styles.td, { width: '20%', textAlign: 'right' }]}>{percentOfTotal.toFixed(1)}%</Text>
+                  </View>
+                )
+              })}
+            </View>
+          </View>
+        )}
+
+        {/* Session Performance Analysis */}
+        {data.sessions.length > 1 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Analyse des Sessions</Text>
+
+            {(() => {
+              const sortedByRevenue = [...data.sessions].sort((a, b) => b.total_revenue - a.total_revenue)
+              const sortedByProfit = [...data.sessions].sort((a, b) => b.total_profit - a.total_profit)
+              const bestSession = sortedByRevenue[0]
+              const worstSession = sortedByRevenue[sortedByRevenue.length - 1]
+              const mostProfitable = sortedByProfit[0]
+
+              return (
+                <>
+                  <View style={styles.insightBox}>
+                    <Text style={styles.insightText}>
+                      Meilleure session (revenu): {dateLabelLong(bestSession.date)} - {fmt(bestSession.total_revenue)}
+                    </Text>
+                  </View>
+
+                  <View style={styles.insightBox}>
+                    <Text style={styles.insightText}>
+                      Session la plus rentable: {dateLabelLong(mostProfitable.date)} - Profit de {fmt(mostProfitable.total_profit)} (Marge: {mostProfitable.total_revenue > 0 ? ((mostProfitable.total_profit / mostProfitable.total_revenue) * 100).toFixed(1) : 0}%)
+                    </Text>
+                  </View>
+
+                  {bestSession.id !== worstSession.id && (
+                    <View style={styles.insightBox}>
+                      <Text style={styles.insightText}>
+                        Session la plus faible: {dateLabelLong(worstSession.date)} - {fmt(worstSession.total_revenue)}
+                      </Text>
+                    </View>
+                  )}
+
+                  <View style={styles.insightBox}>
+                    <Text style={styles.insightText}>
+                      Écart de performance: Les sessions varient de {fmt(worstSession.total_revenue)} à {fmt(bestSession.total_revenue)} ({bestSession.total_revenue > 0 && worstSession.total_revenue > 0 ? ((bestSession.total_revenue / worstSession.total_revenue).toFixed(1)) : 'N/A'}x).
+                    </Text>
+                  </View>
+                </>
+              )
+            })()}
           </View>
         )}
 
@@ -279,6 +525,8 @@ function getPeriodLabel(periodType: string, startDate: string, endDate: string):
       return `30 derniers jours (${startDate} - ${endDate})`
     case 'all':
       return `Toutes les périodes (depuis ${startDate})`
+    case 'session':
+      return `Session du ${dateLabelLong(startDate)}`
     default:
       return `Période: ${startDate} - ${endDate}`
   }

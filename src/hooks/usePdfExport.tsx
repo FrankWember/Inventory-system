@@ -11,7 +11,7 @@ export function usePdfExport({ barName }: UsePdfExportOptions) {
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState(0)
 
-  const generatePdf = async (periodType: PeriodType, specificDate?: string) => {
+  const generatePdf = async (periodType: PeriodType, specificDate?: string, userName?: string) => {
     if (Platform.OS !== 'web') {
       Alert.alert('Non disponible', 'L\'export PDF n\'est disponible que sur le web.')
       return
@@ -31,7 +31,7 @@ export function usePdfExport({ barName }: UsePdfExportOptions) {
 
       // Step 2: Generate PDF (70% progress)
       setProgress(70)
-      const blob = await pdf(<PdfDocument data={data} barName={barName} />).toBlob()
+      const blob = await pdf(<PdfDocument data={data} barName={barName} userName={userName} />).toBlob()
 
       // Step 3: Download (100% progress)
       setProgress(100)

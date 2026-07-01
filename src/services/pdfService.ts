@@ -1,7 +1,7 @@
 import { Session, Expense } from '../types'
 import { supabase } from '../lib/supabase'
 
-export type PeriodType = 'day' | '7days' | '30days' | 'all'
+export type PeriodType = 'day' | '7days' | '30days' | 'all' | 'session'
 
 export interface PdfData {
   sessions: Session[]
@@ -61,6 +61,37 @@ function formatDate(date: Date): string {
  * Fetch data for PDF generation
  */
 export async function fetchPdfData(periodType: PeriodType, specificDate?: string): Promise<PdfData> {
+  // Handle session-specific export
+  if (periodType === 'session' && specificDate) {
+    // specificDate is actually the session ID
+    const { data: session, error: sessionError } = await supabase
+      .from('sessions')
+      .select('*, session_lines (*)')
+      .eq('id', specificDate)
+      .single()
+
+    if (sessionError) throw sessionError
+    if (!session) throw new Error('Session not found')
+
+    // Fetch expenses for the same date
+    const { data: expenses, error: expensesError } = await supabase
+      .from('expenses')
+      .select('*')
+      .eq('date', session.date)
+      .order('date', { ascending: false })
+
+    if (expensesError) throw expensesError
+
+    return {
+      sessions: [session],
+      expenses: expenses || [],
+      startDate: session.date,
+      endDate: session.date,
+      periodType,
+    }
+  }
+
+  // Handle date-range based exports
   const { startDate, endDate } = getDateRange(periodType, specificDate)
 
   // Fetch sessions with their lines
@@ -118,4 +149,59 @@ export function calculateSummary(data: PdfData) {
     grossMarginPercent: totalRevenue > 0 ? (grossProfit / totalRevenue) * 100 : 0,
     netMarginPercent: totalRevenue > 0 ? (netProfit / totalRevenue) * 100 : 0,
   }
+}
+
+/**
+ * Get top selling products from session data
+ */
+export function getTopProducts(data: PdfData, limit = 10) {
+  const productMap = new Map<string, { name: string; sold: number; revenue: number }>()
+
+  data.sessions.forEach(session => {
+    (session.session_lines || []).forEach(line => {
+      const existing = productMap.get(line.drink_name) || { name: line.drink_name, sold: 0, revenue: 0 }
+      productMap.set(line.drink_name, {
+        name: line.drink_name,
+        sold: existing.sold + line.sold,
+        revenue: existing.revenue + (line.sold * line.price),
+      })
+    })
+  })
+
+  return Array.from(productMap.values())
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, limit)
+}
+
+/**
+ * Get category breakdown
+ */
+export function getCategoryBreakdown(data: PdfData) {
+  const categoryMap = new Map<string, { name: string; sold: number; revenue: number }>()
+
+  data.sessions.forEach(session => {
+    (session.session_lines || []).forEach(line => {
+      const category = line.category || 'Autre'
+      const existing = categoryMap.get(category) || { name: category, sold: 0, revenue: 0 }
+      categoryMap.set(category, {
+        name: category,
+        sold: existing.sold + line.sold,
+        revenue: existing.revenue + (line.sold * line.price),
+      })
+    })
+  })
+
+  return Array.from(categoryMap.values()).sort((a, b) => b.revenue - a.revenue)
+}
+
+/**
+ * Get daily revenue trends (for charts)
+ */
+export function getDailyTrends(data: PdfData) {
+  return data.sessions.map(session => ({
+    date: session.date,
+    revenue: session.total_revenue,
+    profit: session.total_profit,
+    cost: session.total_cost,
+  })).reverse() // Oldest to newest for chart
 }

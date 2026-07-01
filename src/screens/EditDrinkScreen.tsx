@@ -8,7 +8,6 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
   Dimensions,
 } from 'react-native'
 import { supabase } from '../lib/supabase'
@@ -35,12 +34,15 @@ export default function EditDrinkScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState('')
-  const [unitMode, setUnitMode] = useState<'units' | 'cassiers'>('units')
   const [cassierCost, setCassierCost] = useState<string>('')
+  const [rackSize, setRackSize] = useState<string>('')
+  const [stock, setStock] = useState<string>('')
+  const [minStock, setMinStock] = useState<string>('')
+  const [price, setPrice] = useState<string>('')
 
   useEffect(() => {
     loadDrink()
-  }, [])
+  }, [drinkId])
 
   const loadDrink = async () => {
     try {
@@ -55,6 +57,10 @@ export default function EditDrinkScreen({ route, navigation }: any) {
       // Calculate cassier cost from unit cost and rack size
       const calculatedCassierCost = data.cost * data.rack_size
       setCassierCost(calculatedCassierCost.toString())
+      setRackSize(data.rack_size.toString())
+      setStock(data.stock.toString())
+      setMinStock(data.min_stock.toString())
+      setPrice(data.price.toString())
     } catch (error) {
       console.error('Error loading drink:', error)
       Alert.alert('Erreur', 'Erreur lors du chargement de la boisson')
@@ -67,19 +73,25 @@ export default function EditDrinkScreen({ route, navigation }: any) {
   const handleSave = async () => {
     if (!drink) return
 
-    // Calculate unit cost from cassier cost
+    // Parse all values
     const cassierCostNum = parseInt(cassierCost) || 0
-    const costPerUnit = drink.rack_size > 0 ? Math.round(cassierCostNum / drink.rack_size) : 0
+    const rackSizeNum = parseInt(rackSize) || 1
+    const stockNum = parseInt(stock) || 0
+    const minStockNum = parseInt(minStock) || 0
+    const priceNum = parseInt(price) || 0
+
+    // Calculate unit cost from cassier cost
+    const costPerUnit = rackSizeNum > 0 ? Math.round(cassierCostNum / rackSizeNum) : 0
 
     setSaving(true)
     try {
       const { error } = await supabase
         .from('drinks')
         .update({
-          stock: drink.stock,
-          min_stock: drink.min_stock,
-          rack_size: drink.rack_size,
-          price: drink.price,
+          stock: stockNum,
+          min_stock: minStockNum,
+          rack_size: rackSizeNum,
+          price: priceNum,
           cost: costPerUnit,
           cassier_cost: cassierCostNum,
         })
@@ -131,32 +143,11 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 
   // Calculate cost per unit from cassier cost
   const cassierCostNum = parseInt(cassierCost) || 0
-  const costPerUnit = drink.rack_size > 0 ? cassierCostNum / drink.rack_size : 0
-  const profitPerUnit = drink.price - costPerUnit
-  const margin = drink.price > 0 ? ((profitPerUnit / drink.price) * 100).toFixed(1) : '0'
-  const isBeer = drink.category === 'Bière'
-
-  // Helper functions for unit conversion using drink's rack_size
-  const getDisplayValue = (units: number, field: 'stock' | 'min_stock'): string => {
-    if (!isBeer || unitMode === 'units') {
-      return units.toString()
-    }
-    // Convert units to cassiers using rack_size
-    const cassiers = Math.floor(units / drink.rack_size)
-    return cassiers.toString()
-  }
-
-  const setStockFromDisplay = (displayValue: string, field: 'stock' | 'min_stock') => {
-    const numValue = parseInt(displayValue) || 0
-    let units = numValue
-
-    if (isBeer && unitMode === 'cassiers') {
-      // Convert cassiers to units using rack_size
-      units = numValue * drink.rack_size
-    }
-
-    setDrink({ ...drink, [field]: units })
-  }
+  const rackSizeNum = parseInt(rackSize) || 1
+  const priceNum = parseInt(price) || 0
+  const costPerUnit = rackSizeNum > 0 ? cassierCostNum / rackSizeNum : 0
+  const profitPerUnit = priceNum - costPerUnit
+  const margin = priceNum > 0 ? ((profitPerUnit / priceNum) * 100).toFixed(1) : '0'
 
   // Show header with back button unless explicitly hidden (for desktop side panel)
   const showHeader = !hideHeader
@@ -180,44 +171,23 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 
           <Input
             label="Unités par casier"
-            value={drink.rack_size.toString()}
-            onChangeText={(text) => setDrink({ ...drink, rack_size: parseInt(text) || 1 })}
+            value={rackSize}
+            onChangeText={setRackSize}
             keyboardType="number-pad"
             placeholder="12"
           />
 
-          {isBeer && (
-            <View style={styles.unitToggle}>
-              <TouchableOpacity
-                style={[styles.unitToggleButton, unitMode === 'units' && styles.unitToggleButtonActive]}
-                onPress={() => setUnitMode('units')}
-              >
-                <Text style={[styles.unitToggleText, unitMode === 'units' && styles.unitToggleTextActive]}>
-                  Unités
-                </Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.unitToggleButton, unitMode === 'cassiers' && styles.unitToggleButtonActive]}
-                onPress={() => setUnitMode('cassiers')}
-              >
-                <Text style={[styles.unitToggleText, unitMode === 'cassiers' && styles.unitToggleTextActive]}>
-                  Cassiers
-                </Text>
-              </TouchableOpacity>
-            </View>
-          )}
-
           <Input
-            label={`Stock actuel${isBeer ? ` (${unitMode === 'units' ? 'unités' : 'cassiers'})` : ''}`}
-            value={getDisplayValue(drink.stock, 'stock')}
-            onChangeText={(text) => setStockFromDisplay(text, 'stock')}
+            label="Stock actuel (unités)"
+            value={stock}
+            onChangeText={setStock}
             keyboardType="number-pad"
           />
 
           <Input
-            label={`Seuil minimum${isBeer ? ` (${unitMode === 'units' ? 'unités' : 'cassiers'})` : ''}`}
-            value={getDisplayValue(drink.min_stock, 'min_stock')}
-            onChangeText={(text) => setStockFromDisplay(text, 'min_stock')}
+            label="Seuil minimum (unités)"
+            value={minStock}
+            onChangeText={setMinStock}
             keyboardType="number-pad"
           />
           <Input
@@ -230,13 +200,13 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 
           <Input
             label="Prix de vente par unité (FCFA) *"
-            value={drink.price.toString()}
-            onChangeText={(text) => setDrink({ ...drink, price: parseInt(text) || 0 })}
+            value={price}
+            onChangeText={setPrice}
             keyboardType="number-pad"
             placeholder="Ex: 600"
           />
 
-          {cassierCostNum > 0 && drink.price > 0 && drink.rack_size > 0 && (
+          {cassierCostNum > 0 && priceNum > 0 && rackSizeNum > 0 && (
             <View style={styles.calculationCard}>
               <View style={styles.calculationRow}>
                 <Text style={styles.calculationLabel}>Coût par unité (COGS)</Text>
@@ -325,36 +295,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
-  },
-  unitToggle: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.slateLight,
-    borderRadius: 10,
-    padding: 4,
-    marginBottom: 20,
-  },
-  unitToggleButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  unitToggleButtonActive: {
-    backgroundColor: COLORS.white,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  unitToggleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.slate,
-  },
-  unitToggleTextActive: {
-    color: COLORS.slateDark,
   },
   summary: {
     flexDirection: 'row',

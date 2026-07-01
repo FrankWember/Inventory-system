@@ -11,11 +11,12 @@ import {
   Share,
   Modal,
   TextInput,
+  ActivityIndicator,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { LoadingModal } from '../components/LoadingModal'
-import { COLORS, FONT, today } from '../utils/helpers'
+import { COLORS, FONT, today, fmt, dateLabelLong } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
 import { exportData } from '../lib/storage'
@@ -25,13 +26,17 @@ import { PeriodType } from '../services/pdfService'
 
 export default function SettingsScreen() {
   const { user, signOut, updateProfile } = useAuth()
-  const { theme, language, notificationsEnabled, barInfo, setTheme, setLanguage, setNotificationsEnabled, updateBarInfo } = useSettings()
+  const { theme, language, notificationsEnabled, barInfo, colors, setTheme, setLanguage, setNotificationsEnabled, updateBarInfo } = useSettings()
 
   const [editModal, setEditModal] = useState<null | 'barName' | 'displayName'>(null)
   const [editValue, setEditValue] = useState('')
   const [editLoading, setEditLoading] = useState(false)
-  const [datePickerVisible, setDatePickerVisible] = useState(false)
-  const [selectedDate, setSelectedDate] = useState(today())
+  const [dateSelectorVisible, setDateSelectorVisible] = useState(false)
+  const [sessionSelectorVisible, setSessionSelectorVisible] = useState(false)
+  const [sessions, setSessions] = useState<any[]>([])
+  const [dates, setDates] = useState<any[]>([])
+  const [loadingSessions, setLoadingSessions] = useState(false)
+  const [loadingDates, setLoadingDates] = useState(false)
 
   const { loading: pdfLoading, progress: pdfProgress, generatePdf } = usePdfExport({ barName: barInfo?.name || 'BarTrack' })
 
@@ -117,17 +122,78 @@ export default function SettingsScreen() {
     }
   }
 
-  const handlePdfExport = (periodType: PeriodType) => {
+  const handlePdfExport = async (periodType: PeriodType) => {
     if (periodType === 'day') {
-      setDatePickerVisible(true)
+      setDateSelectorVisible(true)
+      await loadDates()
     } else {
-      generatePdf(periodType)
+      generatePdf(periodType, undefined, user?.user_metadata?.display_name || user?.email?.split('@')[0])
     }
   }
 
-  const handleDateConfirm = () => {
-    setDatePickerVisible(false)
-    generatePdf('day', selectedDate)
+  const loadDates = async () => {
+    setLoadingDates(true)
+    try {
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('date, total_revenue')
+        .order('date', { ascending: false })
+
+      if (error) throw error
+
+      // Group by date and sum revenue
+      const dateMap = new Map<string, number>()
+      data?.forEach((session: any) => {
+        const existing = dateMap.get(session.date) || 0
+        dateMap.set(session.date, existing + session.total_revenue)
+      })
+
+      const uniqueDates = Array.from(dateMap.entries()).map(([date, revenue]) => ({
+        date,
+        revenue
+      }))
+
+      setDates(uniqueDates)
+    } catch (error) {
+      console.error('Error loading dates:', error)
+      Alert.alert('Erreur', 'Impossible de charger les dates')
+    } finally {
+      setLoadingDates(false)
+    }
+  }
+
+  const handleDateSelect = (date: string) => {
+    setDateSelectorVisible(false)
+    generatePdf('day', date, user?.user_metadata?.display_name || user?.email?.split('@')[0])
+  }
+
+  const loadSessions = async () => {
+    setLoadingSessions(true)
+    try {
+      const { data, error } = await supabase
+        .from('sessions')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(50)
+
+      if (error) throw error
+      setSessions(data || [])
+    } catch (error) {
+      console.error('Error loading sessions:', error)
+      Alert.alert('Erreur', 'Impossible de charger les sessions')
+    } finally {
+      setLoadingSessions(false)
+    }
+  }
+
+  const handleSessionSelectorOpen = async () => {
+    setSessionSelectorVisible(true)
+    await loadSessions()
+  }
+
+  const handleSessionSelect = (sessionId: string) => {
+    setSessionSelectorVisible(false)
+    generatePdf('session', sessionId, user?.user_metadata?.display_name || user?.email?.split('@')[0])
   }
 
   const handleBackupData = async () => {
@@ -191,7 +257,7 @@ export default function SettingsScreen() {
   }
 
   return (
-    <View style={styles.wrapper}>
+    <View style={[styles.wrapper, { backgroundColor: colors.surface }]}>
       <ScreenHeader title="Paramètres" />
 
       {/* Loading Modal for PDF generation */}
@@ -201,36 +267,88 @@ export default function SettingsScreen() {
         progress={pdfProgress}
       />
 
-      {/* Date Picker Modal */}
-      <Modal visible={datePickerVisible} transparent animationType="fade" onRequestClose={() => setDatePickerVisible(false)}>
+      {/* Date Selector Modal */}
+      <Modal visible={dateSelectorVisible} transparent animationType="fade" onRequestClose={() => setDateSelectorVisible(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>Sélectionner une date</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={selectedDate}
-              onChangeText={setSelectedDate}
-              placeholder="YYYY-MM-DD"
-              placeholderTextColor={COLORS.slate}
-            />
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.modalCancel}
-                onPress={() => setDatePickerVisible(false)}
-                // @ts-ignore - web-only className
-                className="glass-button"
-              >
-                <Text style={styles.modalCancelText}>Annuler</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.modalConfirm}
-                onPress={handleDateConfirm}
-                // @ts-ignore - web-only className
-                className="glass-primary"
-              >
-                <Text style={styles.modalConfirmText}>Confirmer</Text>
-              </TouchableOpacity>
-            </View>
+          <View style={[styles.modalCard, { maxHeight: '80%' }]}>
+            <Text style={styles.modalTitle}>Choisir une journée</Text>
+            {loadingDates ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+              </View>
+            ) : dates.length === 0 ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <Text style={{ color: COLORS.slate, textAlign: 'center' }}>
+                  Aucune session enregistrée
+                </Text>
+              </View>
+            ) : (
+              <ScrollView style={{ maxHeight: 400 }}>
+                {dates.map((item, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={styles.sessionItem}
+                    onPress={() => handleDateSelect(item.date)}
+                  >
+                    <View style={styles.sessionItemLeft}>
+                      <Ionicons name="calendar" size={20} color={COLORS.primary} />
+                      <View style={{ marginLeft: 12 }}>
+                        <Text style={styles.sessionItemDate}>{dateLabelLong(item.date)}</Text>
+                        <Text style={styles.sessionItemRevenue}>{fmt(item.revenue)}</Text>
+                      </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={COLORS.slate} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+            <TouchableOpacity
+              style={styles.modalCancel}
+              onPress={() => setDateSelectorVisible(false)}
+            >
+              <Text style={styles.modalCancelText}>Annuler</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Session Selector Modal */}
+      <Modal visible={sessionSelectorVisible} transparent animationType="fade" onRequestClose={() => setSessionSelectorVisible(false)}>
+        <View style={styles.modalBackdrop}>
+          <View style={[styles.modalCard, { maxHeight: '80%' }]}>
+            <Text style={styles.modalTitle}>Choisir une session</Text>
+            {loadingSessions ? (
+              <View style={{ padding: 40, alignItems: 'center' }}>
+                <ActivityIndicator size="large" color={COLORS.primary} />
+              </View>
+            ) : (
+              <ScrollView style={{ maxHeight: 400 }}>
+                {sessions.map((session) => (
+                  <TouchableOpacity
+                    key={session.id}
+                    style={styles.sessionItem}
+                    onPress={() => handleSessionSelect(session.id)}
+                  >
+                    <View style={styles.sessionItemLeft}>
+                      <Ionicons name="calendar" size={20} color={COLORS.primary} />
+                      <View style={{ marginLeft: 12 }}>
+                        <Text style={styles.sessionItemDate}>{session.date}</Text>
+                        <Text style={styles.sessionItemRevenue}>{fmt(session.total_revenue)}</Text>
+                      </View>
+                    </View>
+                    <Ionicons name="chevron-forward" size={20} color={COLORS.slate} />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            )}
+            <TouchableOpacity
+              style={styles.modalCancel}
+              onPress={() => setSessionSelectorVisible(false)}
+              // @ts-ignore - web-only className
+              className="glass-button"
+            >
+              <Text style={styles.modalCancelText}>Annuler</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -374,29 +492,46 @@ export default function SettingsScreen() {
 
         {/* PDF Reports */}
         <SectionTitle label="Rapports PDF" />
+        <Text style={styles.sectionDescription}>
+          Générez des rapports détaillés avec graphiques et statistiques
+        </Text>
+
+        {/* Period-based reports */}
+        <Text style={styles.subSectionTitle}>Par période</Text>
         <SettingsCard>
           <RowItem
             icon="document-text-outline"
-            label="Rapport d'une journée"
+            label="Journée spécifique"
             onPress={() => handlePdfExport('day')}
           />
           <View style={styles.separator} />
           <RowItem
             icon="calendar-outline"
-            label="Rapport 7 derniers jours"
+            label="7 derniers jours"
             onPress={() => handlePdfExport('7days')}
           />
           <View style={styles.separator} />
           <RowItem
             icon="calendar-outline"
-            label="Rapport 30 derniers jours"
+            label="30 derniers jours"
             onPress={() => handlePdfExport('30days')}
           />
           <View style={styles.separator} />
           <RowItem
             icon="time-outline"
-            label="Rapport toutes les périodes"
+            label="Toutes les périodes"
             onPress={() => handlePdfExport('all')}
+          />
+        </SettingsCard>
+
+        {/* Session-specific report */}
+        <Text style={styles.subSectionTitle}>Par session</Text>
+        <SettingsCard>
+          <RowItem
+            icon="receipt-outline"
+            label="Session spécifique"
+            value="Choisir..."
+            onPress={handleSessionSelectorOpen}
           />
         </SettingsCard>
 
@@ -542,6 +677,22 @@ const styles = StyleSheet.create({
     letterSpacing: 0.8,
     marginBottom: 8,
     marginTop: 16,
+    marginLeft: 2,
+  },
+  sectionDescription: {
+    fontSize: 13,
+    fontFamily: FONT.regular,
+    color: COLORS.slate,
+    marginBottom: 12,
+    marginLeft: 2,
+    lineHeight: 18,
+  },
+  subSectionTitle: {
+    fontSize: 13,
+    fontFamily: FONT.semibold,
+    color: COLORS.slateDark,
+    marginBottom: 8,
+    marginTop: 12,
     marginLeft: 2,
   },
   card: {
@@ -714,4 +865,28 @@ const styles = StyleSheet.create({
     }),
   },
   modalConfirmText: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.white },
+  sessionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: COLORS.border,
+  },
+  sessionItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  sessionItemDate: {
+    fontSize: 14,
+    fontFamily: FONT.semibold,
+    color: COLORS.slateDark,
+  },
+  sessionItemRevenue: {
+    fontSize: 12,
+    fontFamily: FONT.regular,
+    color: COLORS.slate,
+    marginTop: 2,
+  },
 })

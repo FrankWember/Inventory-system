@@ -1273,6 +1273,7 @@ export default function SessionScreen({ navigation }: any) {
       <ScreenHeader
         title="Session du jour"
         subtitle={dateLabel(todayStr)}
+        onBack={step !== 'done' ? () => setStep('done') : undefined}
         right={step === 'done' && !isDesktop ? (
           <TouchableOpacity onPress={() => {
             const s = closedToday ?? openSession ?? pastSessions[0]

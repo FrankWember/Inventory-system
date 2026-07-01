@@ -47,7 +47,7 @@ export const palette = {
 }
 
 // ─── Semantic tokens (used across the app) ────────────────────────────────
-export const COLORS = {
+export const LIGHT_COLORS = {
   // Brand (interactive / active / structure accents only) - Facebook Blue
   primary: palette.blue500,
   primaryLight: palette.blue100,
@@ -92,6 +92,61 @@ export const COLORS = {
   card: palette.white,
   border: palette.slate200,
   borderStrong: palette.slate300,
+}
+
+export const DARK_COLORS = {
+  // Brand (interactive / active / structure accents only) - Bright blue for night theme
+  primary: '#5B9FFF',
+  primaryLight: '#1E3556',
+  primaryDark: '#7DB3FF',
+  primarySoft: '#2A4565',
+
+  // Success / profit - brighter for visibility
+  emerald: '#34D399',
+  emeraldLight: '#1A3D31',
+
+  // Danger / rupture / loss - softer red
+  rose: '#FB7185',
+  roseLight: '#3D2229',
+
+  // Warning / low stock - warmer amber
+  amber: '#FBBF24',
+  amberLight: '#3D3322',
+  amberDark: '#FCD34D',
+
+  // Info / accent
+  sky: '#60A5FA',
+  skyLight: '#1E3556',
+  violet: '#A78BFA',
+  violetLight: '#2D2544',
+
+  // Neutrals - blue-tinted grays for clean night feel
+  slate: '#8B9DC3',
+  slate400: '#6B7A99',
+  slate600: '#A8B5D1',
+  slateLight: '#1A2638',
+  slateDark: '#E8ECF4',
+  ink: '#E8ECF4',
+  inkSoft: '#CBD5E7',
+  gray: '#8B9DC3',
+  grayLight: '#1F2937',
+
+  // Base - deep night blue backgrounds
+  white: '#0B1220',        // Deep navy background
+  black: '#F0F4F8',        // Near white text
+  background: '#0B1220',   // Deep navy background
+  surface: '#131B2E',      // Slightly lighter navy for surfaces
+  card: '#1A2638',         // Card backgrounds with blue tint
+  border: '#2A3749',       // Subtle blue-gray borders
+  borderStrong: '#3D4E66', // Stronger blue-gray borders
+}
+
+// Default export for backwards compatibility
+export const COLORS = LIGHT_COLORS
+
+// Get colors based on theme
+export function getColors(theme: 'light' | 'dark') {
+  return theme === 'dark' ? DARK_COLORS : LIGHT_COLORS
 }
 
 // ─── Spacing scale (8pt grid) ─────────────────────────────────────────────

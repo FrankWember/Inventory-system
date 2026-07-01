@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react'
+import React, { createContext, useContext, useState, useEffect, useMemo } from 'react'
 import {
   Theme,
   Language,
@@ -12,6 +12,7 @@ import {
   getBarInfo,
   setBarInfo as saveBarInfo,
 } from '../lib/storage'
+import { getColors, LIGHT_COLORS } from '../styles/theme'
 
 interface SettingsContextType {
   theme: Theme
@@ -19,6 +20,7 @@ interface SettingsContextType {
   notificationsEnabled: boolean
   barInfo: BarInfo | null
   loading: boolean
+  colors: typeof LIGHT_COLORS
   setTheme: (theme: Theme) => Promise<void>
   setLanguage: (language: Language) => Promise<void>
   setNotificationsEnabled: (enabled: boolean) => Promise<void>
@@ -98,6 +100,9 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  // Get theme-aware colors
+  const colors = useMemo(() => getColors(theme), [theme])
+
   return (
     <SettingsContext.Provider
       value={{
@@ -106,6 +111,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
         notificationsEnabled,
         barInfo,
         loading,
+        colors,
         setTheme,
         setLanguage,
         setNotificationsEnabled,
