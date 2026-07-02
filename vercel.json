@@ -5,11 +5,7 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/",
-      "destination": "/index.html"
-    },
-    {
-      "source": "/:path((?!_expo|assets|.*\\.).*)",
+      "source": "/(.*)",
       "destination": "/index.html"
     }
   ],
