@@ -6,6 +6,7 @@ const KEYS = {
   LANGUAGE: '@bartrack:language',
   NOTIFICATIONS: '@bartrack:notifications',
   BAR_INFO: '@bartrack:bar_info',
+  ONBOARDING_COMPLETED: '@bartrack:onboarding_completed',
 } as const
 
 export type Theme = 'light' | 'dark'
@@ -111,6 +112,26 @@ export const clearCache = async (): Promise<void> => {
     await AsyncStorage.multiRemove(keysToRemove)
   } catch (error) {
     console.error('Error clearing cache:', error)
+    throw error
+  }
+}
+
+// Onboarding
+export const getOnboardingStatus = async (): Promise<boolean> => {
+  try {
+    const value = await AsyncStorage.getItem(KEYS.ONBOARDING_COMPLETED)
+    return value === 'true'
+  } catch (error) {
+    console.error('Error reading onboarding status:', error)
+    return false
+  }
+}
+
+export const setOnboardingCompleted = async (): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(KEYS.ONBOARDING_COMPLETED, 'true')
+  } catch (error) {
+    console.error('Error saving onboarding status:', error)
     throw error
   }
 }

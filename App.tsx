@@ -43,6 +43,8 @@ import AuthScreen from './src/screens/AuthScreen'
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen'
 import { WelcomeLoadingScreen } from './src/components/WelcomeLoadingScreen'
 import { BarChartItem } from './src/components/SimpleBarChart'
+import OnboardingNavigator from './src/screens/onboarding/OnboardingNavigator'
+import { getOnboardingStatus } from './src/lib/storage'
 
 const BREAKPOINT = 768
 
@@ -95,6 +97,7 @@ export type RootStackParamList = {
   SignIn: { mode?: 'signin' } | undefined
   SignUp: { mode?: 'signup' } | undefined
   ForgotPassword: undefined
+  Onboarding: undefined
   MainTabs: undefined
   EditDrink: { drinkId: string; hideHeader?: boolean }
   SessionDetail: { sessionId: string }
@@ -212,6 +215,8 @@ function RootNavigator() {
   // On web, linking handles navigation state — no need for manual restore
   const [isReady, setIsReady] = useState(Platform.OS === 'web')
   const [initialState, setInitialState] = useState<NavigationState | PartialState<NavigationState> | undefined>()
+  const [onboardingComplete, setOnboardingComplete] = useState(false)
+  const [checkingOnboarding, setCheckingOnboarding] = useState(true)
 
   useEffect(() => {
     if (Platform.OS === 'web') return
@@ -234,7 +239,24 @@ function RootNavigator() {
     }
   }, [loading, user])
 
-  if (loading || !isReady) {
+  // Check onboarding status when user changes
+  useEffect(() => {
+    const checkOnboarding = async () => {
+      if (user) {
+        const completed = await getOnboardingStatus()
+        setOnboardingComplete(completed)
+      } else {
+        setOnboardingComplete(false)
+      }
+      setCheckingOnboarding(false)
+    }
+
+    if (!loading) {
+      checkOnboarding()
+    }
+  }, [user, loading])
+
+  if (loading || !isReady || checkingOnboarding) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface }}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -281,6 +303,8 @@ function RootNavigator() {
           )}
           <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
         </>
+      ) : !onboardingComplete ? (
+        <Stack.Screen name="Onboarding" component={OnboardingNavigator} options={{ headerShown: false }} />
       ) : (
         <>
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />

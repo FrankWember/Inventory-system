@@ -21,29 +21,11 @@ interface SignUpScreenProps {
   navigation: any
 }
 
-type AuthMethod = 'phone' | 'email'
-
-function getStoredAuthMethod(): AuthMethod {
-  if (Platform.OS === 'web') {
-    try {
-      return ((globalThis as any).sessionStorage?.getItem('authMethod') as AuthMethod) || 'phone'
-    } catch { return 'phone' }
-  }
-  return 'phone'
-}
-
-function setStoredAuthMethod(method: AuthMethod) {
-  if (Platform.OS === 'web') {
-    try { (globalThis as any).sessionStorage?.setItem('authMethod', method) } catch { /* ignore */ }
-  }
-}
-
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function SignUpScreen({ navigation }: SignUpScreenProps) {
   const { t } = useTranslation()
   const { signUp, signInWithPhone } = useAuth()
-  const [authMethod, setAuthMethod] = useState<AuthMethod>(getStoredAuthMethod)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -79,20 +61,11 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
     ]).start()
   }
 
-  const switchMethod = (method: AuthMethod) => {
-    setAuthMethod(method)
-    setStoredAuthMethod(method)
-    setError(null)
-  }
-
   const validate = (): string | null => {
     if (!name.trim()) return t('auth.nameRequired')
-    if (authMethod === 'email') {
-      if (!email.trim()) return t('auth.emailRequired')
-      if (!EMAIL_REGEX.test(email.trim())) return t('auth.invalidEmail')
-    } else {
-      if (phone.length < 9) return t('auth.invalidPhone9')
-    }
+    if (!email.trim()) return t('auth.emailRequired')
+    if (!EMAIL_REGEX.test(email.trim())) return t('auth.invalidEmail')
+    if (phone.length < 9) return t('auth.invalidPhone9')
     if (password.length < 6) return t('auth.passwordMin6')
     return null
   }
@@ -108,11 +81,12 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
     setError(null)
     setLoading(true)
 
+    // Always pass both email and phone - the system stores email in metadata
     const { error } = await signUp(
-      authMethod === 'email' ? email.trim() : '',
+      email.trim(),
       password,
       name.trim(),
-      authMethod === 'phone' ? phone : undefined
+      phone
     )
 
     if (error) {
@@ -122,19 +96,13 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
       return
     }
 
-    // For phone accounts — sign in automatically (no email verification needed)
-    if (authMethod === 'phone') {
-      const { error: signInError } = await signInWithPhone(phone, password)
-      if (signInError) {
-        setLoading(false)
-        setSuccessMessage(t('auth.accountCreatedSignIn'))
-      }
-      // If signIn succeeds, AuthContext will update and navigate automatically
-    } else {
-      // Email accounts may need confirmation
+    // Since we're using phone as primary auth, sign in automatically
+    const { error: signInError } = await signInWithPhone(phone, password)
+    if (signInError) {
       setLoading(false)
-      setSuccessMessage(t('auth.accountCreatedCheckEmail'))
+      setSuccessMessage(t('auth.accountCreatedSignIn'))
     }
+    // If signIn succeeds, AuthContext will update and navigate automatically
   }
 
   return (
@@ -191,13 +159,6 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
               </View>
             ) : (
               <>
-                {/* Method toggle */}
-                {/* @ts-ignore - web-only className */}
-                <View style={styles.toggle} className="glass-toggle">
-                  <ToggleBtn label={t('auth.phone')} icon="call" active={authMethod === 'phone'} onPress={() => switchMethod('phone')} />
-                  <ToggleBtn label={t('auth.email')} icon="mail" active={authMethod === 'email'} onPress={() => switchMethod('email')} />
-                </View>
-
                 <Input
                   label={t('auth.nameLabel')}
                   value={name}
@@ -207,26 +168,24 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
                   editable={!loading}
                 />
 
-                {authMethod === 'phone' ? (
-                  <PhoneInput
-                    label={t('auth.phoneLabel')}
-                    value={phone}
-                    onChangeText={v => { setPhone(v); setError(null) }}
-                    placeholder={t('auth.phonePlaceholder')}
-                    editable={!loading}
-                  />
-                ) : (
-                  <Input
-                    label={t('auth.emailLabel')}
-                    value={email}
-                    onChangeText={v => { setEmail(v); setError(null) }}
-                    placeholder={t('auth.emailPlaceholder')}
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    autoCorrect={false}
-                    editable={!loading}
-                  />
-                )}
+                <Input
+                  label={t('auth.emailLabel')}
+                  value={email}
+                  onChangeText={v => { setEmail(v); setError(null) }}
+                  placeholder={t('auth.emailPlaceholder')}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  editable={!loading}
+                />
+
+                <PhoneInput
+                  label={t('auth.phoneLabel')}
+                  value={phone}
+                  onChangeText={v => { setPhone(v); setError(null) }}
+                  placeholder={t('auth.phonePlaceholder')}
+                  editable={!loading}
+                />
 
                 <View style={styles.passwordWrap}>
                   <Input
@@ -287,26 +246,6 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
         </ScrollView>
       </KeyboardAvoidingView>
     </ImageBackground>
-  )
-}
-
-function ToggleBtn({ label, icon, active, onPress }: {
-  label: string
-  icon: keyof typeof Ionicons.glyphMap
-  active: boolean
-  onPress: () => void
-}) {
-  return (
-    <TouchableOpacity
-      style={[styles.toggleBtn, active && styles.toggleBtnActive]}
-      onPress={onPress}
-      activeOpacity={0.8}
-      // @ts-ignore - web-only className
-      className={active ? 'glass-toggle-active' : ''}
-    >
-      <Ionicons name={icon} size={15} color={active ? COLORS.white : COLORS.slate} />
-      <Text style={[styles.toggleText, active && styles.toggleTextActive]}>{label}</Text>
-    </TouchableOpacity>
   )
 }
 
@@ -385,33 +324,6 @@ const styles = StyleSheet.create({
   appName: { fontSize: 24, fontFamily: FONT.bold, color: COLORS.slateDark, letterSpacing: -0.5 },
   tagline: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 2 },
   divider: { height: 1, backgroundColor: COLORS.border, marginBottom: 20 },
-  toggle: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.surface,
-    borderRadius: 10,
-    padding: 3,
-    marginBottom: 16,
-    gap: 3,
-  },
-  toggleBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 6,
-  },
-  toggleBtnActive: {
-    backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.35,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  toggleText: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.slate },
-  toggleTextActive: { color: COLORS.white },
   passwordWrap: { position: 'relative' },
   eyeBtn: { position: 'absolute', right: 12, top: 34, padding: 4 },
   errorBox: {
