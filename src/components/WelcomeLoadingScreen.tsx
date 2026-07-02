@@ -19,7 +19,7 @@ const getTimeBasedGreeting = () => {
 
 // Apple-style welcome: a quiet screen, one large greeting that settles into
 // place, and a soft progress shimmer. No cards, no clutter.
-export function WelcomeLoadingScreen({ name }: WelcomeLoadingScreenProps) {
+export function WelcomeLoadingScreen({ name, isReturningUser = true }: WelcomeLoadingScreenProps) {
   const { barInfo } = useSettings()
   const { t } = useTranslation()
   const fadeAnim = useRef(new Animated.Value(0)).current
@@ -64,7 +64,7 @@ export function WelcomeLoadingScreen({ name }: WelcomeLoadingScreenProps) {
   }, [])
 
   const firstName = name?.split(' ')[0] || ''
-  const greeting = t(getTimeBasedGreeting())
+  const greeting = isReturningUser ? t(getTimeBasedGreeting()) : t('misc.greetingWelcome')
 
   const shimmerX = progress.interpolate({
     inputRange: [0, 1],

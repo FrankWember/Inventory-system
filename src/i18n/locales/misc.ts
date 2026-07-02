@@ -24,6 +24,7 @@ export default {
     greetingMorning: 'Bonjour',
     greetingAfternoon: 'Bon après-midi',
     greetingEvening: 'Bonsoir',
+    greetingWelcome: 'Bienvenue',
     welcomeFallback: 'bienvenue',
 
     // PdfDocument
@@ -107,6 +108,7 @@ export default {
     greetingMorning: 'Good morning',
     greetingAfternoon: 'Good afternoon',
     greetingEvening: 'Good evening',
+    greetingWelcome: 'Welcome',
     welcomeFallback: 'welcome',
 
     // PdfDocument

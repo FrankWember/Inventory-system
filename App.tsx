@@ -217,6 +217,7 @@ function RootNavigator() {
   const [initialState, setInitialState] = useState<NavigationState | PartialState<NavigationState> | undefined>()
   const [onboardingComplete, setOnboardingComplete] = useState(false)
   const [checkingOnboarding, setCheckingOnboarding] = useState(true)
+  const navigationRef = useRef<any>(null)
 
   useEffect(() => {
     if (Platform.OS === 'web') return
@@ -256,6 +257,17 @@ function RootNavigator() {
     }
   }, [user, loading])
 
+  // Auto-navigate to onboarding modal when user is logged in but hasn't completed onboarding
+  useEffect(() => {
+    if (!loading && !checkingOnboarding && user && !onboardingComplete && !isWelcomeLoading) {
+      // Small delay to ensure navigation is ready
+      const timer = setTimeout(() => {
+        navigationRef.current?.navigate('Onboarding')
+      }, 100)
+      return () => clearTimeout(timer)
+    }
+  }, [user, onboardingComplete, loading, checkingOnboarding, isWelcomeLoading])
+
   if (loading || !isReady || checkingOnboarding) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface }}>
@@ -266,7 +278,8 @@ function RootNavigator() {
 
   if (isWelcomeLoading && user) {
     const displayName = user.user_metadata?.display_name || user.email?.split('@')[0]
-    return <WelcomeLoadingScreen name={displayName} isReturningUser />
+    const isReturning = onboardingComplete
+    return <WelcomeLoadingScreen name={displayName} isReturningUser={isReturning} />
   }
 
   // Cast needed because initialState is not in the TypeScript types for Stack.Navigator
@@ -275,6 +288,7 @@ function RootNavigator() {
 
   return (
     <Stack.Navigator
+      ref={navigationRef}
       {...(navigatorProps as any)}
       screenOptions={{
         headerStyle: { backgroundColor: COLORS.white },
@@ -303,14 +317,23 @@ function RootNavigator() {
           )}
           <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
         </>
-      ) : !onboardingComplete ? (
-        <Stack.Screen name="Onboarding" component={OnboardingNavigator} options={{ headerShown: false }} />
       ) : (
         <>
           <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
           <Stack.Screen name="EditDrink" component={EditDrinkScreen} options={{ headerShown: false }} />
           <Stack.Screen name="SessionDetail" component={SessionDetailScreen} options={{ headerShown: false }} />
           <Stack.Screen name="ChartDetail" component={ChartDetailScreen} options={{ headerShown: false }} />
+          {!onboardingComplete && (
+            <Stack.Screen
+              name="Onboarding"
+              component={OnboardingNavigator}
+              options={{
+                headerShown: false,
+                presentation: Platform.OS === 'web' ? 'transparentModal' : 'fullScreenModal',
+                animation: 'fade',
+              }}
+            />
+          )}
         </>
       )}
     </Stack.Navigator>
