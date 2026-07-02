@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -11,7 +12,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { Session, Expense } from '../types'
 import { SessionExpensesPanel } from './SessionExpensesPanel'
-import { COLORS, fmt, fmtNum, dateLabelLong, formatWithCassiersShort } from '../utils/helpers'
+import { fmt, fmtNum, dateLabelLong, formatWithCassiersShort, ThemeColors } from '../utils/helpers'
 
 interface SessionJournalProps {
   visible: boolean
@@ -32,6 +33,8 @@ export function SessionJournal({
   onExpensesChange,
   drinksCategoryMap = {},
 }: SessionJournalProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   if (!session) return null
 
   const lines = session.session_lines ?? []
@@ -47,7 +50,7 @@ export function SessionJournal({
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.iconBtn}>
-            <Ionicons name="close" size={24} color={COLORS.slateDark} />
+            <Ionicons name="close" size={24} color={colors.slateDark} />
           </TouchableOpacity>
           <View style={styles.headerCenter}>
             <Text style={styles.headerTitle}>Journal de caisse</Text>
@@ -67,7 +70,7 @@ export function SessionJournal({
             <Ionicons
               name={session.closed ? 'checkmark-circle' : 'time'}
               size={16}
-              color={session.closed ? COLORS.emerald : COLORS.primary}
+              color={session.closed ? colors.emerald : colors.primary}
             />
             <Text style={styles.statusText}>
               {session.closed ? 'Journée clôturée' : 'Session en cours'}
@@ -86,11 +89,11 @@ export function SessionJournal({
               label="Résultat net"
               value={fmt(netProfit)}
               bold
-              valueColor={netProfit >= 0 ? COLORS.emerald : COLORS.rose}
+              valueColor={netProfit >= 0 ? colors.emerald : colors.rose}
             />
           </View>
 
-          <Section title="Réception et achat" count={purchaseLines.length} color={COLORS.violet}>
+          <Section title="Réception et achat" count={purchaseLines.length} color={colors.violet}>
             {purchaseLines.length === 0 ? (
               <Text style={styles.sectionEmpty}>Aucun achat enregistré</Text>
             ) : (
@@ -110,7 +113,7 @@ export function SessionJournal({
             readOnly={!onExpensesChange}
           />
 
-          <Section title="Détail de vente" count={saleLines.length} color={COLORS.emerald}>
+          <Section title="Détail de vente" count={saleLines.length} color={colors.emerald}>
             {saleLines.length === 0 ? (
               <Text style={styles.sectionEmpty}>Aucune vente</Text>
             ) : (
@@ -134,7 +137,7 @@ export function SessionJournal({
             )}
           </Section>
 
-          <Section title="Mouvement de stock" count={lines.filter(l => l.purchased > 0 || l.sold > 0).length} color={COLORS.slate600}>
+          <Section title="Mouvement de stock" count={lines.filter(l => l.purchased > 0 || l.sold > 0).length} color={colors.slate600}>
             {lines
               .filter(l => l.purchased > 0 || l.sold > 0)
               .map(line => (
@@ -156,6 +159,8 @@ export function SessionJournal({
 }
 
 function Section({ title, count, children, color }: { title: string; count: number; children: React.ReactNode; color?: string }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={styles.section}>
       <View style={styles.sectionHead}>
@@ -186,6 +191,8 @@ function JournalRow({
   muted?: boolean
   valueColor?: string
 }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={[styles.jRow, highlight && styles.jRowHighlight]}>
       <Text style={[styles.jLabel, muted && styles.jMuted]}>{label}</Text>
@@ -194,8 +201,8 @@ function JournalRow({
           style={[
             styles.jValue,
             bold && styles.jBold,
-            positive && { color: COLORS.emerald },
-            negative && { color: COLORS.rose },
+            positive && { color: colors.emerald },
+            negative && { color: colors.rose },
             valueColor ? { color: valueColor } : null,
           ]}
         >
@@ -207,6 +214,8 @@ function JournalRow({
 }
 
 function TableHeader({ cols }: { cols: string[] }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={styles.tableHeader}>
       {cols.map((c, i) => (
@@ -219,6 +228,8 @@ function TableHeader({ cols }: { cols: string[] }) {
 }
 
 function TableRow({ cols }: { cols: string[] }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={styles.tableRow}>
       {cols.map((c, i) => (
@@ -234,23 +245,23 @@ function TableRow({ cols }: { cols: string[] }) {
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.surface },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.surface },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
   iconBtn: { padding: 4, width: 40 },
   headerCenter: { flex: 1, alignItems: 'center' },
-  headerTitle: { fontSize: 14, fontWeight: '700', color: COLORS.slateDark },
-  headerDate: { fontSize: 11, color: COLORS.slate, marginTop: 1 },
+  headerTitle: { fontSize: 14, fontWeight: '700', color: colors.slateDark },
+  headerDate: { fontSize: 11, color: colors.slate, marginTop: 1 },
   editBtn: { width: 64, alignItems: 'flex-end' },
-  editText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
+  editText: { fontSize: 14, fontWeight: '600', color: colors.primary },
   body: { padding: 16, paddingBottom: 40 },
   statusBadge: {
     flexDirection: 'row',
@@ -262,18 +273,18 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 14,
   },
-  statusClosed: { backgroundColor: COLORS.emeraldLight },
-  statusOpen: { backgroundColor: COLORS.primaryLight },
-  statusText: { fontSize: 13, fontWeight: '600', color: COLORS.slateDark },
+  statusClosed: { backgroundColor: colors.emeraldLight },
+  statusOpen: { backgroundColor: colors.primaryLight },
+  statusText: { fontSize: 13, fontWeight: '600', color: colors.slateDark },
   plCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     marginBottom: 16,
   },
-  plTitle: { fontSize: 15, fontWeight: '700', color: COLORS.slateDark, marginBottom: 12 },
+  plTitle: { fontSize: 15, fontWeight: '700', color: colors.slateDark, marginBottom: 12 },
   jRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -281,22 +292,22 @@ const styles = StyleSheet.create({
     paddingVertical: 7,
   },
   jRowHighlight: {
-    backgroundColor: COLORS.primaryLight + '50',
+    backgroundColor: colors.primaryLight + '50',
     marginHorizontal: -8,
     paddingHorizontal: 8,
     borderRadius: 8,
   },
-  jLabel: { fontSize: 14, color: COLORS.slate },
-  jMuted: { fontSize: 12, color: COLORS.slate },
-  jValue: { fontSize: 14, fontWeight: '600', color: COLORS.slateDark },
+  jLabel: { fontSize: 14, color: colors.slate },
+  jMuted: { fontSize: 12, color: colors.slate },
+  jValue: { fontSize: 14, fontWeight: '600', color: colors.slateDark },
   jBold: { fontSize: 16, fontWeight: '700' },
-  plDivider: { height: 1, backgroundColor: COLORS.border, marginVertical: 8 },
+  plDivider: { height: 1, backgroundColor: colors.border, marginVertical: 8 },
   section: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 14,
     padding: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     marginBottom: 14,
   },
   sectionHead: {
@@ -305,53 +316,53 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: COLORS.slateDark },
+  sectionTitle: { fontSize: 15, fontWeight: '700', color: colors.slateDark },
   sectionCount: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.primary,
-    backgroundColor: COLORS.primaryLight,
+    color: colors.primary,
+    backgroundColor: colors.primaryLight,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 10,
   },
-  sectionEmpty: { fontSize: 13, color: COLORS.slate, fontStyle: 'italic' },
-  table: { borderWidth: 1, borderColor: COLORS.border, borderRadius: 10, overflow: 'hidden' },
+  sectionEmpty: { fontSize: 13, color: colors.slate, fontStyle: 'italic' },
+  table: { borderWidth: 1, borderColor: colors.border, borderRadius: 10, overflow: 'hidden' },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
-  th: { fontSize: 11, fontWeight: '700', color: COLORS.slate, textTransform: 'uppercase' },
+  th: { fontSize: 11, fontWeight: '700', color: colors.slate, textTransform: 'uppercase' },
   thRight: { width: 80, textAlign: 'right' },
   tableRow: {
     flexDirection: 'row',
     paddingVertical: 10,
     paddingHorizontal: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
     alignItems: 'center',
   },
-  td: { fontSize: 13, color: COLORS.slateDark, fontWeight: '500' },
+  td: { fontSize: 13, color: colors.slateDark, fontWeight: '500' },
   tdRight: { width: 80, textAlign: 'right', fontWeight: '700' },
   lineDetail: {
     fontSize: 11,
-    color: COLORS.slate,
+    color: colors.slate,
     paddingHorizontal: 12,
     paddingBottom: 8,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
   movementRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: 8,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
     gap: 8,
   },
-  movementName: { flex: 1, fontSize: 13, fontWeight: '500', color: COLORS.slateDark },
-  movementFlow: { fontSize: 12, color: COLORS.slate },
+  movementName: { flex: 1, fontSize: 13, fontWeight: '500', color: colors.slateDark },
+  movementFlow: { fontSize: 12, color: colors.slate },
 })

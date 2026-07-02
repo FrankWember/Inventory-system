@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, StyleSheet, Dimensions, Platform } from 'react-native'
 import { useNavigation, NavigationState, useNavigationState } from '@react-navigation/native'
 import { Sidebar } from './Sidebar'
-import { COLORS } from '../utils/helpers'
+import { ThemeColors } from '../utils/helpers'
 import type { TabParamList } from '../../App'
 
 interface ResponsiveLayoutProps {
@@ -12,6 +13,8 @@ interface ResponsiveLayoutProps {
 const BREAKPOINT = 768 // Tablet/Desktop breakpoint
 
 export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
   const navigation = useNavigation()
   
@@ -49,11 +52,11 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     ...Platform.select({
       web: {
         height: '100vh',
@@ -65,7 +68,7 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: 20,
     marginLeft: 16,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 20,
     overflow: 'auto',
     ...Platform.select({

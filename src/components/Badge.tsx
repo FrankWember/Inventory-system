@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native'
-import { COLORS } from '../utils/helpers'
+import { ThemeColors } from '../utils/helpers'
 
 interface BadgeProps {
   children: React.ReactNode
@@ -10,6 +11,8 @@ interface BadgeProps {
 }
 
 export function Badge({ children, variant = 'default', style, textStyle }: BadgeProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={[styles.badge, styles[`badge_${variant}`], style]}>
       <Text style={[styles.badgeText, styles[`badgeText_${variant}`], textStyle]}>
@@ -19,7 +22,7 @@ export function Badge({ children, variant = 'default', style, textStyle }: Badge
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   badge: {
     paddingVertical: 4,
     paddingHorizontal: 10,
@@ -27,19 +30,19 @@ const styles = StyleSheet.create({
     alignSelf: 'flex-start',
   },
   badge_default: {
-    backgroundColor: COLORS.slateLight,
+    backgroundColor: colors.slateLight,
   },
   badge_success: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: colors.primaryLight,
   },
   badge_danger: {
-    backgroundColor: COLORS.roseLight,
+    backgroundColor: colors.roseLight,
   },
   badge_warning: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: colors.primaryLight,
   },
   badge_info: {
-    backgroundColor: COLORS.skyLight,
+    backgroundColor: colors.skyLight,
   },
   badgeText: {
     fontSize: 11,
@@ -47,18 +50,18 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
   },
   badgeText_default: {
-    color: COLORS.slate,
+    color: colors.slate,
   },
   badgeText_success: {
-    color: COLORS.primary,
+    color: colors.primary,
   },
   badgeText_danger: {
-    color: COLORS.rose,
+    color: colors.rose,
   },
   badgeText_warning: {
-    color: COLORS.primaryDark,
+    color: colors.primaryDark,
   },
   badgeText_info: {
-    color: COLORS.sky,
+    color: colors.sky,
   },
 })

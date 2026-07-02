@@ -1,8 +1,8 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { COLORS } from '../utils/helpers'
-import { useSettings } from '../contexts/SettingsContext'
+import { ThemeColors } from '../utils/helpers'
 import type { TabParamList } from '../../App'
 
 interface SidebarProps {
@@ -26,13 +26,14 @@ const navItems: NavItem[] = [
 ]
 
 export function Sidebar({ currentRoute, onNavigate }: SidebarProps) {
-  const { barInfo } = useSettings()
+  const { barInfo, colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   return (
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.logo}>
-          <Ionicons name="bar-chart" size={28} color={COLORS.primary} />
+          <Ionicons name="bar-chart" size={28} color={colors.primary} />
         </View>
         <Text style={styles.appName}>{barInfo?.name || 'BarTrack'}</Text>
         <Text style={styles.appSubtitle}>Gestion d'inventaire</Text>
@@ -51,7 +52,7 @@ export function Sidebar({ currentRoute, onNavigate }: SidebarProps) {
               <Ionicons
                 name={isActive ? item.icon : item.iconOutline}
                 size={22}
-                color={isActive ? COLORS.primary : COLORS.slate}
+                color={isActive ? colors.primary : colors.slate}
                 style={styles.navIcon}
               />
               <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
@@ -69,10 +70,10 @@ export function Sidebar({ currentRoute, onNavigate }: SidebarProps) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     width: 280,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     height: '100%',
     flexDirection: 'column',
     borderTopRightRadius: 20,
@@ -102,7 +103,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 18,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: colors.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -110,12 +111,12 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 22,
     fontWeight: '700',
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 6,
   },
   appSubtitle: {
     fontSize: 13,
-    color: COLORS.slate,
+    color: colors.slate,
     textAlign: 'center',
   },
   nav: {
@@ -138,7 +139,7 @@ const styles = StyleSheet.create({
     }),
   },
   navItemActive: {
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: colors.primaryLight,
   },
   navIcon: {
     marginRight: 14,
@@ -147,11 +148,11 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: COLORS.slate,
+    color: colors.slate,
   },
   navLabelActive: {
     fontWeight: '700',
-    color: COLORS.primary,
+    color: colors.primary,
   },
   footer: {
     padding: 20,
@@ -159,7 +160,7 @@ const styles = StyleSheet.create({
   },
   version: {
     fontSize: 11,
-    color: COLORS.slate,
+    color: colors.slate,
     fontWeight: '500',
     opacity: 0.7,
   },

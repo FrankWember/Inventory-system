@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   Modal,
   View,
@@ -8,7 +9,7 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native'
-import { COLORS, FONT } from '../utils/helpers'
+import { FONT, ThemeColors } from '../utils/helpers'
 
 interface InputDialogProps {
   visible: boolean
@@ -29,6 +30,8 @@ export function InputDialog({
   onConfirm,
   onCancel,
 }: InputDialogProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [value, setValue] = useState(defaultValue)
 
   React.useEffect(() => {
@@ -54,7 +57,7 @@ export function InputDialog({
             value={value}
             onChangeText={setValue}
             placeholder={placeholder}
-            placeholderTextColor={COLORS.slate400}
+            placeholderTextColor={colors.slate400}
             autoFocus
             onSubmitEditing={() => {
               if (value.trim()) {
@@ -87,7 +90,7 @@ export function InputDialog({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   overlay: {
     flex: 1,
     backgroundColor: 'rgba(0, 0, 0, 0.5)',
@@ -96,7 +99,7 @@ const styles = StyleSheet.create({
     padding: 20,
   },
   dialog: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 16,
     padding: 24,
     width: '100%',
@@ -117,23 +120,23 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 8,
   },
   message: {
     fontSize: 14,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
+    color: colors.slate,
     marginBottom: 16,
   },
   input: {
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 10,
     padding: 12,
     fontSize: 15,
     fontFamily: FONT.medium,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 20,
   },
   buttons: {
@@ -147,19 +150,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   buttonCancel: {
-    backgroundColor: COLORS.slateLight,
+    backgroundColor: colors.slateLight,
   },
   buttonConfirm: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   buttonTextCancel: {
     fontSize: 15,
     fontFamily: FONT.semibold,
-    color: COLORS.slate,
+    color: colors.slate,
   },
   buttonTextConfirm: {
     fontSize: 15,
     fontFamily: FONT.semibold,
-    color: COLORS.white,
+    color: colors.white,
   },
 })

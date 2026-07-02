@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -15,13 +16,15 @@ import { Card } from '../components/Card'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { SessionJournal } from '../components/SessionJournal'
 import { ScreenSkeleton } from '../components/Skeleton'
-import { COLORS, fmt, fmtNum, fmtShort, dateLabel } from '../utils/helpers'
+import { fmt, fmtNum, fmtShort, dateLabel, ThemeColors } from '../utils/helpers'
 
 type FeedItem =
   | { kind: 'session'; id: string; date: string; sortKey: string; session: Session; dayExpenses: number }
   | { kind: 'expense'; id: string; date: string; sortKey: string; expense: Expense }
 
 function OverviewRow({ label, value, color }: { label: string; value: string; color?: string }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={styles.overviewRow}>
       <Text style={styles.overviewLabel}>{label}</Text>
@@ -31,6 +34,8 @@ function OverviewRow({ label, value, color }: { label: string; value: string; co
 }
 
 export default function FinancesScreen() {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [sessions, setSessions] = useState<Session[]>([])
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
@@ -144,7 +149,7 @@ export default function FinancesScreen() {
         <View style={styles.hero}>
           <Text style={styles.heroLabel}>Profit net cumulé</Text>
           <Text
-            style={[styles.heroValue, { color: netProfit >= 0 ? COLORS.primary : COLORS.rose }]}
+            style={[styles.heroValue, { color: netProfit >= 0 ? colors.primary : colors.rose }]}
             numberOfLines={1}
             adjustsFontSizeToFit
             minimumFontScale={0.65}
@@ -157,7 +162,7 @@ export default function FinancesScreen() {
                 styles.marginFill,
                 {
                   width: `${Math.min(100, Math.max(0, margin))}%`,
-                  backgroundColor: COLORS.primary,
+                  backgroundColor: colors.primary,
                 },
               ]}
             />
@@ -167,23 +172,23 @@ export default function FinancesScreen() {
 
         <View style={styles.kpiRow}>
           <View style={styles.kpi}>
-            <Ionicons name="trending-up" size={16} color={COLORS.primary} />
+            <Ionicons name="trending-up" size={16} color={colors.primary} />
             <Text style={styles.kpiLabel}>Revenu</Text>
-            <Text style={[styles.kpiValue, { color: COLORS.primary }]} numberOfLines={1}>
+            <Text style={[styles.kpiValue, { color: colors.primary }]} numberOfLines={1}>
               {fmtShort(totalRevenue)}
             </Text>
           </View>
           <View style={styles.kpi}>
-            <Ionicons name="cart-outline" size={16} color={COLORS.slate} />
+            <Ionicons name="cart-outline" size={16} color={colors.slate} />
             <Text style={styles.kpiLabel}>Achats</Text>
-            <Text style={[styles.kpiValue, { color: COLORS.slate600 }]} numberOfLines={1}>
+            <Text style={[styles.kpiValue, { color: colors.slate600 }]} numberOfLines={1}>
               {fmtShort(totalSessionCost)}
             </Text>
           </View>
           <View style={styles.kpi}>
-            <Ionicons name="receipt-outline" size={16} color={COLORS.rose} />
+            <Ionicons name="receipt-outline" size={16} color={colors.rose} />
             <Text style={styles.kpiLabel}>Charges</Text>
-            <Text style={[styles.kpiValue, { color: COLORS.rose }]} numberOfLines={1}>
+            <Text style={[styles.kpiValue, { color: colors.rose }]} numberOfLines={1}>
               {fmtShort(totalExpenses)}
             </Text>
           </View>
@@ -193,7 +198,7 @@ export default function FinancesScreen() {
 
         {feed.length === 0 ? (
           <Card style={styles.emptyCard}>
-            <Ionicons name="wallet-outline" size={32} color={COLORS.slate} />
+            <Ionicons name="wallet-outline" size={32} color={colors.slate} />
             <Text style={styles.emptyText}>Aucune transaction</Text>
           </Card>
         ) : (
@@ -212,8 +217,8 @@ export default function FinancesScreen() {
                     onPress={() => toggleExpand(item.id)}
                     activeOpacity={0.85}
                   >
-                    <View style={[styles.txIcon, { backgroundColor: COLORS.primaryLight }]}>
-                      <Ionicons name="calendar" size={18} color={COLORS.primary} />
+                    <View style={[styles.txIcon, { backgroundColor: colors.primaryLight }]}>
+                      <Ionicons name="calendar" size={18} color={colors.primary} />
                     </View>
                     <View style={styles.txMain}>
                       <Text style={styles.txTitle}>{dateLabel(session.date)}</Text>
@@ -222,32 +227,32 @@ export default function FinancesScreen() {
                         {units > 0 ? ` · ${fmtNum(units)} vendus` : ''}
                       </Text>
                     </View>
-                    <Text style={[styles.txAmount, { color: COLORS.primary }]}>
+                    <Text style={[styles.txAmount, { color: colors.primary }]}>
                       {fmt(session.total_profit)}
                     </Text>
                     <Ionicons
                       name={isExpanded ? 'chevron-up' : 'chevron-down'}
                       size={18}
-                      color={COLORS.slate}
+                      color={colors.slate}
                     />
                   </TouchableOpacity>
 
                   {isExpanded && (
                     <View style={styles.overview}>
-                      <OverviewRow label="Revenu" value={fmt(session.total_revenue)} color={COLORS.primary} />
-                      <OverviewRow label="Coût achats" value={`−${fmt(session.total_cost)}`} color={COLORS.slate600} />
+                      <OverviewRow label="Revenu" value={fmt(session.total_revenue)} color={colors.primary} />
+                      <OverviewRow label="Coût achats" value={`−${fmt(session.total_cost)}`} color={colors.slate600} />
                       {dayExpenses > 0 && (
-                        <OverviewRow label="Dépenses jour" value={`−${fmt(dayExpenses)}`} color={COLORS.rose} />
+                        <OverviewRow label="Dépenses jour" value={`−${fmt(dayExpenses)}`} color={colors.rose} />
                       )}
                       <OverviewRow label="Profit brut" value={fmt(gross)} />
                       <OverviewRow
                         label="Profit net"
                         value={fmt(session.total_profit)}
-                        color={session.total_profit >= 0 ? COLORS.primary : COLORS.rose}
+                        color={session.total_profit >= 0 ? colors.primary : colors.rose}
                       />
                       <TouchableOpacity style={styles.journalLink} onPress={() => openJournal(session)}>
                         <Text style={styles.journalLinkText}>Voir le journal complet</Text>
-                        <Ionicons name="arrow-forward" size={14} color={COLORS.primary} />
+                        <Ionicons name="arrow-forward" size={14} color={colors.primary} />
                       </TouchableOpacity>
                     </View>
                   )}
@@ -263,25 +268,25 @@ export default function FinancesScreen() {
                   onPress={() => toggleExpand(item.id)}
                   activeOpacity={0.85}
                 >
-                  <View style={[styles.txIcon, { backgroundColor: COLORS.roseLight }]}>
-                    <Ionicons name="remove-circle-outline" size={18} color={COLORS.rose} />
+                  <View style={[styles.txIcon, { backgroundColor: colors.roseLight }]}>
+                    <Ionicons name="remove-circle-outline" size={18} color={colors.rose} />
                   </View>
                   <View style={styles.txMain}>
                     <Text style={styles.txTitle} numberOfLines={1}>{expense.description}</Text>
                     <Text style={styles.txMeta}>{dateLabel(expense.date)}</Text>
                   </View>
-                  <Text style={[styles.txAmount, { color: COLORS.rose }]}>−{fmt(expense.amount)}</Text>
+                  <Text style={[styles.txAmount, { color: colors.rose }]}>−{fmt(expense.amount)}</Text>
                   <Ionicons
                     name={isExpanded ? 'chevron-up' : 'chevron-down'}
                     size={18}
-                    color={COLORS.slate}
+                    color={colors.slate}
                   />
                 </TouchableOpacity>
 
                 {isExpanded && (
                   <View style={styles.overview}>
                     <OverviewRow label="Catégorie" value={expense.category} />
-                    <OverviewRow label="Montant" value={fmt(expense.amount)} color={COLORS.rose} />
+                    <OverviewRow label="Montant" value={fmt(expense.amount)} color={colors.rose} />
                     <OverviewRow label="Date" value={dateLabel(expense.date)} />
                   </View>
                 )}
@@ -302,30 +307,30 @@ export default function FinancesScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: COLORS.surface },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  wrapper: { flex: 1, backgroundColor: colors.surface },
   container: { flex: 1 },
   scrollContent: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 28 },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
   hero: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 18,
     padding: 22,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderTopWidth: 3,
-    borderTopColor: COLORS.primary,
+    borderTopColor: colors.primary,
     alignItems: 'center',
   },
   heroLabel: {
     fontSize: 11,
-    color: COLORS.slate,
+    color: colors.slate,
     fontWeight: '700',
     letterSpacing: 0.5,
     textTransform: 'uppercase',
@@ -335,41 +340,41 @@ const styles = StyleSheet.create({
   marginTrack: {
     width: '100%',
     height: 6,
-    backgroundColor: COLORS.slateLight,
+    backgroundColor: colors.slateLight,
     borderRadius: 3,
     overflow: 'hidden',
     marginBottom: 6,
   },
   marginFill: { height: '100%', borderRadius: 3 },
-  marginHint: { fontSize: 12, color: COLORS.slate },
+  marginHint: { fontSize: 12, color: colors.slate },
   kpiRow: { flexDirection: 'row', gap: 10, marginBottom: 20 },
   kpi: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     gap: 4,
   },
-  kpiLabel: { fontSize: 11, color: COLORS.slate, fontWeight: '500' },
-  kpiValue: { fontSize: 14, fontWeight: '700', color: COLORS.slateDark },
+  kpiLabel: { fontSize: 11, color: colors.slate, fontWeight: '500' },
+  kpiValue: { fontSize: 14, fontWeight: '700', color: colors.slateDark },
   sectionTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 10,
     marginLeft: 2,
   },
   txCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 14,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
-  txCardExpanded: { borderColor: COLORS.primaryLight, backgroundColor: '#FAFBFF' },
+  txCardExpanded: { borderColor: colors.primaryLight, backgroundColor: colors.surface },
   txRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   txIcon: {
     width: 36,
@@ -379,19 +384,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   txMain: { flex: 1, minWidth: 0 },
-  txTitle: { fontSize: 15, fontWeight: '600', color: COLORS.slateDark },
-  txMeta: { fontSize: 12, color: COLORS.slate, marginTop: 2 },
+  txTitle: { fontSize: 15, fontWeight: '600', color: colors.slateDark },
+  txMeta: { fontSize: 12, color: colors.slate, marginTop: 2 },
   txAmount: { fontSize: 14, fontWeight: '700' },
   overview: {
     marginTop: 12,
     paddingTop: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: colors.border,
     gap: 8,
   },
   overviewRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  overviewLabel: { fontSize: 13, color: COLORS.slate },
-  overviewValue: { fontSize: 13, fontWeight: '600', color: COLORS.slateDark },
+  overviewLabel: { fontSize: 13, color: colors.slate },
+  overviewValue: { fontSize: 13, fontWeight: '600', color: colors.slateDark },
   journalLink: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -400,7 +405,7 @@ const styles = StyleSheet.create({
     marginTop: 4,
     paddingVertical: 8,
   },
-  journalLinkText: { fontSize: 13, fontWeight: '600', color: COLORS.primary },
+  journalLinkText: { fontSize: 13, fontWeight: '600', color: colors.primary },
   emptyCard: { alignItems: 'center', paddingVertical: 28, gap: 8 },
-  emptyText: { fontSize: 14, color: COLORS.slate },
+  emptyText: { fontSize: 14, color: colors.slate },
 })

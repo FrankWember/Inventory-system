@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -16,11 +17,13 @@ import { Card } from '../components/Card'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { COLORS, fmt, fmtNum } from '../utils/helpers'
+import { fmt, fmtNum, ThemeColors } from '../utils/helpers'
 
 const BREAKPOINT = 768
 
 export default function EditDrinkScreen({ route, navigation }: any) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const { drinkId, hideHeader } = route.params
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
 
@@ -134,7 +137,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     )
   }
@@ -214,13 +217,13 @@ export default function EditDrinkScreen({ route, navigation }: any) {
               </View>
               <View style={styles.calculationRow}>
                 <Text style={styles.calculationLabel}>Profit par unité</Text>
-                <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
+                <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? colors.emerald : colors.rose }]}>
                   {fmt(profitPerUnit)}
                 </Text>
               </View>
               <View style={styles.calculationRow}>
                 <Text style={styles.calculationLabel}>Marge bénéficiaire</Text>
-                <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
+                <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? colors.emerald : colors.rose }]}>
                   {margin}%
                 </Text>
               </View>
@@ -263,10 +266,10 @@ export default function EditDrinkScreen({ route, navigation }: any) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
   },
   scrollContent: {
     padding: 16,
@@ -275,19 +278,19 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
   },
   drinkName: {
     fontSize: 22,
     fontWeight: '700',
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 6,
   },
   categoryBadge: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.slate,
-    backgroundColor: COLORS.slateLight,
+    color: colors.slate,
+    backgroundColor: colors.slateLight,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
@@ -303,17 +306,17 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     marginTop: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: colors.border,
   },
   summaryText: {
     fontSize: 13,
     fontWeight: '500',
-    color: COLORS.slate,
+    color: colors.slate,
   },
   summaryValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.slateDark,
+    color: colors.slateDark,
   },
   buttons: {
     flexDirection: 'row',
@@ -321,22 +324,22 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   dangerCard: {
-    borderColor: COLORS.rose,
+    borderColor: colors.rose,
     borderWidth: 1.5,
   },
   dangerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.rose,
+    color: colors.rose,
     marginBottom: 6,
   },
   dangerText: {
     fontSize: 13,
-    color: COLORS.slate,
+    color: colors.slate,
     marginBottom: 16,
   },
   calculationCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
@@ -350,11 +353,11 @@ const styles = StyleSheet.create({
   calculationLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.slate,
+    color: colors.slate,
   },
   calculationValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.slateDark,
+    color: colors.slateDark,
   },
 })

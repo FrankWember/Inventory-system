@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -20,16 +21,7 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { SessionExpensesPanel } from '../components/SessionExpensesPanel'
 import { ScreenSkeleton } from '../components/Skeleton'
 import SessionDetailScreen from './SessionDetailScreen'
-import {
-  COLORS,
-  FONT,
-  fmt,
-  fmtNum,
-  today,
-  dateLabel,
-  dateLabelLong,
-  formatWithCassiers,
-} from '../utils/helpers'
+import { FONT, fmt, fmtNum, today, dateLabel, dateLabelLong, formatWithCassiers, ThemeColors } from '../utils/helpers'
 
 LocaleConfig.locales['fr'] = {
   monthNames: ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'],
@@ -87,6 +79,8 @@ function ModernStepIndicator({
   current: string
   onStepPress?: (key: string) => void
 }) {
+  const { colors } = useSettings()
+  const si = useMemo(() => makeSi(colors), [colors])
   const currentIndex = steps.findIndex(s => s.key === current)
   const progress = useRef(new Animated.Value(currentIndex)).current
 
@@ -127,7 +121,7 @@ function ModernStepIndicator({
             >
               <View style={[si.dot, done && si.dotDone, active && si.dotActive]}>
                 {done
-                  ? <Ionicons name="checkmark" size={12} color={COLORS.white} />
+                  ? <Ionicons name="checkmark" size={12} color={colors.white} />
                   : <Text style={[si.dotNum, active && si.dotNumActive]}>{i + 1}</Text>}
               </View>
               <Text style={[si.labelText, active && si.labelTextActive, done && si.labelTextDone]}>
@@ -141,24 +135,24 @@ function ModernStepIndicator({
   )
 }
 
-const si = StyleSheet.create({
+const makeSi = (colors: ThemeColors) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     paddingHorizontal: 20,
     paddingTop: 16,
     paddingBottom: 12,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
   track: {
     height: 3,
-    backgroundColor: COLORS.slateLight,
+    backgroundColor: colors.slateLight,
     borderRadius: 2,
     marginBottom: 12,
   },
   fill: {
     height: 3,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 2,
   },
   labels: {
@@ -174,37 +168,37 @@ const si = StyleSheet.create({
     width: 26,
     height: 26,
     borderRadius: 13,
-    backgroundColor: COLORS.slateLight,
+    backgroundColor: colors.slateLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   dotActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     ...Platform.select({ web: { boxShadow: '0 0 0 4px rgba(24,119,242,0.15)' } }),
   },
   dotDone: {
-    backgroundColor: COLORS.emerald,
+    backgroundColor: colors.emerald,
   },
   dotNum: {
     fontSize: 11,
     fontFamily: FONT.bold,
-    color: COLORS.slate,
+    color: colors.slate,
   },
   dotNumActive: {
-    color: COLORS.white,
+    color: colors.white,
   },
   labelText: {
     fontSize: 11,
     fontFamily: FONT.medium,
-    color: COLORS.slate,
+    color: colors.slate,
     textAlign: 'center',
   },
   labelTextActive: {
-    color: COLORS.primary,
+    color: colors.primary,
     fontFamily: FONT.bold,
   },
   labelTextDone: {
-    color: COLORS.emerald,
+    color: colors.emerald,
   },
 })
 
@@ -220,6 +214,8 @@ function MiniStepper({
   min?: number
   max?: number
 }) {
+  const { colors } = useSettings()
+  const ms = useMemo(() => makeMs(colors), [colors])
   return (
     <View style={ms.row}>
       <TouchableOpacity
@@ -227,7 +223,7 @@ function MiniStepper({
         onPress={() => value > min && onChange(value - 1)}
         activeOpacity={0.7}
       >
-        <Ionicons name="remove" size={18} color={value <= min ? COLORS.slate : COLORS.rose} />
+        <Ionicons name="remove" size={18} color={value <= min ? colors.slate : colors.rose} />
       </TouchableOpacity>
       <TextInput
         style={ms.input}
@@ -241,13 +237,13 @@ function MiniStepper({
         onPress={() => value < max && onChange(value + 1)}
         activeOpacity={0.7}
       >
-        <Ionicons name="add" size={18} color={COLORS.white} />
+        <Ionicons name="add" size={18} color={colors.white} />
       </TouchableOpacity>
     </View>
   )
 }
 
-const ms = StyleSheet.create({
+const makeMs = (colors: ThemeColors) => StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: 5 },
   btn: {
     width: 34,
@@ -257,30 +253,32 @@ const ms = StyleSheet.create({
     justifyContent: 'center',
   },
   btnMinus: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
   btnPlus: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   btnDisabled: { opacity: 0.35 },
   input: {
     width: 50,
     height: 34,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 8,
     fontSize: 15,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     textAlign: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
   },
 })
 
 // ─── Stat pill ────────────────────────────────────────────────────────────────
 function StatPill({ label, value, accent }: { label: string; value: string; accent?: string }) {
+  const { colors } = useSettings()
+  const sp = useMemo(() => makeSp(colors), [colors])
   return (
     <View style={[sp.wrap, accent ? { borderColor: accent, backgroundColor: accent + '12' } : {}]}>
       <Text style={[sp.label, accent ? { color: accent } : {}]}>{label}</Text>
@@ -289,7 +287,7 @@ function StatPill({ label, value, accent }: { label: string; value: string; acce
   )
 }
 
-const sp = StyleSheet.create({
+const makeSp = (colors: ThemeColors) => StyleSheet.create({
   wrap: {
     flex: 1,
     alignItems: 'center',
@@ -297,13 +295,13 @@ const sp = StyleSheet.create({
     paddingHorizontal: 8,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
   },
   label: {
     fontSize: 10,
     fontFamily: FONT.bold,
-    color: COLORS.slate,
+    color: colors.slate,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     marginBottom: 3,
@@ -311,13 +309,15 @@ const sp = StyleSheet.create({
   value: {
     fontSize: 16,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     fontVariant: ['tabular-nums'],
   },
 })
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function SessionScreen({ navigation }: any) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [step, setStep] = useState<Step>('purchases')
   const [openSession, setOpenSession] = useState<Session | null>(null)
@@ -344,13 +344,13 @@ export default function SessionScreen({ navigation }: any) {
   const markedDates = useMemo(() => {
     const marks: any = {}
     allSessions.forEach(s => {
-      marks[s.date] = { marked: true, dotColor: s.closed ? COLORS.emerald : COLORS.amber }
+      marks[s.date] = { marked: true, dotColor: s.closed ? colors.emerald : colors.amber }
     })
     if (selectedDate) {
-      marks[selectedDate] = { ...marks[selectedDate], selected: true, selectedColor: COLORS.primary }
+      marks[selectedDate] = { ...marks[selectedDate], selected: true, selectedColor: colors.primary }
     }
     return marks
-  }, [allSessions, selectedDate])
+  }, [allSessions, selectedDate, colors])
 
   const getRackSize = (drinkId: string) => drinks.find(d => d.id === drinkId)?.rack_size || 1
   const toUnits = (racks: number, drinkId: string) => racks * getRackSize(drinkId)
@@ -639,23 +639,23 @@ export default function SessionScreen({ navigation }: any) {
   const renderPurchasesStep = () => (
     <StepContent stepKey="purchases">
       <View style={styles.stepHintBox}>
-        <Ionicons name="cube-outline" size={16} color={COLORS.primary} />
+        <Ionicons name="cube-outline" size={16} color={colors.primary} />
         <Text style={styles.stepHintText}>Enregistrez les livraisons reçues aujourd'hui. Elles s'ajouteront au stock existant.</Text>
       </View>
 
       <View style={styles.toolbar}>
         <View style={styles.searchBox}>
-          <Ionicons name="search" size={16} color={COLORS.slate} />
+          <Ionicons name="search" size={16} color={colors.slate} />
           <TextInput
             style={styles.searchInput}
             placeholder="Rechercher..."
             value={search}
             onChangeText={setSearch}
-            placeholderTextColor={COLORS.slate}
+            placeholderTextColor={colors.slate}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={16} color={COLORS.slate} />
+              <Ionicons name="close-circle" size={16} color={colors.slate} />
             </TouchableOpacity>
           )}
         </View>
@@ -711,7 +711,7 @@ export default function SessionScreen({ navigation }: any) {
 
               {hasDelivery && (
                 <View style={styles.afterDelivery}>
-                  <Ionicons name="trending-up" size={14} color={COLORS.emerald} />
+                  <Ionicons name="trending-up" size={14} color={colors.emerald} />
                   <Text style={styles.afterDeliveryText}>
                     Nouveau stock : {formatWithCassiers(drink.stock + unitsVal, drink.category)}
                   </Text>
@@ -722,7 +722,7 @@ export default function SessionScreen({ navigation }: any) {
         })}
         {filtered.length === 0 && (
           <View style={styles.emptyState}>
-            <Ionicons name="search-outline" size={40} color={COLORS.slateLight} />
+            <Ionicons name="search-outline" size={40} color={colors.slateLight} />
             <Text style={styles.emptyStateText}>Aucun article trouvé</Text>
           </View>
         )}
@@ -735,23 +735,23 @@ export default function SessionScreen({ navigation }: any) {
   const renderInventoryStep = () => (
     <StepContent stepKey="inventory">
       <View style={styles.stepHintBox}>
-        <Ionicons name="clipboard-outline" size={16} color={COLORS.primary} />
+        <Ionicons name="clipboard-outline" size={16} color={colors.primary} />
         <Text style={styles.stepHintText}>Comptez le stock physique restant. Les ventes sont calculées automatiquement.</Text>
       </View>
 
       <View style={styles.toolbar}>
         <View style={styles.searchBox}>
-          <Ionicons name="search" size={16} color={COLORS.slate} />
+          <Ionicons name="search" size={16} color={colors.slate} />
           <TextInput
             style={styles.searchInput}
             placeholder="Rechercher..."
             value={search}
             onChangeText={setSearch}
-            placeholderTextColor={COLORS.slate}
+            placeholderTextColor={colors.slate}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => setSearch('')}>
-              <Ionicons name="close-circle" size={16} color={COLORS.slate} />
+              <Ionicons name="close-circle" size={16} color={colors.slate} />
             </TouchableOpacity>
           )}
         </View>
@@ -884,7 +884,7 @@ export default function SessionScreen({ navigation }: any) {
         })}
         {filtered.length === 0 && (
           <View style={styles.emptyState}>
-            <Ionicons name="search-outline" size={40} color={COLORS.slateLight} />
+            <Ionicons name="search-outline" size={40} color={colors.slateLight} />
             <Text style={styles.emptyStateText}>Aucun article trouvé</Text>
           </View>
         )}
@@ -915,7 +915,7 @@ export default function SessionScreen({ navigation }: any) {
                 }
               }}
             >
-              <Ionicons name="print-outline" size={18} color={COLORS.primary} />
+              <Ionicons name="print-outline" size={18} color={colors.primary} />
               <Text style={styles.printRecapBtnText}>Imprimer le récapitulatif complet</Text>
             </TouchableOpacity>
           </View>
@@ -924,15 +924,15 @@ export default function SessionScreen({ navigation }: any) {
         {/* P&L Hero */}
         <View style={styles.plHero}>
           <Text style={styles.plHeroTitle}>Résultat du jour</Text>
-          <Text style={[styles.plHeroNet, { color: netProfit >= 0 ? COLORS.emerald : COLORS.rose }]}>
+          <Text style={[styles.plHeroNet, { color: netProfit >= 0 ? colors.emerald : colors.rose }]}>
             {fmt(netProfit)}
           </Text>
           <Text style={styles.plHeroLabel}>Résultat net</Text>
 
           <View style={styles.plHeroStats}>
-            <StatPill label="Revenu" value={fmt(totalRevenue)} accent={COLORS.primary} />
-            <StatPill label="Achats" value={fmt(totalPurchaseCost)} accent={COLORS.rose} />
-            <StatPill label="Dépenses" value={fmt(totalExpenses)} accent={COLORS.amber} />
+            <StatPill label="Revenu" value={fmt(totalRevenue)} accent={colors.primary} />
+            <StatPill label="Achats" value={fmt(totalPurchaseCost)} accent={colors.rose} />
+            <StatPill label="Dépenses" value={fmt(totalExpenses)} accent={colors.amber} />
           </View>
         </View>
 
@@ -943,10 +943,10 @@ export default function SessionScreen({ navigation }: any) {
           <PLRow label={`Unités vendues`} value={fmtNum(totalSold)} muted />
           <PLRow label="Coût des achats" value={`-${fmt(totalPurchaseCost)}`} negative />
           <View style={styles.plDivider} />
-          <PLRow label="Marge brute" value={fmt(grossProfit)} highlight accent={grossProfit >= 0 ? COLORS.primary : COLORS.rose} />
+          <PLRow label="Marge brute" value={fmt(grossProfit)} highlight accent={grossProfit >= 0 ? colors.primary : colors.rose} />
           <PLRow label="Dépenses opérationnelles" value={`-${fmt(totalExpenses)}`} negative />
           <View style={styles.plDivider} />
-          <PLRow label="Résultat net" value={fmt(netProfit)} bold accent={netProfit >= 0 ? COLORS.emerald : COLORS.rose} />
+          <PLRow label="Résultat net" value={fmt(netProfit)} bold accent={netProfit >= 0 ? colors.emerald : colors.rose} />
         </View>
 
         {/* Comprehensive stock movement table */}
@@ -1009,7 +1009,7 @@ export default function SessionScreen({ navigation }: any) {
                   <Text style={[styles.tdTotal, styles.tdNum]}>—</Text>
                   <Text style={[styles.tdTotal, styles.tdNum]}>—</Text>
                   <Text style={[styles.tdTotal, styles.tdNum, styles.tdAccent]}>{fmtNum(totalSold)}</Text>
-                  <Text style={[styles.tdTotal, styles.tdMoney, { color: COLORS.primary }]}>{fmt(totalRevenue)}</Text>
+                  <Text style={[styles.tdTotal, styles.tdMoney, { color: colors.primary }]}>{fmt(totalRevenue)}</Text>
                 </View>
               </View>
             </ScrollView>
@@ -1018,7 +1018,7 @@ export default function SessionScreen({ navigation }: any) {
 
         {activeDrinks.length === 0 && (
           <View style={styles.emptyState}>
-            <Ionicons name="bar-chart-outline" size={40} color={COLORS.slateLight} />
+            <Ionicons name="bar-chart-outline" size={40} color={colors.slateLight} />
             <Text style={styles.emptyStateText}>Aucune vente ni achat enregistré</Text>
           </View>
         )}
@@ -1042,15 +1042,15 @@ export default function SessionScreen({ navigation }: any) {
             markedDates={markedDates}
             style={{ paddingBottom: isDesktop ? 12 : 4 }}
             theme={{
-              calendarBackground: COLORS.white,
-              textSectionTitleColor: COLORS.slate,
-              selectedDayBackgroundColor: COLORS.primary,
-              selectedDayTextColor: COLORS.white,
-              todayTextColor: COLORS.primary,
-              dayTextColor: COLORS.slateDark,
-              textDisabledColor: COLORS.slateLight,
-              arrowColor: COLORS.primary,
-              monthTextColor: COLORS.slateDark,
+              calendarBackground: colors.white,
+              textSectionTitleColor: colors.slate,
+              selectedDayBackgroundColor: colors.primary,
+              selectedDayTextColor: colors.white,
+              todayTextColor: colors.primary,
+              dayTextColor: colors.slateDark,
+              textDisabledColor: colors.slateLight,
+              arrowColor: colors.primary,
+              monthTextColor: colors.slateDark,
               textMonthFontFamily: FONT.bold,
               textDayFontFamily: FONT.regular,
               textDayHeaderFontFamily: FONT.semibold,
@@ -1084,21 +1084,21 @@ export default function SessionScreen({ navigation }: any) {
                   marginTop: isDesktop ? 4 : 2,
                   fontSize: isDesktop ? 15 : 14,
                   fontFamily: FONT.regular,
-                  color: COLORS.slateDark,
+                  color: colors.slateDark,
                 },
                 today: {
                   backgroundColor: 'transparent',
                 },
                 todayText: {
-                  color: COLORS.primary,
+                  color: colors.primary,
                   fontFamily: FONT.bold,
                 },
                 selected: {
-                  backgroundColor: COLORS.primary,
+                  backgroundColor: colors.primary,
                   borderRadius: isDesktop ? 24 : 20,
                 },
                 selectedText: {
-                  color: COLORS.white,
+                  color: colors.white,
                   fontFamily: FONT.bold,
                 },
               },
@@ -1120,8 +1120,8 @@ export default function SessionScreen({ navigation }: any) {
             {selectedDateSession.closed ? (
               <View style={{ gap: 12 }}>
                 <View style={styles.statusRow}>
-                  <View style={[styles.statusIcon, { backgroundColor: COLORS.emeraldLight }]}>
-                    <Ionicons name="checkmark" size={18} color={COLORS.emerald} />
+                  <View style={[styles.statusIcon, { backgroundColor: colors.emeraldLight }]}>
+                    <Ionicons name="checkmark" size={18} color={colors.emerald} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.statusTitle}>Session clôturée</Text>
@@ -1136,15 +1136,15 @@ export default function SessionScreen({ navigation }: any) {
                   // @ts-ignore - web-only className
                   className="glass-primary"
                 >
-                  <Ionicons name="document-text-outline" size={18} color={COLORS.white} />
+                  <Ionicons name="document-text-outline" size={18} color={colors.white} />
                   <Text style={styles.primaryBtnText}>Voir le journal</Text>
                 </TouchableOpacity>
               </View>
             ) : selectedDateSession.open ? (
               <View style={{ gap: 12 }}>
                 <View style={styles.statusRow}>
-                  <View style={[styles.statusIcon, { backgroundColor: COLORS.amberLight }]}>
-                    <Ionicons name="time" size={18} color={COLORS.amber} />
+                  <View style={[styles.statusIcon, { backgroundColor: colors.amberLight }]}>
+                    <Ionicons name="time" size={18} color={colors.amber} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.statusTitle}>Session en cours</Text>
@@ -1157,15 +1157,15 @@ export default function SessionScreen({ navigation }: any) {
                   // @ts-ignore - web-only className
                   className="glass-primary"
                 >
-                  <Ionicons name="play" size={18} color={COLORS.white} />
+                  <Ionicons name="play" size={18} color={colors.white} />
                   <Text style={styles.primaryBtnText}>Reprendre</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <View style={{ gap: 12 }}>
                 <View style={styles.statusRow}>
-                  <View style={[styles.statusIcon, { backgroundColor: COLORS.slateLight }]}>
-                    <Ionicons name="add" size={18} color={COLORS.slate} />
+                  <View style={[styles.statusIcon, { backgroundColor: colors.slateLight }]}>
+                    <Ionicons name="add" size={18} color={colors.slate} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.statusTitle}>Aucune session</Text>
@@ -1178,7 +1178,7 @@ export default function SessionScreen({ navigation }: any) {
                   // @ts-ignore - web-only className
                   className="glass-primary"
                 >
-                  <Ionicons name="add" size={18} color={COLORS.white} />
+                  <Ionicons name="add" size={18} color={colors.white} />
                   <Text style={styles.primaryBtnText}>Démarrer la session</Text>
                 </TouchableOpacity>
               </View>
@@ -1193,7 +1193,7 @@ export default function SessionScreen({ navigation }: any) {
             // @ts-ignore - web-only className
             className="glass-primary"
           >
-            <Ionicons name="add" size={18} color={COLORS.white} />
+            <Ionicons name="add" size={18} color={colors.white} />
             <Text style={styles.primaryBtnText}>Démarrer la session d'aujourd'hui</Text>
           </TouchableOpacity>
         )}
@@ -1203,8 +1203,8 @@ export default function SessionScreen({ navigation }: any) {
           <Text style={styles.historySectionTitle}>Sessions récentes</Text>
           {pastSessions.slice(0, 15).map((s, i) => (
             <TouchableOpacity key={s.id} style={[styles.historyRow, i === 0 && { borderTopWidth: 0 }]} onPress={() => openJournal(s)}>
-              <View style={[styles.historyDot, { backgroundColor: s.closed ? COLORS.emeraldLight : COLORS.amberLight }]}>
-                <Ionicons name={s.closed ? 'checkmark' : 'time'} size={12} color={s.closed ? COLORS.emerald : COLORS.amber} />
+              <View style={[styles.historyDot, { backgroundColor: s.closed ? colors.emeraldLight : colors.amberLight }]}>
+                <Ionicons name={s.closed ? 'checkmark' : 'time'} size={12} color={s.closed ? colors.emerald : colors.amber} />
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.historyDate}>{dateLabelLong(s.date)}</Text>
@@ -1212,16 +1212,16 @@ export default function SessionScreen({ navigation }: any) {
               </View>
               <View style={{ alignItems: 'flex-end', gap: 2 }}>
                 <Text style={styles.historyRevenue}>{fmt(s.total_revenue)}</Text>
-                <Text style={[styles.historyNet, { color: s.total_profit >= 0 ? COLORS.emerald : COLORS.rose }]}>
+                <Text style={[styles.historyNet, { color: s.total_profit >= 0 ? colors.emerald : colors.rose }]}>
                   {s.total_profit >= 0 ? '+' : ''}{fmt(s.total_profit)}
                 </Text>
               </View>
-              <Ionicons name="chevron-forward" size={16} color={COLORS.slateLight} />
+              <Ionicons name="chevron-forward" size={16} color={colors.slateLight} />
             </TouchableOpacity>
           ))}
           {pastSessions.length === 0 && (
             <View style={styles.emptyState}>
-              <Ionicons name="calendar-outline" size={40} color={COLORS.slateLight} />
+              <Ionicons name="calendar-outline" size={40} color={colors.slateLight} />
               <Text style={styles.emptyStateText}>Aucune session clôturée</Text>
             </View>
           )}
@@ -1259,7 +1259,7 @@ export default function SessionScreen({ navigation }: any) {
             className={b.secondary ? "glass-button" : "glass-primary"}
           >
             {b.loading
-              ? <ActivityIndicator color={COLORS.white} size="small" />
+              ? <ActivityIndicator color={colors.white} size="small" />
               : <Text style={b.secondary ? styles.footerBtnSecondaryText : styles.footerBtnPrimaryText}>{b.label}</Text>}
           </TouchableOpacity>
         ))}
@@ -1279,7 +1279,7 @@ export default function SessionScreen({ navigation }: any) {
             const s = closedToday ?? openSession ?? pastSessions[0]
             if (s) openJournal(s)
           }} style={{ padding: 4 }}>
-            <Ionicons name="journal-outline" size={22} color={COLORS.primary} />
+            <Ionicons name="journal-outline" size={22} color={colors.primary} />
           </TouchableOpacity>
         ) : undefined}
       />
@@ -1326,101 +1326,103 @@ function PLRow({
   label: string; value: string; muted?: boolean; negative?: boolean
   highlight?: boolean; bold?: boolean; accent?: string
 }) {
+  const { colors } = useSettings()
+  const plr = useMemo(() => makePlr(colors), [colors])
   return (
     <View style={[plr.row, highlight && plr.rowHighlight]}>
       <Text style={[plr.label, muted && plr.muted]}>{label}</Text>
-      <Text style={[plr.value, bold && plr.bold, negative && { color: COLORS.rose }, accent ? { color: accent } : {}]}>
+      <Text style={[plr.value, bold && plr.bold, negative && { color: colors.rose }, accent ? { color: accent } : {}]}>
         {value}
       </Text>
     </View>
   )
 }
-const plr = StyleSheet.create({
+const makePlr = (colors: ThemeColors) => StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7 },
-  rowHighlight: { backgroundColor: COLORS.primaryLight + '40', marginHorizontal: -12, paddingHorizontal: 12, borderRadius: 8 },
-  label: { fontSize: 14, fontFamily: FONT.regular, color: COLORS.slate, flex: 1 },
-  muted: { fontSize: 12, color: COLORS.slate },
-  value: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.slateDark, fontVariant: ['tabular-nums'] },
+  rowHighlight: { backgroundColor: colors.primaryLight + '40', marginHorizontal: -12, paddingHorizontal: 12, borderRadius: 8 },
+  label: { fontSize: 14, fontFamily: FONT.regular, color: colors.slate, flex: 1 },
+  muted: { fontSize: 12, color: colors.slate },
+  value: { fontSize: 14, fontFamily: FONT.semibold, color: colors.slateDark, fontVariant: ['tabular-nums'] },
   bold: { fontSize: 16, fontFamily: FONT.bold },
 })
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surface },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.surface },
 
   // step hint
   stepHintBox: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: colors.primaryLight,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  stepHintText: { flex: 1, fontSize: 12, fontFamily: FONT.regular, color: COLORS.primary, lineHeight: 16 },
+  stepHintText: { flex: 1, fontSize: 12, fontFamily: FONT.regular, color: colors.primary, lineHeight: 16 },
 
   // search + filter
   toolbar: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 2 },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
-  searchInput: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: COLORS.slateDark },
+  searchInput: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: colors.slateDark },
   catScroll: { maxHeight: 38 },
   catScrollContent: { gap: 6, paddingHorizontal: 12, paddingVertical: 4 },
   catChip: {
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 20,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
-  catChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  catChipText: { fontSize: 12, fontFamily: FONT.semibold, color: COLORS.slate },
-  catChipTextActive: { color: COLORS.white },
+  catChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  catChipText: { fontSize: 12, fontFamily: FONT.semibold, color: colors.slate },
+  catChipTextActive: { color: colors.white },
 
   listContent: { paddingHorizontal: 12, paddingTop: 4 },
-  groupLabel: { fontSize: 12, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 4 },
+  groupLabel: { fontSize: 12, fontFamily: FONT.bold, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 4 },
 
   // PURCHASE CARDS
   purchaseCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     ...Platform.select({ web: { boxShadow: '0 1px 4px rgba(0,0,0,0.05)' } }),
   },
   purchaseCardActive: {
-    borderColor: COLORS.primary,
+    borderColor: colors.primary,
     ...Platform.select({ web: { boxShadow: '0 2px 8px rgba(24,119,242,0.12)' } }),
   },
   purchaseCardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10 },
-  drinkName: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.slateDark, marginBottom: 2, flexShrink: 1 },
-  drinkCat: { fontSize: 11, fontFamily: FONT.medium, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.5 },
+  drinkName: { fontSize: 15, fontFamily: FONT.semibold, color: colors.slateDark, marginBottom: 2, flexShrink: 1 },
+  drinkCat: { fontSize: 11, fontFamily: FONT.medium, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.5 },
   stockTag: {
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
-    backgroundColor: COLORS.slateLight,
+    backgroundColor: colors.slateLight,
     minWidth: 70,
   },
-  stockTagLabel: { fontSize: 9, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 },
-  stockTagValue: { fontSize: 12, fontFamily: FONT.bold, color: COLORS.slateDark },
-  dividerLight: { height: 1, backgroundColor: COLORS.border, marginVertical: 8 },
+  stockTagLabel: { fontSize: 9, fontFamily: FONT.bold, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 },
+  stockTagValue: { fontSize: 12, fontFamily: FONT.bold, color: colors.slateDark },
+  dividerLight: { height: 1, backgroundColor: colors.border, marginVertical: 8 },
   purchaseInputRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  inputLabel: { fontSize: 12, fontFamily: FONT.medium, color: COLORS.slate, marginBottom: 2 },
-  unitConversion: { fontSize: 11, fontFamily: FONT.regular, color: COLORS.primary, marginTop: 2 },
+  inputLabel: { fontSize: 12, fontFamily: FONT.medium, color: colors.slate, marginBottom: 2 },
+  unitConversion: { fontSize: 11, fontFamily: FONT.regular, color: colors.primary, marginTop: 2 },
   afterDelivery: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1428,22 +1430,22 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: colors.border,
   },
-  afterDeliveryText: { fontSize: 12, fontFamily: FONT.semibold, color: COLORS.emerald },
+  afterDeliveryText: { fontSize: 12, fontFamily: FONT.semibold, color: colors.emerald },
 
   // INVENTORY CARDS
   inventoryCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     ...Platform.select({ web: { boxShadow: '0 1px 4px rgba(0,0,0,0.05)' } }),
   },
   inventoryCardActive: {
-    borderColor: COLORS.primary + '60',
+    borderColor: colors.primary + '60',
     ...Platform.select({ web: { boxShadow: '0 2px 8px rgba(24,119,242,0.1)' } }),
   },
   inventoryMainRow: {
@@ -1480,16 +1482,16 @@ const styles = StyleSheet.create({
   mobileBreakdownValue: {
     fontSize: 11,
     fontFamily: FONT.semibold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     fontVariant: ['tabular-nums'],
   },
   mobileBreakdownValuePositive: {
-    color: COLORS.emerald,
+    color: colors.emerald,
   },
   mobileBreakdownOperator: {
     fontSize: 10,
     fontFamily: FONT.medium,
-    color: COLORS.slate,
+    color: colors.slate,
     marginHorizontal: 2,
   },
   mobileStockTotal: {
@@ -1497,13 +1499,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 10,
     paddingVertical: 6,
-    backgroundColor: COLORS.slateLight + '40',
+    backgroundColor: colors.slateLight + '40',
     borderRadius: 8,
   },
   mobileStockTotalLabel: {
     fontSize: 8,
     fontFamily: FONT.bold,
-    color: COLORS.slate,
+    color: colors.slate,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
     marginBottom: 2,
@@ -1511,21 +1513,21 @@ const styles = StyleSheet.create({
   mobileStockTotalValue: {
     fontSize: 14,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     fontVariant: ['tabular-nums'],
   },
   inventoryDivider: {
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: colors.border,
     marginVertical: 4,
   },
   inventoryRight: {
     borderWidth: 1.5,
-    borderColor: COLORS.primary + '20',
+    borderColor: colors.primary + '20',
     borderRadius: 12,
     padding: 12,
     gap: 8,
-    backgroundColor: COLORS.primaryLight + '15',
+    backgroundColor: colors.primaryLight + '15',
     minWidth: 280,
     ...Platform.select({
       web: { boxShadow: '0 1px 3px rgba(24,119,242,0.08)' },
@@ -1535,7 +1537,7 @@ const styles = StyleSheet.create({
   inventoryStockInfo: {
     fontSize: 11,
     fontFamily: FONT.medium,
-    color: COLORS.slate,
+    color: colors.slate,
     marginTop: 3
   },
   stockBreakdown: {
@@ -1550,7 +1552,7 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   stockItemTotal: {
-    backgroundColor: COLORS.slateLight + '40',
+    backgroundColor: colors.slateLight + '40',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -1558,33 +1560,33 @@ const styles = StyleSheet.create({
   stockItemLabel: {
     fontSize: 8,
     fontFamily: FONT.medium,
-    color: COLORS.slate,
+    color: colors.slate,
     textTransform: 'uppercase',
     letterSpacing: 0.2,
   },
   stockItemValue: {
     fontSize: 12,
     fontFamily: FONT.semibold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     fontVariant: ['tabular-nums'],
   },
   stockItemValuePositive: {
-    color: COLORS.emerald,
+    color: colors.emerald,
   },
   stockItemValueTotal: {
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     fontSize: 12,
   },
   stockOperator: {
     fontSize: 11,
     fontFamily: FONT.medium,
-    color: COLORS.slate,
+    color: colors.slate,
     marginHorizontal: 1,
   },
   countingLabel: {
     fontSize: 10,
     fontFamily: FONT.bold,
-    color: COLORS.primary,
+    color: colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 0.5
   },
@@ -1601,12 +1603,12 @@ const styles = StyleSheet.create({
   stepperLabel: {
     fontSize: 11,
     fontFamily: FONT.semibold,
-    color: COLORS.slateDark
+    color: colors.slateDark
   },
   countTotal: {
     fontSize: 10,
     fontFamily: FONT.medium,
-    color: COLORS.primary,
+    color: colors.primary,
     textAlign: 'center',
     marginTop: 2
   },
@@ -1618,53 +1620,53 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: colors.border,
   },
   soldResultLeft: { flex: 1 },
-  soldResultLabel: { fontSize: 10, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 },
-  soldResultQty: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.slateDark },
-  soldResultRevenue: { fontSize: 15, fontFamily: FONT.bold, color: COLORS.emerald, fontVariant: ['tabular-nums'] },
+  soldResultLabel: { fontSize: 10, fontFamily: FONT.bold, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 },
+  soldResultQty: { fontSize: 13, fontFamily: FONT.semibold, color: colors.slateDark },
+  soldResultRevenue: { fontSize: 15, fontFamily: FONT.bold, color: colors.emerald, fontVariant: ['tabular-nums'] },
 
   // SUMMARY
   summaryContent: { padding: 12 },
   plHero: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     ...Platform.select({ web: { boxShadow: '0 2px 12px rgba(0,0,0,0.06)' } }),
   },
-  plHeroTitle: { fontSize: 13, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  plHeroTitle: { fontSize: 13, fontFamily: FONT.bold, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
   plHeroNet: { fontSize: 36, fontFamily: FONT.extrabold, fontVariant: ['tabular-nums'], letterSpacing: -1 },
-  plHeroLabel: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 2, marginBottom: 16 },
+  plHeroLabel: { fontSize: 12, fontFamily: FONT.regular, color: colors.slate, marginTop: 2, marginBottom: 16 },
   plHeroStats: { flexDirection: 'row', gap: 8, width: '100%' },
 
   plCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
-  sectionTitle: { fontSize: 15, fontFamily: FONT.bold, color: COLORS.slateDark, marginBottom: 12 },
-  plDivider: { height: 1, backgroundColor: COLORS.border, marginVertical: 6 },
+  sectionTitle: { fontSize: 15, fontFamily: FONT.bold, color: colors.slateDark, marginBottom: 12 },
+  plDivider: { height: 1, backgroundColor: colors.border, marginVertical: 6 },
 
   // comprehensive table
   tableCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 14,
     overflow: 'hidden',
     marginBottom: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
   tableCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingBottom: 0 },
-  countBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: COLORS.primaryLight },
-  countBadgeText: { fontSize: 12, fontFamily: FONT.bold, color: COLORS.primary },
+  countBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: colors.primaryLight },
+  countBadgeText: { fontSize: 12, fontFamily: FONT.bold, color: colors.primary },
   tableScrollContainer: {
     width: '100%',
   },
@@ -1689,45 +1691,45 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1.5,
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primaryLight,
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
     ...Platform.select({ web: { cursor: 'pointer', boxShadow: '0 2px 8px rgba(24,119,242,0.15)' } }),
   },
-  printRecapBtnText: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.primary },
+  printRecapBtnText: { fontSize: 14, fontFamily: FONT.semibold, color: colors.primary },
   tableHead: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginTop: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: colors.border,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
-  th: { fontSize: 9, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
+  th: { fontSize: 9, fontFamily: FONT.bold, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
   thArticle: { width: 120, minWidth: 120, paddingRight: 12 },
   thNum: { width: 50, minWidth: 50, textAlign: 'right', paddingHorizontal: 6 },
   thMoney: { width: 70, minWidth: 70, textAlign: 'right', paddingHorizontal: 6 },
-  thAccent: { color: COLORS.primary },
-  tableRow: { flexDirection: 'row', paddingVertical: 8, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center' },
-  tableRowEven: { backgroundColor: COLORS.surface + '60' },
-  td: { fontSize: 11, fontFamily: FONT.medium, color: COLORS.slateDark },
+  thAccent: { color: colors.primary },
+  tableRow: { flexDirection: 'row', paddingVertical: 8, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: colors.border, alignItems: 'center' },
+  tableRowEven: { backgroundColor: colors.surface + '60' },
+  td: { fontSize: 11, fontFamily: FONT.medium, color: colors.slateDark },
   tdArticle: { width: 120, minWidth: 120, paddingRight: 12 },
   tdNum: { width: 50, minWidth: 50, textAlign: 'right', fontFamily: FONT.semibold, fontVariant: ['tabular-nums'], paddingHorizontal: 6 },
-  tdMoney: { width: 70, minWidth: 70, textAlign: 'right', fontFamily: FONT.bold, color: COLORS.primary, fontVariant: ['tabular-nums'], fontSize: 10, paddingHorizontal: 6 },
-  tdPositive: { color: COLORS.primary },
-  tdAccent: { color: COLORS.primary },
+  tdMoney: { width: 70, minWidth: 70, textAlign: 'right', fontFamily: FONT.bold, color: colors.primary, fontVariant: ['tabular-nums'], fontSize: 10, paddingHorizontal: 6 },
+  tdPositive: { color: colors.primary },
+  tdAccent: { color: colors.primary },
   tableTotalRow: {
     flexDirection: 'row',
     paddingVertical: 12,
     paddingHorizontal: 12,
-    backgroundColor: COLORS.primaryLight + '50',
+    backgroundColor: colors.primaryLight + '50',
     borderTopWidth: 1.5,
-    borderTopColor: COLORS.primary + '40',
+    borderTopColor: colors.primary + '40',
     alignItems: 'center',
   },
-  tdTotal: { fontSize: 13, fontFamily: FONT.bold, color: COLORS.slateDark },
+  tdTotal: { fontSize: 13, fontFamily: FONT.bold, color: colors.slateDark },
 
   // DONE / HISTORY
   calendarWrap: {
@@ -1736,64 +1738,64 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.white,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
     paddingBottom: 16,
   },
   dateStatusCard: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     marginHorizontal: 12,
     marginTop: 12,
     borderRadius: 14,
     padding: 18,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
   dateStatusHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  dateStatusTitle: { fontSize: 16, fontFamily: FONT.bold, color: COLORS.slateDark, flex: 1, marginRight: 8 },
-  todayPill: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: COLORS.primaryLight, borderRadius: 20 },
-  todayPillText: { fontSize: 11, fontFamily: FONT.bold, color: COLORS.primary },
+  dateStatusTitle: { fontSize: 16, fontFamily: FONT.bold, color: colors.slateDark, flex: 1, marginRight: 8 },
+  todayPill: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: colors.primaryLight, borderRadius: 20 },
+  todayPillText: { fontSize: 11, fontFamily: FONT.bold, color: colors.primary },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   statusIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  statusTitle: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.slateDark },
-  statusSub: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 2 },
+  statusTitle: { fontSize: 15, fontFamily: FONT.semibold, color: colors.slateDark },
+  statusSub: { fontSize: 12, fontFamily: FONT.regular, color: colors.slate, marginTop: 2 },
 
   primaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     paddingVertical: 13,
     paddingHorizontal: 20,
     borderRadius: 12,
     ...Platform.select({ web: { boxShadow: '0 4px 12px rgba(24,119,242,0.25)', cursor: 'pointer' } }),
   },
-  primaryBtnText: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.white },
+  primaryBtnText: { fontSize: 15, fontFamily: FONT.semibold, color: colors.white },
 
   historySection: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     marginHorizontal: 12,
     marginTop: 12,
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
-  historySectionTitle: { fontSize: 15, fontFamily: FONT.bold, color: COLORS.slateDark, padding: 16, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  historySectionTitle: { fontSize: 15, fontFamily: FONT.bold, color: colors.slateDark, padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
   historyRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: colors.border,
     gap: 12,
   },
   historyDot: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  historyDate: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.slateDark },
-  historyMeta: { fontSize: 11, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 1 },
-  historyRevenue: { fontSize: 14, fontFamily: FONT.bold, color: COLORS.slateDark, fontVariant: ['tabular-nums'] },
+  historyDate: { fontSize: 13, fontFamily: FONT.semibold, color: colors.slateDark },
+  historyMeta: { fontSize: 11, fontFamily: FONT.regular, color: colors.slate, marginTop: 1 },
+  historyRevenue: { fontSize: 14, fontFamily: FONT.bold, color: colors.slateDark, fontVariant: ['tabular-nums'] },
   historyNet: { fontSize: 12, fontFamily: FONT.semibold, fontVariant: ['tabular-nums'] },
 
   // FOOTER
@@ -1802,27 +1804,27 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: colors.border,
     ...Platform.select({ web: { boxShadow: '0 -2px 8px rgba(0,0,0,0.04)' } }),
   },
   footerBtn: { flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   footerBtnPrimary: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     flex: 2,
     ...Platform.select({ web: { boxShadow: '0 4px 12px rgba(24,119,242,0.25)' } }),
   },
-  footerBtnSecondary: { backgroundColor: COLORS.slateLight },
-  footerBtnPrimaryText: { fontSize: 14, fontFamily: FONT.bold, color: COLORS.white },
-  footerBtnSecondaryText: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.slate },
+  footerBtnSecondary: { backgroundColor: colors.slateLight },
+  footerBtnPrimaryText: { fontSize: 14, fontFamily: FONT.bold, color: colors.white },
+  footerBtnSecondaryText: { fontSize: 14, fontFamily: FONT.semibold, color: colors.slate },
 
   // desktop split
-  desktopSplit: { flex: 1, flexDirection: 'row', backgroundColor: COLORS.surface },
-  desktopLeft: { width: '42%', backgroundColor: COLORS.surface, borderRightWidth: 1, borderRightColor: COLORS.border },
+  desktopSplit: { flex: 1, flexDirection: 'row', backgroundColor: colors.surface },
+  desktopLeft: { width: '42%', backgroundColor: colors.surface, borderRightWidth: 1, borderRightColor: colors.border },
   desktopRight: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     ...Platform.select({ web: { boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06)' } }),
   },
   desktopCloseBtn: {
@@ -1833,7 +1835,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.slateLight,
+    backgroundColor: colors.slateLight,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({ web: { cursor: 'pointer' } }),
@@ -1841,5 +1843,5 @@ const styles = StyleSheet.create({
 
   // shared
   emptyState: { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  emptyStateText: { fontSize: 14, fontFamily: FONT.regular, color: COLORS.slate },
+  emptyStateText: { fontSize: 14, fontFamily: FONT.regular, color: colors.slate },
 })

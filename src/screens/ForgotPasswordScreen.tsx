@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -12,7 +13,7 @@ import {
 } from 'react-native'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
-import { COLORS, FONT } from '../utils/helpers'
+import { FONT, ThemeColors } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
 import { Ionicons } from '@expo/vector-icons'
 
@@ -21,6 +22,8 @@ interface ForgotPasswordScreenProps {
 }
 
 export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScreenProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const { resetPassword } = useAuth()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
@@ -73,7 +76,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
         <View style={styles.formContainer}>
           <View style={styles.header}>
             <View style={styles.iconContainer}>
-              <Ionicons name="key" size={48} color={COLORS.primary} />
+              <Ionicons name="key" size={48} color={colors.primary} />
             </View>
             <Text style={styles.title}>Mot de passe oublié</Text>
             <Text style={styles.subtitle}>
@@ -104,7 +107,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
             {loading && (
               <ActivityIndicator
                 size="small"
-                color={COLORS.primary}
+                color={colors.primary}
                 style={styles.loader}
               />
             )}
@@ -119,10 +122,10 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: Platform.OS === 'web' ? COLORS.surface : COLORS.white,
+    backgroundColor: Platform.OS === 'web' ? colors.surface : colors.white,
   },
   scrollContent: {
     flexGrow: 1,
@@ -137,7 +140,7 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
     ...Platform.select({
       web: {
-        backgroundColor: COLORS.white,
+        backgroundColor: colors.white,
         borderRadius: 16,
         padding: 32,
         shadowColor: '#000',
@@ -158,7 +161,7 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 16,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
@@ -166,13 +169,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 26,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 13,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
+    color: colors.slate,
     textAlign: 'center',
     paddingHorizontal: 0,
     lineHeight: 19,
@@ -189,7 +192,7 @@ const styles = StyleSheet.create({
   backLink: {
     fontSize: 14,
     fontFamily: FONT.semibold,
-    color: COLORS.primary,
+    color: colors.primary,
     textAlign: 'center',
   },
 })

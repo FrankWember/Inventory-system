@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -20,13 +21,15 @@ import { supabase } from '../lib/supabase'
 import { Session, Drink } from '../types'
 import { Card, CardHeader, CardContent } from '../components/Card'
 import { Badge } from '../components/Badge'
-import { COLORS, fmt, fmtNum, fmtShort, fmtShortBare, dateLabel, dateLabelLong, getCategoryColor } from '../utils/helpers'
+import { fmt, fmtNum, fmtShort, fmtShortBare, dateLabel, dateLabelLong, getCategoryColor, ThemeColors } from '../utils/helpers'
 
 const BREAKPOINT = 768
 
 type TrendsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>
 
 export default function TrendsScreen() {
+  const { colors, theme } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const navigation = useNavigation<TrendsScreenNavigationProp>()
   const [sessions, setSessions] = useState<Session[]>([])
   const [drinks, setDrinks] = useState<Drink[]>([])
@@ -88,9 +91,9 @@ export default function TrendsScreen() {
       chartSessions.map(s => ({
         label: dateLabel(s.date).split(' ').slice(0, 2).join(' '),
         value: s.total_revenue,
-        color: COLORS.primary,
+        color: colors.primary,
       })),
-    [chartSessions]
+    [chartSessions, colors]
   )
 
   const profitChartData = useMemo(
@@ -98,9 +101,9 @@ export default function TrendsScreen() {
       chartSessions.map(s => ({
         label: dateLabel(s.date).split(' ').slice(0, 2).join(' '),
         value: s.total_profit,
-        color: s.total_profit >= 0 ? COLORS.primary : COLORS.rose,
+        color: s.total_profit >= 0 ? colors.primary : colors.rose,
       })),
-    [chartSessions]
+    [chartSessions, colors]
   )
 
   const drinkPerformance = useMemo(() => {
@@ -126,9 +129,9 @@ export default function TrendsScreen() {
         .map(d => ({
           label: d.drink.name.length > 12 ? d.drink.name.slice(0, 11) + '…' : d.drink.name,
           value: d.revenue,
-          color: COLORS.primary,
+          color: colors.primary,
         })),
-    [drinkPerformance]
+    [drinkPerformance, colors]
   )
 
   const top10Chart = useMemo(
@@ -136,8 +139,8 @@ export default function TrendsScreen() {
       drinkPerformance
         .filter(d => d.revenue > 0)
         .slice(0, 10)
-        .map(d => ({ label: d.drink.name, value: d.revenue, color: COLORS.primary })),
-    [drinkPerformance]
+        .map(d => ({ label: d.drink.name, value: d.revenue, color: colors.primary })),
+    [drinkPerformance, colors]
   )
 
   const categoryMix = useMemo(() => {
@@ -146,9 +149,9 @@ export default function TrendsScreen() {
       if (revenue > 0) byCat[drink.category] = (byCat[drink.category] ?? 0) + revenue
     }
     return Object.entries(byCat)
-      .map(([label, value]) => ({ label, value, color: getCategoryColor(label) }))
+      .map(([label, value]) => ({ label, value, color: getCategoryColor(label, theme) }))
       .sort((a, b) => b.value - a.value)
-  }, [drinkPerformance])
+  }, [drinkPerformance, theme])
 
   if (loading) {
     return (
@@ -217,7 +220,7 @@ export default function TrendsScreen() {
           <View style={styles.kpi}>
             <Text style={styles.kpiLabel}>Profit</Text>
             <Text
-              style={[styles.kpiValue, { color: totalProfit >= 0 ? COLORS.primary : COLORS.rose }]}
+              style={[styles.kpiValue, { color: totalProfit >= 0 ? colors.primary : colors.rose }]}
               numberOfLines={1}
             >
               {fmtShort(totalProfit)}
@@ -318,11 +321,11 @@ export default function TrendsScreen() {
   )
 }
 
-const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: COLORS.surface },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  wrapper: { flex: 1, backgroundColor: colors.surface },
   container: { flex: 1 },
   scrollContent: { padding: 12, paddingBottom: 24 },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.surface },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surface },
   chartRow: { flexDirection: 'row', gap: 12, marginBottom: 12 },
   chartHalf: { flex: 1 },
   periodSelector: { flexDirection: 'row', gap: 10, marginBottom: 12 },
@@ -331,7 +334,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     alignItems: 'center',
     borderRadius: 12,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -339,18 +342,18 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   periodButtonActive: {
-    backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 3,
   },
-  periodButtonText: { fontSize: 14, fontWeight: '600', color: COLORS.slate },
-  periodButtonTextActive: { color: COLORS.white },
+  periodButtonText: { fontSize: 14, fontWeight: '600', color: colors.slate },
+  periodButtonTextActive: { color: colors.white },
   kpiRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
   kpi: {
     flex: 1,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 14,
     padding: 16,
     shadowColor: '#000',
@@ -359,21 +362,21 @@ const styles = StyleSheet.create({
     shadowRadius: 6,
     elevation: 3,
   },
-  kpiLabel: { fontSize: 12, color: COLORS.slate, fontWeight: '600', textTransform: 'uppercase' },
-  kpiValue: { fontSize: 20, fontWeight: '700', color: COLORS.slateDark, marginTop: 6 },
+  kpiLabel: { fontSize: 12, color: colors.slate, fontWeight: '600', textTransform: 'uppercase' },
+  kpiValue: { fontSize: 20, fontWeight: '700', color: colors.slateDark, marginTop: 6 },
   performanceItem: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
     gap: 8,
   },
-  performanceNumber: { width: 22, fontSize: 14, fontWeight: '700', color: COLORS.slate },
+  performanceNumber: { width: 22, fontSize: 14, fontWeight: '700', color: colors.slate },
   performanceInfo: { flex: 1 },
-  performanceName: { fontSize: 14, fontWeight: '600', color: COLORS.slateDark },
-  performanceDetails: { fontSize: 12, color: COLORS.slate, marginTop: 2 },
+  performanceName: { fontSize: 14, fontWeight: '600', color: colors.slateDark },
+  performanceDetails: { fontSize: 12, color: colors.slate, marginTop: 2 },
   performanceRight: { alignItems: 'flex-end', gap: 4 },
-  performanceRevenue: { fontSize: 12, fontWeight: '700', color: COLORS.primary },
-  empty: { fontSize: 13, color: COLORS.slate, textAlign: 'center', padding: 12 },
+  performanceRevenue: { fontSize: 12, fontWeight: '700', color: colors.primary },
+  empty: { fontSize: 13, color: colors.slate, textAlign: 'center', padding: 12 },
 })

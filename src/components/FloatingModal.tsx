@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -8,7 +9,7 @@ import {
   Platform,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { COLORS, FONT } from '../utils/helpers'
+import { FONT, ThemeColors } from '../utils/helpers'
 
 interface FloatingModalProps {
   visible: boolean
@@ -18,6 +19,8 @@ interface FloatingModalProps {
 }
 
 export function FloatingModal({ visible, onClose, title, children }: FloatingModalProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <Modal
       visible={visible}
@@ -36,7 +39,7 @@ export function FloatingModal({ visible, onClose, title, children }: FloatingMod
             <View style={styles.header}>
               <Text style={styles.headerTitle}>{title}</Text>
               <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-                <Ionicons name="close" size={24} color={COLORS.slateDark} />
+                <Ionicons name="close" size={24} color={colors.slateDark} />
               </TouchableOpacity>
             </View>
           )}
@@ -47,7 +50,7 @@ export function FloatingModal({ visible, onClose, title, children }: FloatingMod
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   overlay: {
     flex: 1,
     justifyContent: 'center',
@@ -61,7 +64,7 @@ const styles = StyleSheet.create({
     width: '90%',
     maxWidth: 500,
     maxHeight: '85%',
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 20,
     ...Platform.select({
       web: {
@@ -83,15 +86,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.white,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.white,
     borderTopLeftRadius: 20,
     borderTopRightRadius: 20,
   },
   headerTitle: {
     fontSize: 18,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     flex: 1,
   },
   closeButton: {

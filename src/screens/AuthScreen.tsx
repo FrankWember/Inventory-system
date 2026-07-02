@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useMemo, useState, useEffect, useRef } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -15,7 +16,7 @@ import {
 import { Input } from '../components/Input'
 import { PhoneInput } from '../components/PhoneInput'
 import { Button } from '../components/Button'
-import { COLORS, FONT } from '../utils/helpers'
+import { FONT, ThemeColors } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
 import { Ionicons } from '@expo/vector-icons'
 
@@ -28,6 +29,8 @@ type AuthMethod = 'email' | 'phone'
 type AuthMode = 'signin' | 'signup'
 
 export default function AuthScreen({ navigation, route }: AuthScreenProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const { signIn, signInWithPhone, signUp } = useAuth()
 
   // Determine initial mode based on route or default to signin
@@ -239,7 +242,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           >
             <View style={styles.header}>
               <View style={styles.iconContainer}>
-                <Ionicons name="beer" size={48} color={COLORS.primary} />
+                <Ionicons name="beer" size={48} color={colors.primary} />
               </View>
               <Text style={styles.title}>
                 {mode === 'signin' ? 'BarTrack' : 'Créer un compte'}
@@ -264,7 +267,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
                   <Ionicons
                     name="call"
                     size={16}
-                    color={authMethod === 'phone' ? COLORS.white : COLORS.slate}
+                    color={authMethod === 'phone' ? colors.white : colors.slate}
                   />
                   <Text
                     style={[
@@ -286,7 +289,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
                   <Ionicons
                     name="mail"
                     size={16}
-                    color={authMethod === 'email' ? COLORS.white : COLORS.slate}
+                    color={authMethod === 'email' ? colors.white : colors.slate}
                   />
                   <Text
                     style={[
@@ -349,7 +352,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
                   <Ionicons
                     name={showPassword ? 'eye-off' : 'eye'}
                     size={20}
-                    color={COLORS.slate}
+                    color={colors.slate}
                   />
                 </TouchableOpacity>
               </View>
@@ -385,7 +388,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
               {loading && (
                 <ActivityIndicator
                   size="small"
-                  color={COLORS.primary}
+                  color={colors.primary}
                   style={styles.loader}
                 />
               )}
@@ -418,7 +421,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   backgroundImage: {
     flex: 1,
     width: '100%',
@@ -442,7 +445,7 @@ const styles = StyleSheet.create({
     width: '100%',
     maxWidth: 360,
     alignSelf: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.75)',
+    backgroundColor: colors.glass,
     borderRadius: 20,
     padding: 18,
     shadowColor: '#000',
@@ -465,7 +468,7 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 12,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 6,
@@ -473,13 +476,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 2,
   },
   subtitle: {
     fontSize: 12,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
+    color: colors.slate,
     textAlign: 'center',
   },
   form: {
@@ -487,7 +490,7 @@ const styles = StyleSheet.create({
   },
   authMethodToggle: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 3,
     marginBottom: 10,
@@ -503,8 +506,8 @@ const styles = StyleSheet.create({
     gap: 5,
   },
   toggleButtonActive: {
-    backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -513,11 +516,11 @@ const styles = StyleSheet.create({
   toggleText: {
     fontSize: 12,
     fontFamily: FONT.semibold,
-    color: COLORS.slate,
+    color: colors.slate,
     letterSpacing: -0.2,
   },
   toggleTextActive: {
-    color: COLORS.white,
+    color: colors.white,
   },
   passwordContainer: {
     position: 'relative',
@@ -531,7 +534,7 @@ const styles = StyleSheet.create({
   forgotPassword: {
     fontSize: 11,
     fontFamily: FONT.medium,
-    color: COLORS.primary,
+    color: colors.primary,
     textAlign: 'right',
     marginTop: -8,
     marginBottom: 12,
@@ -545,7 +548,7 @@ const styles = StyleSheet.create({
   terms: {
     fontSize: 9,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
+    color: colors.slate,
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 13,
@@ -559,12 +562,12 @@ const styles = StyleSheet.create({
   footerText: {
     fontSize: 13,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
+    color: colors.slate,
     marginRight: 4,
   },
   linkText: {
     fontSize: 13,
     fontFamily: FONT.semibold,
-    color: COLORS.primary,
+    color: colors.primary,
   },
 })

@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   TouchableOpacity,
   Text,
@@ -7,7 +8,7 @@ import {
   TextStyle,
   ActivityIndicator,
 } from 'react-native'
-import { COLORS } from '../utils/helpers'
+import { ThemeColors } from '../utils/helpers'
 
 interface ButtonProps {
   onPress: () => void
@@ -30,6 +31,8 @@ export function Button({
   style,
   textStyle,
 }: ButtonProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const buttonStyles = [
     styles.button,
     styles[`button_${variant}`],
@@ -54,7 +57,7 @@ export function Button({
       activeOpacity={0.7}
     >
       {loading ? (
-        <ActivityIndicator color={variant === 'outline' ? COLORS.primary : COLORS.white} />
+        <ActivityIndicator color={variant === 'outline' ? colors.primary : colors.white} />
       ) : (
         <Text style={textStyles}>{children}</Text>
       )}
@@ -62,7 +65,7 @@ export function Button({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   button: {
     borderRadius: 12,
     alignItems: 'center',
@@ -75,20 +78,20 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   button_primary: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   button_secondary: {
-    backgroundColor: COLORS.slate,
+    backgroundColor: colors.slate,
   },
   button_outline: {
     backgroundColor: 'transparent',
     borderWidth: 1.5,
-    borderColor: COLORS.primary,
+    borderColor: colors.primary,
     shadowOpacity: 0,
     elevation: 0,
   },
   button_danger: {
-    backgroundColor: COLORS.rose,
+    backgroundColor: colors.rose,
   },
   button_disabled: {
     opacity: 0.5,
@@ -109,16 +112,16 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   buttonText_primary: {
-    color: COLORS.white,
+    color: colors.white,
   },
   buttonText_secondary: {
-    color: COLORS.white,
+    color: colors.white,
   },
   buttonText_outline: {
-    color: COLORS.primary,
+    color: colors.primary,
   },
   buttonText_danger: {
-    color: COLORS.white,
+    color: colors.white,
   },
   buttonText_disabled: {
     opacity: 0.7,

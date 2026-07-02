@@ -3,12 +3,14 @@ import { Category } from '../types'
 // Design tokens live in src/styles/theme.ts — re-export here so every screen
 // that imports COLORS from '../utils/helpers' is themed from one source.
 export { COLORS, FONT, TYPE, SPACE, RADIUS, shadow, MAX_CONTENT, getColors, LIGHT_COLORS, DARK_COLORS } from '../styles/theme'
-import { COLORS } from '../styles/theme'
+export type { ThemeColors } from '../styles/theme'
+import { COLORS, ThemeColors } from '../styles/theme'
 
 // Category colors — a single tonal indigo→slate ramp keeps charts minimal
-// and cohesive rather than rainbow.
-export const getCategoryColor = (cat: string): string => {
-  const map: Record<string, string> = {
+// and cohesive rather than rainbow. Dark theme gets a brighter ramp so fills
+// stay legible on navy surfaces.
+export const getCategoryColor = (cat: string, theme: 'light' | 'dark' = 'light'): string => {
+  const light: Record<string, string> = {
     'Bière': '#3730A3',
     'Soda': '#4F46E5',
     'Jus': '#6366F1',
@@ -16,7 +18,16 @@ export const getCategoryColor = (cat: string): string => {
     'Vin': '#A5B4FC',
     'Autre': '#CBD5E1',
   }
-  return map[cat] ?? COLORS.slate
+  const dark: Record<string, string> = {
+    'Bière': '#C7D2FE',
+    'Soda': '#A5B4FC',
+    'Jus': '#818CF8',
+    'Eau': '#6366F1',
+    'Vin': '#4F46E5',
+    'Autre': '#475569',
+  }
+  const map = theme === 'dark' ? dark : light
+  return map[cat] ?? (theme === 'dark' ? '#8B9DC3' : COLORS.slate)
 }
 
 // Formatting Functions
@@ -158,14 +169,17 @@ export const getStockPct = (stock: number, minStock: number): number => {
   return Math.min(100, Math.round((stock / Math.max(stock, minStock * 2)) * 100))
 }
 
-export const getStockColor = (status: 'rupture' | 'low' | 'medium' | 'ok'): string => {
+export const getStockColor = (
+  status: 'rupture' | 'low' | 'medium' | 'ok',
+  colors: ThemeColors = COLORS,
+): string => {
   switch (status) {
     case 'rupture':
     case 'low':
-      return COLORS.rose
+      return colors.rose
     case 'medium':
-      return COLORS.primary
+      return colors.primary
     case 'ok':
-      return COLORS.primary
+      return colors.primary
   }
 }

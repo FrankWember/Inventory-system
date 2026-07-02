@@ -1,4 +1,5 @@
-import React, { useState, useRef, useCallback } from 'react'
+import React, { useMemo, useState, useRef, useCallback } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -12,7 +13,7 @@ import {
 } from 'react-native'
 import { Input } from '../components/Input'
 import { PhoneInput } from '../components/PhoneInput'
-import { COLORS, FONT } from '../utils/helpers'
+import { FONT, ThemeColors } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
 import { Ionicons } from '@expo/vector-icons'
 
@@ -38,6 +39,8 @@ function setStoredAuthMethod(method: AuthMethod) {
 }
 
 export default function SignInScreen({ navigation }: SignInScreenProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const { signIn, signInWithPhone } = useAuth()
   const [authMethod, setAuthMethod] = useState<AuthMethod>(getStoredAuthMethod)
   const [email, setEmail] = useState('')
@@ -143,7 +146,7 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.logoWrap}>
-                <Ionicons name="beer" size={28} color={COLORS.primary} />
+                <Ionicons name="beer" size={28} color={colors.primary} />
               </View>
               <Text style={styles.appName}>BarTrack</Text>
               <Text style={styles.tagline}>Gestion de bar simplifiée</Text>
@@ -204,7 +207,7 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
                 onPress={() => setShowPassword(v => !v)}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color={COLORS.slate} />
+                <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color={colors.slate} />
               </TouchableOpacity>
             </View>
 
@@ -219,7 +222,7 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
             {/* Inline error */}
             {error ? (
               <View style={styles.errorBox}>
-                <Ionicons name="alert-circle" size={15} color={COLORS.rose} />
+                <Ionicons name="alert-circle" size={15} color={colors.rose} />
                 <Text style={styles.errorText}>{error}</Text>
               </View>
             ) : null}
@@ -260,19 +263,22 @@ function ToggleBtn({ label, icon, active, onPress }: {
   active: boolean
   onPress: () => void
 }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <TouchableOpacity
       style={[styles.toggleBtn, active && styles.toggleBtnActive]}
       onPress={onPress}
       activeOpacity={0.8}
     >
-      <Ionicons name={icon} size={15} color={active ? COLORS.white : COLORS.slate} />
+      <Ionicons name={icon} size={15} color={active ? colors.white : colors.slate} />
       <Text style={[styles.toggleText, active && styles.toggleTextActive]}>{label}</Text>
     </TouchableOpacity>
   )
 }
 
 function LoadingDots() {
+  const { colors } = useSettings()
   const dot1 = useRef(new Animated.Value(0.4)).current
   const dot2 = useRef(new Animated.Value(0.4)).current
   const dot3 = useRef(new Animated.Value(0.4)).current
@@ -297,13 +303,13 @@ function LoadingDots() {
   return (
     <View style={{ flexDirection: 'row', gap: 6, alignItems: 'center' }}>
       {[dot1, dot2, dot3].map((dot, i) => (
-        <Animated.View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: COLORS.white, opacity: dot }} />
+        <Animated.View key={i} style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: colors.white, opacity: dot }} />
       ))}
     </View>
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   bg: { flex: 1, width: '100%', height: '100%' },
   flex: { flex: 1 },
   overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,20,40,0.45)' },
@@ -317,7 +323,7 @@ const styles = StyleSheet.create({
   card: {
     width: '100%',
     maxWidth: 380,
-    backgroundColor: 'rgba(255,255,255,0.96)',
+    backgroundColor: colors.glassStrong,
     borderRadius: 24,
     padding: 28,
     shadowColor: '#000',
@@ -334,11 +340,11 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 16,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 10,
-    shadowColor: COLORS.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -347,23 +353,23 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 26,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     letterSpacing: -0.5,
   },
   tagline: {
     fontSize: 13,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
+    color: colors.slate,
     marginTop: 2,
   },
   divider: {
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: colors.border,
     marginBottom: 20,
   },
   toggle: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 10,
     padding: 3,
     marginBottom: 16,
@@ -379,24 +385,24 @@ const styles = StyleSheet.create({
     gap: 6,
   },
   toggleBtnActive: {
-    backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.35,
     shadowRadius: 6,
     elevation: 4,
   },
-  toggleText: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.slate },
-  toggleTextActive: { color: COLORS.white },
+  toggleText: { fontSize: 13, fontFamily: FONT.semibold, color: colors.slate },
+  toggleTextActive: { color: colors.white },
   passwordWrap: { position: 'relative' },
   eyeBtn: { position: 'absolute', right: 12, top: 34, padding: 4 },
   forgotBtn: { alignSelf: 'flex-end', marginTop: -4, marginBottom: 16 },
-  forgotText: { fontSize: 12, fontFamily: FONT.medium, color: COLORS.primary },
+  forgotText: { fontSize: 12, fontFamily: FONT.medium, color: colors.primary },
   errorBox: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    backgroundColor: '#FEF2F2',
+    backgroundColor: colors.roseLight,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
@@ -404,14 +410,14 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#FECACA',
   },
-  errorText: { fontSize: 13, fontFamily: FONT.medium, color: COLORS.rose, flex: 1 },
+  errorText: { fontSize: 13, fontFamily: FONT.medium, color: colors.rose, flex: 1 },
   submitBtn: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 12,
     height: 52,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: COLORS.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.3,
     shadowRadius: 12,
@@ -419,8 +425,8 @@ const styles = StyleSheet.create({
   },
   submitBtnLoading: { opacity: 0.85 },
   submitInner: { alignItems: 'center', justifyContent: 'center' },
-  submitText: { fontSize: 16, fontFamily: FONT.semibold, color: COLORS.white, letterSpacing: 0.2 },
+  submitText: { fontSize: 16, fontFamily: FONT.semibold, color: colors.white, letterSpacing: 0.2 },
   footer: { flexDirection: 'row', justifyContent: 'center', marginTop: 20 },
-  footerText: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.slate },
-  footerLink: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.primary },
+  footerText: { fontSize: 13, fontFamily: FONT.regular, color: colors.slate },
+  footerLink: { fontSize: 13, fontFamily: FONT.semibold, color: colors.primary },
 })

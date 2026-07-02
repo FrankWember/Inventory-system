@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -10,7 +11,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../lib/supabase'
 import { Expense, ExpenseCategory } from '../types'
-import { COLORS, fmt } from '../utils/helpers'
+import { fmt, ThemeColors } from '../utils/helpers'
 
 const CATEGORIES: ExpenseCategory[] = [
   'Approvisionnement', 'Salaires', 'Loyer', 'Électricité/Eau', 'Réparations', 'Transport', 'Autre',
@@ -24,6 +25,8 @@ interface SessionExpensesPanelProps {
 }
 
 export function SessionExpensesPanel({ date, expenses, onChange, readOnly = false }: SessionExpensesPanelProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [showForm, setShowForm] = useState(false)
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
@@ -83,7 +86,7 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
       {expenses.map(exp => (
         <View key={exp.id} style={styles.row}>
           <View style={styles.rowIcon}>
-            <Ionicons name="receipt-outline" size={18} color={COLORS.rose} />
+            <Ionicons name="receipt-outline" size={18} color={colors.rose} />
           </View>
           <View style={styles.rowBody}>
             <Text style={styles.rowDesc}>{exp.description}</Text>
@@ -92,7 +95,7 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
           <Text style={styles.rowAmt}>-{fmt(exp.amount)}</Text>
           {!readOnly && (
             <TouchableOpacity onPress={() => deleteExpense(exp.id)} hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}>
-              <Ionicons name="trash-outline" size={18} color={COLORS.slate} />
+              <Ionicons name="trash-outline" size={18} color={colors.slate} />
             </TouchableOpacity>
           )}
         </View>
@@ -111,7 +114,7 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
                 placeholder="Description (ex: Transport livraison)"
                 value={description}
                 onChangeText={setDescription}
-                placeholderTextColor={COLORS.slate}
+                placeholderTextColor={colors.slate}
               />
               <TextInput
                 style={styles.input}
@@ -119,7 +122,7 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="number-pad"
-                placeholderTextColor={COLORS.slate}
+                placeholderTextColor={colors.slate}
               />
               <ScrollCategories category={category} onSelect={setCategory} />
               <View style={styles.formActions}>
@@ -137,7 +140,7 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
             </View>
           ) : (
             <TouchableOpacity style={styles.addBtn} onPress={() => setShowForm(true)}>
-              <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
+              <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
               <Text style={styles.addText}>Ajouter une dépense</Text>
             </TouchableOpacity>
           )}
@@ -154,6 +157,8 @@ function ScrollCategories({
   category: ExpenseCategory
   onSelect: (c: ExpenseCategory) => void
 }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={styles.catWrap}>
       {CATEGORIES.map(c => (
@@ -169,13 +174,13 @@ function ScrollCategories({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     marginBottom: 12,
   },
   header: {
@@ -184,29 +189,29 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  title: { fontSize: 15, fontWeight: '700', color: COLORS.slateDark },
-  total: { fontSize: 15, fontWeight: '700', color: COLORS.rose },
+  title: { fontSize: 15, fontWeight: '700', color: colors.slateDark },
+  total: { fontSize: 15, fontWeight: '700', color: colors.rose },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 10,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: colors.border,
     gap: 10,
   },
   rowIcon: {
     width: 32,
     height: 32,
     borderRadius: 8,
-    backgroundColor: COLORS.roseLight,
+    backgroundColor: colors.roseLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   rowBody: { flex: 1 },
-  rowDesc: { fontSize: 14, fontWeight: '500', color: COLORS.slateDark },
-  rowCat: { fontSize: 11, color: COLORS.slate, marginTop: 2 },
-  rowAmt: { fontSize: 13, fontWeight: '700', color: COLORS.rose },
-  empty: { fontSize: 13, color: COLORS.slate, fontStyle: 'italic', marginBottom: 8 },
+  rowDesc: { fontSize: 14, fontWeight: '500', color: colors.slateDark },
+  rowCat: { fontSize: 11, color: colors.slate, marginTop: 2 },
+  rowAmt: { fontSize: 13, fontWeight: '700', color: colors.rose },
+  empty: { fontSize: 13, color: colors.slate, fontStyle: 'italic', marginBottom: 8 },
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -214,17 +219,17 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 4,
   },
-  addText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
+  addText: { fontSize: 14, fontWeight: '600', color: colors.primary },
   form: { marginTop: 8, gap: 8 },
   input: {
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 10,
     fontSize: 15,
-    color: COLORS.slateDark,
-    backgroundColor: COLORS.surface,
+    color: colors.slateDark,
+    backgroundColor: colors.surface,
   },
   catWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
   catChip: {
@@ -232,21 +237,21 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
-    backgroundColor: COLORS.surface,
+    borderColor: colors.border,
+    backgroundColor: colors.surface,
   },
-  catChipActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-  catText: { fontSize: 11, color: COLORS.slate, fontWeight: '600' },
-  catTextActive: { color: COLORS.white },
+  catChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  catText: { fontSize: 11, color: colors.slate, fontWeight: '600' },
+  catTextActive: { color: colors.white },
   formActions: { flexDirection: 'row', gap: 10, marginTop: 4 },
   cancelBtn: { paddingVertical: 10, paddingHorizontal: 14 },
-  cancelText: { fontSize: 14, color: COLORS.slate, fontWeight: '600' },
+  cancelText: { fontSize: 14, color: colors.slate, fontWeight: '600' },
   saveBtn: {
     flex: 1,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
   },
-  saveText: { color: COLORS.white, fontWeight: '700', fontSize: 14 },
+  saveText: { color: colors.white, fontWeight: '700', fontSize: 14 },
 })

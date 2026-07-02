@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, Text, StyleSheet, ViewStyle, TextStyle } from 'react-native'
-import { COLORS } from '../utils/helpers'
+import { ThemeColors } from '../utils/helpers'
 
 interface CardProps {
   children: React.ReactNode
@@ -8,6 +9,8 @@ interface CardProps {
 }
 
 export function Card({ children, style }: CardProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return <View style={[styles.card, style]}>{children}</View>
 }
 
@@ -19,6 +22,8 @@ interface CardHeaderProps {
 }
 
 export function CardHeader({ title, subtitle, style, titleStyle }: CardHeaderProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={[styles.cardHeader, style]}>
       <Text style={[styles.cardTitle, titleStyle]}>{title}</Text>
@@ -33,22 +38,24 @@ interface CardContentProps {
 }
 
 export function CardContent({ children, style }: CardContentProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return <View style={[styles.cardContent, style]}>{children}</View>
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   card: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 14,
     padding: 20,
     marginBottom: 16,
-    shadowColor: COLORS.black,
+    shadowColor: colors.black,
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.03,
     shadowRadius: 3,
     elevation: 1,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
   cardHeader: {
     marginBottom: 20,
@@ -56,13 +63,13 @@ const styles = StyleSheet.create({
   cardTitle: {
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 6,
     letterSpacing: -0.3,
   },
   cardSubtitle: {
     fontSize: 13,
-    color: COLORS.slate,
+    color: colors.slate,
     lineHeight: 18,
   },
   cardContent: {

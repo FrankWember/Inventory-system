@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Card, CardHeader, CardContent } from './Card'
 import { SimpleBarChart, BarChartItem } from './SimpleBarChart'
-import { COLORS } from '../utils/helpers'
+import { ThemeColors } from '../utils/helpers'
 
 interface ExpandableChartCardProps {
   title: string
@@ -24,6 +25,8 @@ export function ExpandableChartCard({
   formatValue,
   onExpand,
 }: ExpandableChartCardProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   if (data.length === 0) return null
 
   const headerContent = (
@@ -33,7 +36,7 @@ export function ExpandableChartCard({
       </View>
       {onExpand && (
         <View style={styles.expandBtn}>
-          <Ionicons name="expand" size={18} color={COLORS.primary} />
+          <Ionicons name="expand" size={18} color={colors.primary} />
           <Text style={styles.expandText}>Agrandir</Text>
         </View>
       )}
@@ -56,8 +59,8 @@ export function ExpandableChartCard({
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'flex-start' },
   expandBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: 4 },
-  expandText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
+  expandText: { fontSize: 12, fontWeight: '600', color: colors.primary },
 })

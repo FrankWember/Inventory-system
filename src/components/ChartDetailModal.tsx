@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -10,7 +11,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { SimpleBarChart, BarChartItem } from './SimpleBarChart'
-import { COLORS, fmt, fmtNum } from '../utils/helpers'
+import { fmt, fmtNum, ThemeColors } from '../utils/helpers'
 
 export interface ChartDetailRow {
   label: string
@@ -41,6 +42,8 @@ export function ChartDetailModal({
   formatValue,
   valueIsMoney = true,
 }: ChartDetailModalProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const format = (n: number) => (valueIsMoney ? fmt(n) : fmtNum(n))
   const chartFormat = formatValue ?? (n => (valueIsMoney ? fmtNum(n) : fmtNum(n)))
   const total = rows.reduce((s, r) => s + r.value, 0)
@@ -50,7 +53,7 @@ export function ChartDetailModal({
       <SafeAreaView style={styles.safe}>
         <View style={styles.header}>
           <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-            <Ionicons name="close" size={24} color={COLORS.slateDark} />
+            <Ionicons name="close" size={24} color={colors.slateDark} />
           </TouchableOpacity>
           <View style={styles.headerText}>
             <Text style={styles.title}>{title}</Text>
@@ -89,61 +92,61 @@ export function ChartDetailModal({
   )
 }
 
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: COLORS.surface },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.surface },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
     gap: 12,
   },
   closeBtn: { padding: 4 },
   headerText: { flex: 1 },
-  title: { fontSize: 18, fontWeight: '700', color: COLORS.slateDark },
-  subtitle: { fontSize: 13, color: COLORS.slate, marginTop: 2 },
+  title: { fontSize: 18, fontWeight: '700', color: colors.slateDark },
+  subtitle: { fontSize: 13, color: colors.slate, marginTop: 2 },
   body: { flex: 1 },
   bodyContent: { padding: 16, paddingBottom: 32 },
   chartBox: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     marginBottom: 16,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
   totalLabel: { fontSize: 14, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
-  totalValue: { fontSize: 18, fontWeight: '700', color: COLORS.white },
+  totalValue: { fontSize: 18, fontWeight: '700', color: colors.white },
   tableTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 10,
   },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     paddingVertical: 12,
     paddingHorizontal: 14,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
   rowLeft: { flex: 1, marginRight: 12 },
-  rowLabel: { fontSize: 14, fontWeight: '600', color: COLORS.slateDark },
-  rowSub: { fontSize: 12, color: COLORS.slate, marginTop: 2 },
-  rowValue: { fontSize: 14, fontWeight: '700', color: COLORS.primary },
+  rowLabel: { fontSize: 14, fontWeight: '600', color: colors.slateDark },
+  rowSub: { fontSize: 12, color: colors.slate, marginTop: 2 },
+  rowValue: { fontSize: 14, fontWeight: '700', color: colors.primary },
 })

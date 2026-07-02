@@ -18,7 +18,7 @@ import { COLORS, FONT } from './src/utils/helpers'
 import { applyGlobalFont } from './src/styles/applyFonts'
 import { ResponsiveLayout } from './src/components/ResponsiveLayout'
 import { AuthProvider, useAuth } from './src/contexts/AuthContext'
-import { SettingsProvider } from './src/contexts/SettingsContext'
+import { SettingsProvider, useSettings } from './src/contexts/SettingsContext'
 import { saveNavigationState, loadNavigationState } from './src/utils/navigationPersistence'
 
 applyGlobalFont()
@@ -104,6 +104,7 @@ const linking = Platform.OS === 'web' ? {
 } : undefined
 
 function MainTabs() {
+  const { colors } = useSettings()
   const insets = useSafeAreaInsets()
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
 
@@ -130,13 +131,13 @@ function MainTabs() {
             else if (route.name === 'Settings') iconName = focused ? 'settings' : 'settings-outline'
             return <Ionicons name={iconName} size={size} color={color} />
           },
-          tabBarActiveTintColor: COLORS.primary,
-          tabBarInactiveTintColor: COLORS.slate,
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.slate,
           tabBarStyle: isDesktop
             ? { display: 'none' }
             : {
-                backgroundColor: COLORS.white,
-                borderTopColor: COLORS.border,
+                backgroundColor: colors.white,
+                borderTopColor: colors.border,
                 borderTopWidth: 1,
                 paddingBottom: Math.max(insets.bottom, 6),
                 paddingTop: 6,
@@ -159,8 +160,16 @@ function MainTabs() {
   )
 }
 
+// StatusBar lives inside SettingsProvider so it can flip with the theme:
+// light glyphs on the dark navy background, dark glyphs on the light one.
+function ThemedStatusBar() {
+  const { theme } = useSettings()
+  return <StatusBar style={theme === 'dark' ? 'light' : 'dark'} />
+}
+
 function RootNavigator() {
   const { user, loading, isWelcomeLoading } = useAuth()
+  const { colors } = useSettings()
   // On web, linking handles navigation state — no need for manual restore
   const [isReady, setIsReady] = useState(Platform.OS === 'web')
   const [initialState, setInitialState] = useState<NavigationState | PartialState<NavigationState> | undefined>()
@@ -188,8 +197,8 @@ function RootNavigator() {
 
   if (loading || !isReady) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface }}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     )
   }
@@ -207,12 +216,12 @@ function RootNavigator() {
     <Stack.Navigator
       {...(navigatorProps as any)}
       screenOptions={{
-        headerStyle: { backgroundColor: COLORS.white },
-        headerTintColor: COLORS.primary,
+        headerStyle: { backgroundColor: colors.white },
+        headerTintColor: colors.primary,
         headerTitleStyle: {
           fontFamily: FONT.bold,
           fontSize: 17,
-          color: COLORS.slateDark,
+          color: colors.slateDark,
         },
         headerShadowVisible: false,
         headerBackTitle: 'Retour',
@@ -269,7 +278,7 @@ export default function App() {
     <SafeAreaProvider>
       <AuthProvider>
         <SettingsProvider>
-          <StatusBar style="dark" />
+          <ThemedStatusBar />
           <NavigationContainer
             ref={navigationRef}
             linking={linking}

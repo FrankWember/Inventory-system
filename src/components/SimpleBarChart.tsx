@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, Text, StyleSheet, Platform } from 'react-native'
-import { COLORS, FONT, fmtNum } from '../utils/helpers'
+import { FONT, fmtNum, ThemeColors } from '../utils/helpers'
 
 export interface BarChartItem {
   label: string
@@ -23,6 +24,8 @@ export function SimpleBarChart({
   formatValue = fmtNum,
   horizontal = false,
 }: SimpleBarChartProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   if (data.length === 0) return <Text style={styles.empty}>Aucune donnée</Text>
 
   // Calculate values with improved scaling
@@ -57,7 +60,7 @@ export function SimpleBarChart({
                       <View
                         style={[
                           styles.hFillNegative,
-                          { width: `${percent}%`, backgroundColor: d.color ?? COLORS.rose },
+                          { width: `${percent}%`, backgroundColor: d.color ?? colors.rose },
                         ]}
                       />
                     </View>
@@ -70,7 +73,7 @@ export function SimpleBarChart({
                       <View
                         style={[
                           styles.hFillPositive,
-                          { width: `${percent}%`, backgroundColor: d.color ?? COLORS.primary },
+                          { width: `${percent}%`, backgroundColor: d.color ?? colors.primary },
                         ]}
                       />
                     </View>
@@ -78,7 +81,7 @@ export function SimpleBarChart({
                     <View style={styles.hPositiveSide} />
                   )}
                 </View>
-                <Text style={[styles.hValue, isNegative && { color: COLORS.rose }]} numberOfLines={1}>{formatValue(d.value)}</Text>
+                <Text style={[styles.hValue, isNegative && { color: colors.rose }]} numberOfLines={1}>{formatValue(d.value)}</Text>
               </View>
             )
           })}
@@ -96,7 +99,7 @@ export function SimpleBarChart({
               <View
                 style={[
                   styles.hFill,
-                  { width: `${Math.max(2, (Math.abs(d.value) / max) * 100)}%`, backgroundColor: d.color ?? COLORS.primary },
+                  { width: `${Math.max(2, (Math.abs(d.value) / max) * 100)}%`, backgroundColor: d.color ?? colors.primary },
                 ]}
               />
             </View>
@@ -122,7 +125,7 @@ export function SimpleBarChart({
           {data.map((d, i) => {
             const isNegative = d.value < 0
             const barHeight = Math.max(4, (Math.abs(d.value) / maxForScale) * halfPlot)
-            const barColor = d.color ?? (isNegative ? COLORS.rose : COLORS.primary)
+            const barColor = d.color ?? (isNegative ? colors.rose : colors.primary)
 
             return (
               <View key={i} style={[styles.vCol, { justifyContent: 'center' }]}>
@@ -146,7 +149,7 @@ export function SimpleBarChart({
                     <>
                       <View style={[styles.vBarDown, { height: barHeight, backgroundColor: barColor }]} />
                       <View style={styles.vValueSpacer} />
-                      <Text style={[styles.vValue, { color: COLORS.rose }]} numberOfLines={1}>{formatValue(d.value)}</Text>
+                      <Text style={[styles.vValue, { color: colors.rose }]} numberOfLines={1}>{formatValue(d.value)}</Text>
                     </>
                   )}
                 </View>
@@ -175,7 +178,7 @@ export function SimpleBarChart({
           return (
             <View key={i} style={[styles.vCol, { justifyContent: 'flex-end' }]}>
               <Text style={styles.vValue} numberOfLines={1}>{d.value !== 0 ? formatValue(d.value) : ''}</Text>
-              <View style={[styles.vBar, { height: h, backgroundColor: d.color ?? COLORS.primary }]} />
+              <View style={[styles.vBar, { height: h, backgroundColor: d.color ?? colors.primary }]} />
             </View>
           )
         })}
@@ -189,14 +192,14 @@ export function SimpleBarChart({
   )
 }
 
-const styles = StyleSheet.create({
-  empty: { fontSize: 13, color: COLORS.slate, textAlign: 'center', padding: 16, fontFamily: FONT.medium },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  empty: { fontSize: 13, color: colors.slate, textAlign: 'center', padding: 16, fontFamily: FONT.medium },
 
   // vertical
   vWrap: { width: '100%' },
   vPlot: { flex: 1, flexDirection: 'row', alignItems: 'center' },
   vCol: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  vValue: { fontSize: 10, color: COLORS.slate, fontFamily: FONT.semibold, marginBottom: 4, fontVariant: ['tabular-nums'] },
+  vValue: { fontSize: 10, color: colors.slate, fontFamily: FONT.semibold, marginBottom: 4, fontVariant: ['tabular-nums'] },
   vBar: {
     width: 24,
     borderTopLeftRadius: 5,
@@ -227,20 +230,20 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  vZeroLine: { width: '100%', height: 2, backgroundColor: COLORS.border },
+  vZeroLine: { width: '100%', height: 2, backgroundColor: colors.border },
   vValueSpacer: { height: 4 },
   vAxis: { flexDirection: 'row', marginTop: 6 },
-  vAxisLabel: { flex: 1, textAlign: 'center', fontSize: 10, color: COLORS.slate, fontFamily: FONT.medium },
+  vAxisLabel: { flex: 1, textAlign: 'center', fontSize: 10, color: colors.slate, fontFamily: FONT.medium },
 
   // horizontal
   hWrap: { gap: 12, paddingVertical: 4 },
   hRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  hLabel: { width: 84, fontSize: 12, color: COLORS.slateDark, fontFamily: FONT.medium },
+  hLabel: { width: 84, fontSize: 12, color: colors.slateDark, fontFamily: FONT.medium },
   hTrack: {
     flex: 1,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.slateLight,
+    backgroundColor: colors.slateLight,
     overflow: 'hidden',
     ...Platform.select({
       web: {
@@ -262,6 +265,6 @@ const styles = StyleSheet.create({
   hPositiveSide: { flex: 1, height: 8, flexDirection: 'row', justifyContent: 'flex-start' },
   hFillNegative: { height: '100%', borderTopLeftRadius: 4, borderBottomLeftRadius: 4 },
   hFillPositive: { height: '100%', borderTopRightRadius: 4, borderBottomRightRadius: 4 },
-  hAxisLine: { width: 2, height: 12, backgroundColor: COLORS.border },
-  hValue: { width: 74, textAlign: 'right', fontSize: 12, color: COLORS.slateDark, fontFamily: FONT.semibold, fontVariant: ['tabular-nums'] },
+  hAxisLine: { width: 2, height: 12, backgroundColor: colors.border },
+  hValue: { width: 74, textAlign: 'right', fontSize: 12, color: colors.slateDark, fontFamily: FONT.semibold, fontVariant: ['tabular-nums'] },
 })

@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -9,7 +10,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { RootStackParamList } from '../../App'
 import { SimpleBarChart, BarChartItem } from '../components/SimpleBarChart'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { COLORS, fmt, fmtNum } from '../utils/helpers'
+import { fmt, fmtNum, ThemeColors } from '../utils/helpers'
 
 export interface ChartDetailRow {
   label: string
@@ -20,6 +21,8 @@ export interface ChartDetailRow {
 type Props = NativeStackScreenProps<RootStackParamList, 'ChartDetail'>
 
 export default function ChartDetailScreen({ route, navigation }: Props) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const { title, subtitle, chartData, rows, horizontal, formatValue, valueIsMoney } = route.params
 
   const format = (n: number) => (valueIsMoney ? fmt(n) : fmtNum(n))
@@ -66,45 +69,45 @@ export default function ChartDetailScreen({ route, navigation }: Props) {
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surface },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.surface },
   body: { flex: 1 },
   bodyContent: { padding: 16, paddingBottom: 32 },
   header: {
     marginBottom: 16,
   },
-  title: { fontSize: 22, fontWeight: '700', color: COLORS.slateDark, letterSpacing: -0.3 },
-  subtitle: { fontSize: 14, color: COLORS.slate, marginTop: 4 },
+  title: { fontSize: 22, fontWeight: '700', color: colors.slateDark, letterSpacing: -0.3 },
+  subtitle: { fontSize: 14, color: colors.slate, marginTop: 4 },
   chartBox: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     marginBottom: 16,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
   totalLabel: { fontSize: 14, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
-  totalValue: { fontSize: 18, fontWeight: '700', color: COLORS.white },
+  totalValue: { fontSize: 18, fontWeight: '700', color: colors.white },
   tableTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 10,
   },
   table: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     overflow: 'hidden',
   },
   row: {
@@ -114,10 +117,10 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
   rowLeft: { flex: 1, marginRight: 12 },
-  rowLabel: { fontSize: 14, fontWeight: '600', color: COLORS.slateDark },
-  rowSub: { fontSize: 12, color: COLORS.slate, marginTop: 2 },
-  rowValue: { fontSize: 14, fontWeight: '700', color: COLORS.primary },
+  rowLabel: { fontSize: 14, fontWeight: '600', color: colors.slateDark },
+  rowSub: { fontSize: 12, color: colors.slate, marginTop: 2 },
+  rowValue: { fontSize: 14, fontWeight: '700', color: colors.primary },
 })

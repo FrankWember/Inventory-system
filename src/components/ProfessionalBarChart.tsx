@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, Platform, StyleSheet, Text } from 'react-native'
-import { COLORS, FONT, fmt, fmtNum } from '../utils/helpers'
+import { FONT, fmt, fmtNum, ThemeColors } from '../utils/helpers'
 import { BarChart } from 'react-native-gifted-charts'
 import { SimpleBarChart } from './SimpleBarChart'
 
@@ -32,6 +33,8 @@ export function ProfessionalBarChart({ data, height = 260, formatValue }: Profes
 
 // Web-only component using recharts
 function WebProfessionalChart({ data, height, formatValue }: ProfessionalBarChartProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   // Dynamic import for web-only recharts - wrapped in try-catch to handle bundler issues
   let Recharts
   try {
@@ -90,7 +93,7 @@ function WebProfessionalChart({ data, height, formatValue }: ProfessionalBarChar
 
             <View style={styles.tooltipRow}>
               <Text style={styles.tooltipRowLabel}>Profit net</Text>
-              <Text style={[styles.tooltipRowValue, isNegative && { color: COLORS.rose }]}>
+              <Text style={[styles.tooltipRowValue, isNegative && { color: colors.rose }]}>
                 {formatValue ? formatValue(item.value) : fmt(item.value)}
               </Text>
             </View>
@@ -112,7 +115,7 @@ function WebProfessionalChart({ data, height, formatValue }: ProfessionalBarChar
             {item.cost !== undefined && (
               <View style={styles.tooltipRow}>
                 <Text style={styles.tooltipRowLabel}>Coût total</Text>
-                <Text style={[styles.tooltipRowValue, { color: COLORS.rose }]}>{fmt(item.cost)}</Text>
+                <Text style={[styles.tooltipRowValue, { color: colors.rose }]}>{fmt(item.cost)}</Text>
               </View>
             )}
           </View>
@@ -134,7 +137,7 @@ function WebProfessionalChart({ data, height, formatValue }: ProfessionalBarChar
     const labelY = isNegative
       ? y + 20  // Fixed position below the zero line for negative bars
       : y - 6   // Above the bar for positive bars
-    const labelColor = isNegative ? COLORS.rose : COLORS.primary
+    const labelColor = isNegative ? colors.rose : colors.primary
 
     return (
       <text
@@ -210,12 +213,12 @@ function WebProfessionalChart({ data, height, formatValue }: ProfessionalBarChar
         >
         <defs>
           <linearGradient id="positiveGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={COLORS.primary} stopOpacity={0.95} />
-            <stop offset="100%" stopColor={COLORS.primary} stopOpacity={0.8} />
+            <stop offset="0%" stopColor={colors.primary} stopOpacity={0.95} />
+            <stop offset="100%" stopColor={colors.primary} stopOpacity={0.8} />
           </linearGradient>
           <linearGradient id="negativeGradient" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor={COLORS.rose} stopOpacity={0.8} />
-            <stop offset="100%" stopColor={COLORS.rose} stopOpacity={0.95} />
+            <stop offset="0%" stopColor={colors.rose} stopOpacity={0.8} />
+            <stop offset="100%" stopColor={colors.rose} stopOpacity={0.95} />
           </linearGradient>
 
           <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
@@ -225,7 +228,7 @@ function WebProfessionalChart({ data, height, formatValue }: ProfessionalBarChar
 
         <CartesianGrid
           strokeDasharray="3 3"
-          stroke={COLORS.border}
+          stroke={colors.border}
           strokeOpacity={0.25}
           vertical={false}
         />
@@ -233,11 +236,11 @@ function WebProfessionalChart({ data, height, formatValue }: ProfessionalBarChar
         <XAxis
           dataKey="label"
           tick={{
-            fill: COLORS.slate,
+            fill: colors.slate,
             fontSize: 11,
             fontFamily: FONT.medium,
           }}
-          axisLine={{ stroke: COLORS.border, strokeWidth: 1.5 }}
+          axisLine={{ stroke: colors.border, strokeWidth: 1.5 }}
           tickLine={false}
           height={35}
           tickMargin={8}
@@ -248,7 +251,7 @@ function WebProfessionalChart({ data, height, formatValue }: ProfessionalBarChar
         <YAxis
           domain={yAxisDomain}
           tick={{
-            fill: COLORS.slate,
+            fill: colors.slate,
             fontSize: 11,
             fontFamily: FONT.semibold,
           }}
@@ -269,7 +272,7 @@ function WebProfessionalChart({ data, height, formatValue }: ProfessionalBarChar
 
         <ReferenceLine
           y={0}
-          stroke={COLORS.slate}
+          stroke={colors.slate}
           strokeWidth={1.5}
           strokeOpacity={0.3}
           isFront={false}
@@ -300,15 +303,16 @@ function WebProfessionalChart({ data, height, formatValue }: ProfessionalBarChar
 
 // Native component using react-native-gifted-charts
 function NativeBarChart({ data, height = 260, formatValue }: ProfessionalBarChartProps) {
+  const { colors } = useSettings()
   // Transform data for gifted-charts
   const chartData = data.map((item) => ({
     value: item.value,
     label: item.label,
-    frontColor: item.value >= 0 ? COLORS.primary : COLORS.rose,
+    frontColor: item.value >= 0 ? colors.primary : colors.rose,
     topLabelComponent: () => (
       <Text style={{
         fontSize: 10,
-        color: item.value >= 0 ? COLORS.primary : COLORS.rose,
+        color: item.value >= 0 ? colors.primary : colors.rose,
         fontFamily: FONT.semibold,
         marginBottom: 4
       }}>
@@ -336,15 +340,15 @@ function NativeBarChart({ data, height = 260, formatValue }: ProfessionalBarChar
         roundedTop
         roundedBottom={hasNegative}
         xAxisThickness={1}
-        xAxisColor={COLORS.border}
+        xAxisColor={colors.border}
         yAxisThickness={0}
         yAxisTextStyle={{
-          color: COLORS.slate,
+          color: colors.slate,
           fontSize: 10,
           fontFamily: FONT.medium,
         }}
         xAxisLabelTextStyle={{
-          color: COLORS.slate,
+          color: colors.slate,
           fontSize: 10,
           fontFamily: FONT.medium,
         }}
@@ -355,7 +359,7 @@ function NativeBarChart({ data, height = 260, formatValue }: ProfessionalBarChar
         yAxisLabelPrefix=""
         formatYLabel={(value) => formatValue ? formatValue(parseFloat(value)) : value}
         showGradient
-        gradientColor={COLORS.primary}
+        gradientColor={colors.primary}
         isAnimated
         animationDuration={800}
       />
@@ -363,7 +367,7 @@ function NativeBarChart({ data, height = 260, formatValue }: ProfessionalBarChar
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   chartWrapper: {
     ...Platform.select({
       web: {
@@ -397,12 +401,12 @@ const styles = StyleSheet.create({
   tooltipDate: {
     fontSize: 13,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 2,
   },
   tooltipDivider: {
     height: 1,
-    backgroundColor: COLORS.border,
+    backgroundColor: colors.border,
     marginVertical: 4,
   },
   tooltipRow: {
@@ -414,11 +418,11 @@ const styles = StyleSheet.create({
   tooltipRowLabel: {
     fontSize: 11,
     fontFamily: FONT.medium,
-    color: COLORS.slate,
+    color: colors.slate,
   },
   tooltipRowValue: {
     fontSize: 13,
     fontFamily: FONT.bold,
-    color: COLORS.primary,
+    color: colors.primary,
   },
 })

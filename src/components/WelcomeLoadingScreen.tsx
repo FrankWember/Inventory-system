@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react'
+import React, { useMemo, useEffect, useState } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { COLORS, FONT } from '../utils/helpers'
-import { useSettings } from '../contexts/SettingsContext'
+import { FONT, ThemeColors } from '../utils/helpers'
 
 interface WelcomeLoadingScreenProps {
   name?: string
@@ -30,7 +30,8 @@ const dailyTips = [
 ]
 
 export function WelcomeLoadingScreen({ name, isReturningUser = false }: WelcomeLoadingScreenProps) {
-  const { barInfo } = useSettings()
+  const { barInfo, colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [fadeAnim] = useState(new Animated.Value(0))
   const [scaleAnim] = useState(new Animated.Value(0.9))
   const [slideAnim] = useState(new Animated.Value(30))
@@ -79,7 +80,7 @@ export function WelcomeLoadingScreen({ name, isReturningUser = false }: WelcomeL
         {/* Icon with glass effect */}
         <View style={styles.iconContainer}>
           <View style={styles.iconCircle}>
-            <Ionicons name="bar-chart" size={48} color={COLORS.primary} />
+            <Ionicons name="bar-chart" size={48} color={colors.primary} />
           </View>
         </View>
 
@@ -89,14 +90,14 @@ export function WelcomeLoadingScreen({ name, isReturningUser = false }: WelcomeL
 
         {/* Bar info */}
         <View style={styles.barInfoContainer}>
-          <Ionicons name="business" size={16} color={COLORS.slate} />
+          <Ionicons name="business" size={16} color={colors.slate} />
           <Text style={styles.barName}>{barName}</Text>
         </View>
 
         {/* Daily tip */}
         <View style={styles.tipContainer}>
           <View style={styles.tipIconBox}>
-            <Ionicons name="bulb" size={14} color={COLORS.amber} />
+            <Ionicons name="bulb" size={14} color={colors.amber} />
           </View>
           <Text style={styles.tipText}>{dailyTip}</Text>
         </View>
@@ -112,10 +113,10 @@ export function WelcomeLoadingScreen({ name, isReturningUser = false }: WelcomeL
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     padding: 24,
@@ -143,7 +144,7 @@ const styles = StyleSheet.create({
         boxShadow: '0 8px 24px rgba(74, 144, 226, 0.2)',
       },
       default: {
-        shadowColor: COLORS.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.2,
         shadowRadius: 12,
@@ -154,13 +155,13 @@ const styles = StyleSheet.create({
   welcomeText: {
     fontSize: 20,
     fontFamily: FONT.medium,
-    color: COLORS.slate,
+    color: colors.slate,
     marginBottom: 4,
   },
   nameText: {
     fontSize: 32,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -170,7 +171,7 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 16,
     paddingVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: colors.glass,
     borderRadius: 20,
     marginBottom: 32,
     ...Platform.select({
@@ -189,14 +190,14 @@ const styles = StyleSheet.create({
   barName: {
     fontSize: 14,
     fontFamily: FONT.semibold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
   },
   tipContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 12,
     padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: colors.glass,
     borderRadius: 16,
     marginBottom: 40,
     borderWidth: 1,
@@ -227,7 +228,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 14,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
+    color: colors.slate,
     lineHeight: 20,
   },
   loaderContainer: {
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     opacity: 0.3,
   },
   loaderDotDelay1: {

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -23,20 +24,15 @@ import { SlideIn } from '../components/SlideIn'
 import EditDrinkScreen from './EditDrinkScreen'
 import AddDrinkScreen from './AddDrinkScreen'
 import { FloatingModal } from '../components/FloatingModal'
-import {
-  COLORS,
-  FONT,
-  fmtShort,
-  getStockStatus,
-  getStockColor,
-  formatWithCassiersShort,
-} from '../utils/helpers'
+import { FONT, fmtShort, getStockStatus, getStockColor, formatWithCassiersShort, ThemeColors } from '../utils/helpers'
 
 const GRID_GAP = 12
 const GRID_PADDING = 16
 const BREAKPOINT = 768
 
 export default function InventoryScreen({ navigation }: any) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -144,7 +140,7 @@ export default function InventoryScreen({ navigation }: any) {
       >
         <View style={styles.gridBody}>
           <View style={styles.gridTop}>
-            <View style={[styles.statusDot, { backgroundColor: getStockColor(status) }]} />
+            <View style={[styles.statusDot, { backgroundColor: getStockColor(status, colors) }]} />
             <Text style={styles.gridCategory}>{drink.category}</Text>
           </View>
           <Text style={styles.gridName} numberOfLines={2}>{drink.name}</Text>
@@ -175,23 +171,23 @@ export default function InventoryScreen({ navigation }: any) {
           <Text style={styles.summaryLabel}>Valeur stock</Text>
         </View>
         <View style={[styles.summaryTile, styles.summaryTileBordered]}>
-          <Text style={[styles.summaryValue, ruptureCount > 0 && { color: COLORS.rose }]}>{ruptureCount}</Text>
+          <Text style={[styles.summaryValue, ruptureCount > 0 && { color: colors.rose }]}>{ruptureCount}</Text>
           <Text style={styles.summaryLabel}>Ruptures</Text>
         </View>
         <View style={styles.summaryTile}>
-          <Text style={[styles.summaryValue, lowCount > 0 && { color: COLORS.primary }]}>{lowCount}</Text>
+          <Text style={[styles.summaryValue, lowCount > 0 && { color: colors.primary }]}>{lowCount}</Text>
           <Text style={styles.summaryLabel}>Stock bas</Text>
         </View>
       </View>
 
       <View style={styles.searchBox}>
-        <Ionicons name="search" size={18} color={COLORS.slate} />
+        <Ionicons name="search" size={18} color={colors.slate} />
         <TextInput
           style={styles.searchInput}
           placeholder="Rechercher..."
           value={search}
           onChangeText={setSearch}
-          placeholderTextColor={COLORS.slate}
+          placeholderTextColor={colors.slate}
         />
       </View>
 
@@ -246,7 +242,7 @@ export default function InventoryScreen({ navigation }: any) {
         // @ts-ignore - className is web-only
         className="glass-primary"
       >
-        <Ionicons name="add" size={28} color={COLORS.white} style={styles.fabIcon} />
+        <Ionicons name="add" size={28} color={colors.white} style={styles.fabIcon} />
       </TouchableOpacity>
     </>
   )
@@ -267,7 +263,7 @@ export default function InventoryScreen({ navigation }: any) {
                 // @ts-ignore - className is web-only
                 className="glass-button"
               >
-                <Ionicons name="close" size={20} color={COLORS.slate} />
+                <Ionicons name="close" size={20} color={colors.slate} />
               </TouchableOpacity>
             </View>
             <EditDrinkScreen
@@ -292,7 +288,7 @@ export default function InventoryScreen({ navigation }: any) {
                 // @ts-ignore - className is web-only
                 className="glass-button"
               >
-                <Ionicons name="close" size={20} color={COLORS.slate} />
+                <Ionicons name="close" size={20} color={colors.slate} />
               </TouchableOpacity>
             </View>
             <AddDrinkScreen
@@ -342,17 +338,17 @@ export default function InventoryScreen({ navigation }: any) {
   )
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surface },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.surface },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.surface },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.surface },
   desktopContainer: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
   desktopLeft: {
     width: '50%',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     ...Platform.select({
       web: {
         transition: 'width 0.3s ease',
@@ -364,9 +360,9 @@ const styles = StyleSheet.create({
   },
   desktopRight: {
     width: '50%',
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderLeftWidth: 1,
-    borderLeftColor: COLORS.border,
+    borderLeftColor: colors.border,
     ...Platform.select({
       web: {
         boxShadow: '-4px 0 12px rgba(0, 0, 0, 0.04)',
@@ -387,20 +383,20 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.white,
+    borderBottomColor: colors.border,
+    backgroundColor: colors.white,
   },
   editHeaderTitle: {
     fontSize: 18,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     letterSpacing: -0.3,
   },
   closeButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
@@ -412,34 +408,34 @@ const styles = StyleSheet.create({
   },
   gridCardSelected: {
     borderWidth: 2,
-    borderColor: COLORS.primary,
-    shadowColor: COLORS.primary,
+    borderColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   summaryRow: {
     flexDirection: 'row',
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     marginHorizontal: GRID_PADDING,
     marginTop: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     paddingVertical: 14,
   },
   summaryTile: { flex: 1, alignItems: 'center' },
   summaryTileBordered: {
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
-  summaryValue: { fontSize: 18, fontFamily: FONT.extrabold, color: COLORS.slateDark, fontVariant: ['tabular-nums'], letterSpacing: -0.3 },
-  summaryLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.slate, marginTop: 3 },
+  summaryValue: { fontSize: 18, fontFamily: FONT.extrabold, color: colors.slateDark, fontVariant: ['tabular-nums'], letterSpacing: -0.3 },
+  summaryLabel: { fontSize: 11, fontFamily: FONT.semibold, color: colors.slate, marginTop: 3 },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     marginHorizontal: GRID_PADDING,
     marginTop: 12,
     marginBottom: 12,
@@ -453,14 +449,14 @@ const styles = StyleSheet.create({
     elevation: 2,
     gap: 8,
   },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: 15, fontFamily: FONT.regular, color: COLORS.slateDark },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 15, fontFamily: FONT.regular, color: colors.slateDark },
   categoryScroll: { maxHeight: 44, marginBottom: 12 },
   categoryScrollContent: { gap: 6, paddingBottom: 4, paddingHorizontal: GRID_PADDING },
   categoryTab: {
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 20,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -468,20 +464,20 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   categoryTabActive: {
-    backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 3,
   },
-  categoryTabText: { fontSize: 12, fontFamily: FONT.semibold, color: COLORS.slate },
-  categoryTabTextActive: { color: COLORS.white },
+  categoryTabText: { fontSize: 12, fontFamily: FONT.semibold, color: colors.slate },
+  categoryTabTextActive: { color: colors.white },
   gridRow: { gap: GRID_GAP, marginBottom: GRID_GAP },
   gridCard: {
     flex: 1,
     minWidth: 150,
     maxWidth: 250,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 14,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -501,12 +497,12 @@ const styles = StyleSheet.create({
   gridBody: { padding: 12 },
   gridTop: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
-  gridCategory: { fontSize: 10, fontFamily: FONT.semibold, color: COLORS.slate, textTransform: 'uppercase' },
-  gridName: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.slateDark, marginBottom: 6, lineHeight: 17 },
-  gridStock: { fontSize: 16, fontFamily: FONT.bold, color: COLORS.primary, marginBottom: 6, fontVariant: ['tabular-nums'] },
-  gridAlert: { fontSize: 10, fontFamily: FONT.semibold, color: COLORS.rose, marginTop: 2 },
+  gridCategory: { fontSize: 10, fontFamily: FONT.semibold, color: colors.slate, textTransform: 'uppercase' },
+  gridName: { fontSize: 13, fontFamily: FONT.semibold, color: colors.slateDark, marginBottom: 6, lineHeight: 17 },
+  gridStock: { fontSize: 16, fontFamily: FONT.bold, color: colors.primary, marginBottom: 6, fontVariant: ['tabular-nums'] },
+  gridAlert: { fontSize: 10, fontFamily: FONT.semibold, color: colors.rose, marginTop: 2 },
   emptyState: { alignItems: 'center', paddingVertical: 40, width: '100%' },
-  emptyText: { fontSize: 15, fontFamily: FONT.regular, color: COLORS.slate },
+  emptyText: { fontSize: 15, fontFamily: FONT.regular, color: colors.slate },
   fab: {
     position: 'absolute',
     right: 16,
@@ -514,7 +510,7 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,

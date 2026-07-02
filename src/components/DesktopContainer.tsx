@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, StyleSheet, Platform, Dimensions } from 'react-native'
-import { COLORS } from '../utils/helpers'
+import { ThemeColors } from '../utils/helpers'
 
 interface DesktopContainerProps {
   children: React.ReactNode
@@ -10,6 +11,8 @@ interface DesktopContainerProps {
 const BREAKPOINT = 768
 
 export function DesktopContainer({ children, maxWidth = 1200 }: DesktopContainerProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const windowWidth = Dimensions.get('window').width
   const isDesktop = Platform.OS === 'web' && windowWidth >= BREAKPOINT
 
@@ -26,15 +29,15 @@ export function DesktopContainer({ children, maxWidth = 1200 }: DesktopContainer
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
   content: {
     flex: 1,
     width: '100%',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
 })

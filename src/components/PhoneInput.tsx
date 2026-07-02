@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, Text, TextInput, StyleSheet, TextInputProps } from 'react-native'
-import { COLORS, FONT } from '../utils/helpers'
+import { FONT, ThemeColors } from '../utils/helpers'
 
 interface PhoneInputProps extends Omit<TextInputProps, 'value' | 'onChangeText'> {
   label?: string
@@ -10,6 +11,8 @@ interface PhoneInputProps extends Omit<TextInputProps, 'value' | 'onChangeText'>
 }
 
 export function PhoneInput({ label, value, onChangeText, error, ...props }: PhoneInputProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const handleChange = (text: string) => {
     // Only allow numbers
     const cleaned = text.replace(/[^0-9]/g, '')
@@ -40,7 +43,7 @@ export function PhoneInput({ label, value, onChangeText, error, ...props }: Phon
           value={formatDisplay(value)}
           onChangeText={handleChange}
           keyboardType="phone-pad"
-          placeholderTextColor={COLORS.slate400}
+          placeholderTextColor={colors.slate400}
           {...props}
         />
       </View>
@@ -49,14 +52,14 @@ export function PhoneInput({ label, value, onChangeText, error, ...props }: Phon
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     marginBottom: 12,
   },
   label: {
     fontSize: 13,
     fontFamily: FONT.semibold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 6,
     letterSpacing: -0.2,
   },
@@ -65,25 +68,25 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     height: 44,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 10,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     overflow: 'hidden',
   },
   inputWrapperError: {
-    borderColor: COLORS.rose,
+    borderColor: colors.rose,
   },
   countryCode: {
     paddingHorizontal: 10,
     borderRightWidth: 1,
-    borderRightColor: COLORS.border,
+    borderRightColor: colors.border,
     alignSelf: 'stretch',
     justifyContent: 'center',
   },
   countryCodeText: {
     fontSize: 13,
     fontFamily: FONT.medium,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
   },
   input: {
     flex: 1,
@@ -91,13 +94,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     fontSize: 14,
     fontFamily: FONT.medium,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     letterSpacing: 0.3,
   },
   errorText: {
     fontSize: 12,
     fontFamily: FONT.medium,
-    color: COLORS.rose,
+    color: colors.rose,
     marginTop: 4,
     marginLeft: 4,
   },

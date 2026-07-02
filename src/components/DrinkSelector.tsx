@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -11,7 +12,7 @@ import {
   ScrollView,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { COLORS, FONT } from '../utils/helpers'
+import { FONT, ThemeColors } from '../utils/helpers'
 import { Category } from '../types'
 import { DrinkTemplate, searchDrinks, getDrinksByCategory } from '../data/cameroonianDrinks'
 
@@ -23,6 +24,8 @@ interface DrinkSelectorProps {
 }
 
 export function DrinkSelector({ selectedDrink, onSelectDrink, categoryFilter, onDropdownChange }: DrinkSelectorProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [dropdownVisible, setDropdownVisible] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [customName, setCustomName] = useState('')
@@ -104,7 +107,7 @@ export function DrinkSelector({ selectedDrink, onSelectDrink, categoryFilter, on
       </View>
       {item.popular && (
         <View style={styles.popularBadge}>
-          <Ionicons name="star" size={12} color={COLORS.primary} />
+          <Ionicons name="star" size={12} color={colors.primary} />
         </View>
       )}
     </TouchableOpacity>
@@ -120,14 +123,14 @@ export function DrinkSelector({ selectedDrink, onSelectDrink, categoryFilter, on
           value={customName}
           onChangeText={handleInputChange}
           onFocus={() => customName.length > 0 && setDropdownVisible(true)}
-          placeholderTextColor={COLORS.slate}
+          placeholderTextColor={colors.slate}
         />
         {customName.length > 0 && (
           <TouchableOpacity onPress={handleClearSelection} style={styles.clearBtn}>
-            <Ionicons name="close-circle" size={20} color={COLORS.slate} />
+            <Ionicons name="close-circle" size={20} color={colors.slate} />
           </TouchableOpacity>
         )}
-        <Ionicons name="search" size={20} color={COLORS.slate} style={styles.searchIcon} />
+        <Ionicons name="search" size={20} color={colors.slate} style={styles.searchIcon} />
       </View>
 
       {selectedDrink && (
@@ -188,7 +191,7 @@ export function DrinkSelector({ selectedDrink, onSelectDrink, categoryFilter, on
               style={styles.customOption}
               onPress={handleSelectCustom}
             >
-              <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
+              <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
               <Text style={styles.customOptionText}>
                 Ajouter "{customName}"
                 {selectedCategory !== 'Tout' && ` (${selectedCategory})`}
@@ -201,7 +204,7 @@ export function DrinkSelector({ selectedDrink, onSelectDrink, categoryFilter, on
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     marginBottom: 20,
     zIndex: 1000,
@@ -209,9 +212,9 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
@@ -220,7 +223,7 @@ const styles = StyleSheet.create({
     flex: 1,
     fontSize: 15,
     fontFamily: FONT.regular,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginRight: 8,
   },
   searchIcon: {
@@ -232,7 +235,7 @@ const styles = StyleSheet.create({
   },
   selectedChip: {
     alignSelf: 'flex-start',
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: colors.primaryLight,
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
@@ -241,7 +244,7 @@ const styles = StyleSheet.create({
   selectedChipText: {
     fontSize: 12,
     fontFamily: FONT.semibold,
-    color: COLORS.primary,
+    color: colors.primary,
   },
   dropdown: {
     position: 'absolute',
@@ -249,10 +252,10 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     marginTop: 4,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.12,
@@ -271,7 +274,7 @@ const styles = StyleSheet.create({
   categoryScroll: {
     maxHeight: 44,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
   categoryScrollContent: {
     paddingHorizontal: 12,
@@ -282,26 +285,26 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 16,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
   },
   categoryChipActive: {
-    backgroundColor: COLORS.primary,
-    borderColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    borderColor: colors.primary,
   },
   categoryChipText: {
     fontSize: 12,
     fontFamily: FONT.semibold,
-    color: COLORS.slate,
+    color: colors.slate,
   },
   categoryChipTextActive: {
-    color: COLORS.white,
+    color: colors.white,
   },
   dropdownLabel: {
     fontSize: 11,
     fontFamily: FONT.bold,
-    color: COLORS.slate,
+    color: colors.slate,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     paddingHorizontal: 12,
@@ -315,7 +318,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.surface,
+    borderBottomColor: colors.surface,
   },
   suggestionLeft: {
     flex: 1,
@@ -323,19 +326,19 @@ const styles = StyleSheet.create({
   suggestionName: {
     fontSize: 14,
     fontFamily: FONT.medium,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
   },
   suggestionCategory: {
     fontSize: 11,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
+    color: colors.slate,
     marginTop: 2,
   },
   popularBadge: {
     width: 20,
     height: 20,
     borderRadius: 10,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -345,14 +348,14 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: colors.primaryLight,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: colors.border,
   },
   customOptionText: {
     flex: 1,
     fontSize: 14,
     fontFamily: FONT.semibold,
-    color: COLORS.primary,
+    color: colors.primary,
   },
 })

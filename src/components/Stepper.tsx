@@ -1,4 +1,5 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -7,7 +8,7 @@ import {
   StyleSheet,
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { COLORS } from '../utils/helpers'
+import { ThemeColors } from '../utils/helpers'
 
 interface StepperProps {
   value: number
@@ -26,6 +27,8 @@ export function Stepper({
   label,
   compact = false,
 }: StepperProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const handleIncrement = () => {
     if (value < max) {
       onValueChange(value + 1)
@@ -66,7 +69,7 @@ export function Stepper({
           <Ionicons
             name="remove"
             size={iconSize}
-            color={value <= min ? COLORS.slate : COLORS.rose}
+            color={value <= min ? colors.slate : colors.rose}
           />
         </TouchableOpacity>
 
@@ -90,14 +93,14 @@ export function Stepper({
           ]}
           activeOpacity={0.7}
         >
-          <Ionicons name="add" size={iconSize} color={COLORS.white} />
+          <Ionicons name="add" size={iconSize} color={colors.white} />
         </TouchableOpacity>
       </View>
     </View>
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     marginBottom: 12,
   },
@@ -108,7 +111,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 12,
     fontWeight: '500',
-    color: COLORS.slate,
+    color: colors.slate,
     marginBottom: 6,
   },
   labelCompact: {
@@ -130,14 +133,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   decrementButton: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderWidth: 1,
-    borderColor: COLORS.slateLight,
+    borderColor: colors.slateLight,
     alignItems: 'center',
     justifyContent: 'center',
   },
   incrementButton: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -148,11 +151,11 @@ const styles = StyleSheet.create({
     flex: 1,
     height: 44,
     borderWidth: 1,
-    borderColor: COLORS.slateLight,
+    borderColor: colors.slateLight,
     borderRadius: 8,
     fontSize: 18,
     fontWeight: '700',
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     paddingHorizontal: 12,
     textAlign: 'center',
   },

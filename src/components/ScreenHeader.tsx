@@ -1,8 +1,9 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, Text, StyleSheet, ViewStyle, TouchableOpacity, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { COLORS, FONT } from '../utils/helpers'
+import { FONT, ThemeColors } from '../utils/helpers'
 
 interface ScreenHeaderProps {
   title: string
@@ -14,6 +15,8 @@ interface ScreenHeaderProps {
 }
 
 export function ScreenHeader({ title, subtitle, left, right, onBack, style }: ScreenHeaderProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const insets = useSafeAreaInsets()
 
   return (
@@ -22,7 +25,7 @@ export function ScreenHeader({ title, subtitle, left, right, onBack, style }: Sc
         <View style={styles.left}>
           {onBack ? (
             <TouchableOpacity onPress={onBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={COLORS.slateDark} />
+              <Ionicons name="arrow-back" size={24} color={colors.slateDark} />
             </TouchableOpacity>
           ) : (
             left
@@ -38,16 +41,16 @@ export function ScreenHeader({ title, subtitle, left, right, onBack, style }: Sc
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
   left: {
     marginRight: 12,
@@ -56,7 +59,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
@@ -72,13 +75,13 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 13,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
+    color: colors.slate,
     marginTop: 2,
   },
   right: {

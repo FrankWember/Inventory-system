@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -16,9 +17,8 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { LoadingModal } from '../components/LoadingModal'
-import { COLORS, FONT, today, fmt, dateLabelLong } from '../utils/helpers'
+import { FONT, today, fmt, dateLabelLong, ThemeColors } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
-import { useSettings } from '../contexts/SettingsContext'
 import { exportData } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { usePdfExport } from '../hooks/usePdfExport'
@@ -27,6 +27,7 @@ import { PeriodType } from '../services/pdfService'
 export default function SettingsScreen() {
   const { user, signOut, updateProfile } = useAuth()
   const { theme, language, notificationsEnabled, barInfo, colors, setTheme, setLanguage, setNotificationsEnabled, updateBarInfo } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
   const [editModal, setEditModal] = useState<null | 'barName' | 'displayName'>(null)
   const [editValue, setEditValue] = useState('')
@@ -274,11 +275,11 @@ export default function SettingsScreen() {
             <Text style={styles.modalTitle}>Choisir une journée</Text>
             {loadingDates ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
+                <ActivityIndicator size="large" color={colors.primary} />
               </View>
             ) : dates.length === 0 ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <Text style={{ color: COLORS.slate, textAlign: 'center' }}>
+                <Text style={{ color: colors.slate, textAlign: 'center' }}>
                   Aucune session enregistrée
                 </Text>
               </View>
@@ -291,13 +292,13 @@ export default function SettingsScreen() {
                     onPress={() => handleDateSelect(item.date)}
                   >
                     <View style={styles.sessionItemLeft}>
-                      <Ionicons name="calendar" size={20} color={COLORS.primary} />
+                      <Ionicons name="calendar" size={20} color={colors.primary} />
                       <View style={{ marginLeft: 12 }}>
                         <Text style={styles.sessionItemDate}>{dateLabelLong(item.date)}</Text>
                         <Text style={styles.sessionItemRevenue}>{fmt(item.revenue)}</Text>
                       </View>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color={COLORS.slate} />
+                    <Ionicons name="chevron-forward" size={20} color={colors.slate} />
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -319,7 +320,7 @@ export default function SettingsScreen() {
             <Text style={styles.modalTitle}>Choisir une session</Text>
             {loadingSessions ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
+                <ActivityIndicator size="large" color={colors.primary} />
               </View>
             ) : (
               <ScrollView style={{ maxHeight: 400 }}>
@@ -330,13 +331,13 @@ export default function SettingsScreen() {
                     onPress={() => handleSessionSelect(session.id)}
                   >
                     <View style={styles.sessionItemLeft}>
-                      <Ionicons name="calendar" size={20} color={COLORS.primary} />
+                      <Ionicons name="calendar" size={20} color={colors.primary} />
                       <View style={{ marginLeft: 12 }}>
                         <Text style={styles.sessionItemDate}>{session.date}</Text>
                         <Text style={styles.sessionItemRevenue}>{fmt(session.total_revenue)}</Text>
                       </View>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color={COLORS.slate} />
+                    <Ionicons name="chevron-forward" size={20} color={colors.slate} />
                   </TouchableOpacity>
                 ))}
               </ScrollView>
@@ -366,7 +367,7 @@ export default function SettingsScreen() {
               onChangeText={setEditValue}
               autoFocus
               placeholder={editModal === 'barName' ? 'Ex: Le BarAfrika' : 'Votre nom'}
-              placeholderTextColor={COLORS.slate}
+              placeholderTextColor={colors.slate}
               onSubmitEditing={confirmEdit}
             />
             <View style={styles.modalActions}>
@@ -410,7 +411,7 @@ export default function SettingsScreen() {
                 activeOpacity={0.7}
               >
                 <Text style={styles.profileName}>{displayName}</Text>
-                <Ionicons name="pencil" size={14} color={COLORS.slate} style={{ marginLeft: 6 }} />
+                <Ionicons name="pencil" size={14} color={colors.slate} style={{ marginLeft: 6 }} />
               </TouchableOpacity>
               {phoneNumber ? (
                 <Text style={styles.profileSub}>{phoneNumber}</Text>
@@ -439,15 +440,15 @@ export default function SettingsScreen() {
           <View style={styles.row}>
             <View style={styles.rowLeft}>
               <View style={styles.iconBox}>
-                <Ionicons name="notifications-outline" size={19} color={COLORS.primary} />
+                <Ionicons name="notifications-outline" size={19} color={colors.primary} />
               </View>
               <Text style={styles.rowLabel}>Notifications</Text>
             </View>
             <Switch
               value={notificationsEnabled}
               onValueChange={handleNotificationsToggle}
-              trackColor={{ false: COLORS.border, true: COLORS.primary }}
-              thumbColor={COLORS.white}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.white}
             />
           </View>
 
@@ -456,7 +457,7 @@ export default function SettingsScreen() {
           <View style={styles.row}>
             <View style={styles.rowLeft}>
               <View style={styles.iconBox}>
-                <Ionicons name="globe-outline" size={19} color={COLORS.primary} />
+                <Ionicons name="globe-outline" size={19} color={colors.primary} />
               </View>
               <Text style={styles.rowLabel}>Langue</Text>
             </View>
@@ -471,7 +472,7 @@ export default function SettingsScreen() {
           <View style={styles.row}>
             <View style={styles.rowLeft}>
               <View style={styles.iconBox}>
-                <Ionicons name="color-palette-outline" size={19} color={COLORS.primary} />
+                <Ionicons name="color-palette-outline" size={19} color={colors.primary} />
               </View>
               <Text style={styles.rowLabel}>Thème</Text>
             </View>
@@ -552,7 +553,7 @@ export default function SettingsScreen() {
         <SettingsCard>
           <View style={styles.aboutRow}>
             <View style={styles.iconBox}>
-              <Ionicons name="information-circle-outline" size={19} color={COLORS.primary} />
+              <Ionicons name="information-circle-outline" size={19} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.rowLabel}>{barInfo?.name || 'BarTrack'}</Text>
@@ -568,10 +569,14 @@ export default function SettingsScreen() {
 }
 
 function SectionTitle({ label }: { label: string }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return <Text style={styles.sectionTitle}>{label}</Text>
 }
 
 function SettingsCard({ children }: { children: React.ReactNode }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return <View style={styles.card}>{children}</View>
 }
 
@@ -588,23 +593,27 @@ function RowItem({
   onPress: () => void
   destructive?: boolean
 }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.rowLeft}>
         <View style={[styles.iconBox, destructive && styles.iconBoxDestructive]}>
-          <Ionicons name={icon} size={19} color={destructive ? COLORS.rose : COLORS.primary} />
+          <Ionicons name={icon} size={19} color={destructive ? colors.rose : colors.primary} />
         </View>
-        <Text style={[styles.rowLabel, destructive && { color: COLORS.rose }]}>{label}</Text>
+        <Text style={[styles.rowLabel, destructive && { color: colors.rose }]}>{label}</Text>
       </View>
       <View style={styles.rowRight}>
         {value ? <Text style={styles.rowValue} numberOfLines={1}>{value}</Text> : null}
-        <Ionicons name="chevron-forward" size={16} color={COLORS.slate} />
+        <Ionicons name="chevron-forward" size={16} color={colors.slate} />
       </View>
     </TouchableOpacity>
   )
 }
 
 function SegBtn({ label, icon, active, onPress }: { label: string; icon?: keyof typeof Ionicons.glyphMap; active: boolean; onPress: () => void }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <TouchableOpacity
       style={[styles.segBtn, active && styles.segBtnActive]}
@@ -617,7 +626,7 @@ function SegBtn({ label, icon, active, onPress }: { label: string; icon?: keyof 
         <Ionicons
           name={icon}
           size={14}
-          color={active ? COLORS.white : COLORS.slate}
+          color={active ? colors.white : colors.slate}
           style={{ marginRight: 4 }}
         />
       )}
@@ -626,8 +635,8 @@ function SegBtn({ label, icon, active, onPress }: { label: string; icon?: keyof 
   )
 }
 
-const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: COLORS.surface },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  wrapper: { flex: 1, backgroundColor: colors.surface },
   container: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
 
@@ -635,7 +644,7 @@ const styles = StyleSheet.create({
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: colors.glass,
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -656,23 +665,23 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: COLORS.primaryLight,
+    backgroundColor: colors.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: COLORS.primary,
+    borderColor: colors.primary,
   },
-  avatarText: { fontSize: 20, fontFamily: FONT.bold, color: COLORS.primary },
+  avatarText: { fontSize: 20, fontFamily: FONT.bold, color: colors.primary },
   profileInfo: { flex: 1 },
   profileNameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
-  profileName: { fontSize: 16, fontFamily: FONT.semibold, color: COLORS.slateDark },
-  profileSub: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 1 },
+  profileName: { fontSize: 16, fontFamily: FONT.semibold, color: colors.slateDark },
+  profileSub: { fontSize: 13, fontFamily: FONT.regular, color: colors.slate, marginTop: 1 },
 
   // Section
   sectionTitle: {
     fontSize: 11,
     fontFamily: FONT.semibold,
-    color: COLORS.slate,
+    color: colors.slate,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 8,
@@ -682,7 +691,7 @@ const styles = StyleSheet.create({
   sectionDescription: {
     fontSize: 13,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
+    color: colors.slate,
     marginBottom: 12,
     marginLeft: 2,
     lineHeight: 18,
@@ -690,13 +699,13 @@ const styles = StyleSheet.create({
   subSectionTitle: {
     fontSize: 13,
     fontFamily: FONT.semibold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 8,
     marginTop: 12,
     marginLeft: 2,
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: colors.glass,
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -734,7 +743,7 @@ const styles = StyleSheet.create({
         backdropFilter: 'blur(10px)',
       },
       default: {
-        shadowColor: COLORS.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.1,
         shadowRadius: 4,
@@ -743,16 +752,16 @@ const styles = StyleSheet.create({
     }),
   },
   iconBoxDestructive: {
-    backgroundColor: '#FFF1F2',
+    backgroundColor: colors.roseLight,
   },
-  rowLabel: { fontSize: 15, fontFamily: FONT.medium, color: COLORS.slateDark, flex: 1 },
-  rowValue: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.slate, maxWidth: 120 },
-  separator: { height: 1, backgroundColor: COLORS.border, marginLeft: 62 },
+  rowLabel: { fontSize: 15, fontFamily: FONT.medium, color: colors.slateDark, flex: 1 },
+  rowValue: { fontSize: 13, fontFamily: FONT.regular, color: colors.slate, maxWidth: 120 },
+  separator: { height: 1, backgroundColor: colors.border, marginLeft: 62 },
 
   // Segmented control
   segmented: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 8,
     padding: 2,
     gap: 2,
@@ -771,8 +780,8 @@ const styles = StyleSheet.create({
     }),
   },
   segBtnActive: {
-    backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
+    backgroundColor: colors.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -783,8 +792,8 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  segBtnText: { fontSize: 12, fontFamily: FONT.semibold, color: COLORS.slate },
-  segBtnTextActive: { color: COLORS.white },
+  segBtnText: { fontSize: 12, fontFamily: FONT.semibold, color: colors.slate },
+  segBtnTextActive: { color: colors.white },
 
   // About row
   aboutRow: {
@@ -794,7 +803,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 12,
   },
-  aboutSub: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 1 },
+  aboutSub: { fontSize: 12, fontFamily: FONT.regular, color: colors.slate, marginTop: 1 },
 
   // Modal
   modalBackdrop: {
@@ -807,7 +816,7 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderRadius: 20,
     padding: 24,
     shadowColor: '#000',
@@ -816,17 +825,17 @@ const styles = StyleSheet.create({
     shadowRadius: 32,
     elevation: 12,
   },
-  modalTitle: { fontSize: 17, fontFamily: FONT.semibold, color: COLORS.slateDark, marginBottom: 16 },
+  modalTitle: { fontSize: 17, fontFamily: FONT.semibold, color: colors.slateDark, marginBottom: 16 },
   modalInput: {
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
     fontFamily: FONT.regular,
-    color: COLORS.slateDark,
-    backgroundColor: COLORS.surface,
+    color: colors.slateDark,
+    backgroundColor: colors.surface,
     marginBottom: 20,
     ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
@@ -834,7 +843,7 @@ const styles = StyleSheet.create({
   modalCancel: {
     flex: 1,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
@@ -845,14 +854,14 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  modalCancelText: { fontSize: 15, fontFamily: FONT.medium, color: COLORS.slate },
+  modalCancelText: { fontSize: 15, fontFamily: FONT.medium, color: colors.slate },
   modalConfirm: {
     flex: 1,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
-    shadowColor: COLORS.primary,
+    shadowColor: colors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -864,7 +873,7 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  modalConfirmText: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.white },
+  modalConfirmText: { fontSize: 15, fontFamily: FONT.semibold, color: colors.white },
   sessionItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -872,7 +881,7 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
   sessionItemLeft: {
     flexDirection: 'row',
@@ -881,12 +890,12 @@ const styles = StyleSheet.create({
   sessionItemDate: {
     fontSize: 14,
     fontFamily: FONT.semibold,
-    color: COLORS.slateDark,
+    color: colors.slateDark,
   },
   sessionItemRevenue: {
     fontSize: 12,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
+    color: colors.slate,
     marginTop: 2,
   },
 })

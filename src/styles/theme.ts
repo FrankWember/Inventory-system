@@ -92,6 +92,13 @@ export const LIGHT_COLORS = {
   card: palette.white,
   border: palette.slate200,
   borderStrong: palette.slate300,
+
+  // Frosted "glass" surfaces — translucent cards floating over hero images /
+  // gradients (auth screens, dashboard KPI tiles). Light values are the exact
+  // literals these replaced, so light mode is unchanged.
+  glass: 'rgba(255, 255, 255, 0.85)',
+  glassStrong: 'rgba(255, 255, 255, 0.96)',
+  glassBorder: 'rgba(255, 255, 255, 0.5)',
 }
 
 export const DARK_COLORS = {
@@ -139,13 +146,22 @@ export const DARK_COLORS = {
   card: '#1A2638',         // Card backgrounds with blue tint
   border: '#2A3749',       // Subtle blue-gray borders
   borderStrong: '#3D4E66', // Stronger blue-gray borders
+
+  // Frosted "glass" surfaces — translucent navy cards for night mode
+  glass: 'rgba(26, 38, 56, 0.85)',
+  glassStrong: 'rgba(21, 27, 46, 0.96)',
+  glassBorder: 'rgba(61, 78, 102, 0.55)',
 }
 
 // Default export for backwards compatibility
 export const COLORS = LIGHT_COLORS
 
+// Semantic color tokens — components take this via useSettings().colors so
+// both LIGHT_COLORS and DARK_COLORS satisfy it.
+export type ThemeColors = typeof LIGHT_COLORS
+
 // Get colors based on theme
-export function getColors(theme: 'light' | 'dark') {
+export function getColors(theme: 'light' | 'dark'): ThemeColors {
   return theme === 'dark' ? DARK_COLORS : LIGHT_COLORS
 }
 

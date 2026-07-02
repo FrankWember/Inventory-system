@@ -1,4 +1,5 @@
-import React, { useState } from 'react'
+import React, { useMemo, useState } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -17,11 +18,13 @@ import { Button } from '../components/Button'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { DrinkSelector } from '../components/DrinkSelector'
 import { DrinkTemplate } from '../data/cameroonianDrinks'
-import { COLORS, fmt } from '../utils/helpers'
+import { fmt, ThemeColors } from '../utils/helpers'
 
 const BREAKPOINT = 768
 
 export default function AddDrinkScreen({ navigation, route }: any) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const hideHeader = route?.params?.hideHeader
   const [saving, setSaving] = useState(false)
   const [unitMode, setUnitMode] = useState<'units' | 'cassiers'>('cassiers')
@@ -240,13 +243,13 @@ export default function AddDrinkScreen({ navigation, route }: any) {
                   </View>
                   <View style={styles.calculationRow}>
                     <Text style={styles.calculationLabel}>Profit par unité</Text>
-                    <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
+                    <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? colors.emerald : colors.rose }]}>
                       {fmt(profitPerUnit)}
                     </Text>
                   </View>
                   <View style={styles.calculationRow}>
                     <Text style={styles.calculationLabel}>Marge bénéficiaire</Text>
-                    <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
+                    <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? colors.emerald : colors.rose }]}>
                       {marginPercent}%
                     </Text>
                   </View>
@@ -331,7 +334,7 @@ export default function AddDrinkScreen({ navigation, route }: any) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
   },
@@ -341,8 +344,8 @@ const styles = StyleSheet.create({
   },
   buttonContainer: {
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
-    backgroundColor: COLORS.white,
+    borderTopColor: colors.border,
+    backgroundColor: colors.white,
     paddingHorizontal: 16,
     paddingVertical: 12,
     paddingBottom: Platform.OS === 'ios' ? 24 : 12,
@@ -350,25 +353,25 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 17,
     fontWeight: '700',
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 12,
   },
   label: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.slateDark,
+    color: colors.slateDark,
     marginBottom: 8,
   },
   helpText: {
     fontSize: 13,
     fontWeight: '400',
-    color: COLORS.slate,
+    color: colors.slate,
     marginBottom: 20,
     lineHeight: 18,
   },
   unitToggle: {
     flexDirection: 'row',
-    backgroundColor: COLORS.slateLight,
+    backgroundColor: colors.slateLight,
     borderRadius: 10,
     padding: 4,
     marginBottom: 20,
@@ -381,7 +384,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   unitToggleButtonActive: {
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
@@ -391,13 +394,13 @@ const styles = StyleSheet.create({
   unitToggleText: {
     fontSize: 14,
     fontWeight: '600',
-    color: COLORS.slate,
+    color: colors.slate,
   },
   unitToggleTextActive: {
-    color: COLORS.slateDark,
+    color: colors.slateDark,
   },
   calculationCard: {
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
@@ -411,12 +414,12 @@ const styles = StyleSheet.create({
   calculationLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.slate,
+    color: colors.slate,
   },
   calculationValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.slateDark,
+    color: colors.slateDark,
   },
   buttons: {
     flexDirection: 'row',
@@ -424,7 +427,7 @@ const styles = StyleSheet.create({
   },
   wrapper: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
   containerDesktop: {
     maxWidth: 600,

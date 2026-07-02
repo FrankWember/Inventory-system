@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, Text, StyleSheet } from 'react-native'
-import { COLORS, FONT, fmt } from '../utils/helpers'
+import { FONT, fmt, ThemeColors } from '../utils/helpers'
 
 export interface ShareSlice {
   label: string
@@ -11,6 +12,8 @@ export interface ShareSlice {
 // Minimal category-mix viz: one segmented bar + a compact legend. Pure Views,
 // cross-platform, far less visual noise than a multi-colour donut.
 export function CategoryShare({ data }: { data: ShareSlice[] }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const slices = data.filter(d => d.value > 0)
   if (slices.length === 0) return <Text style={styles.empty}>Aucune donnée</Text>
   const total = slices.reduce((s, d) => s + d.value, 0)
@@ -36,20 +39,20 @@ export function CategoryShare({ data }: { data: ShareSlice[] }) {
   )
 }
 
-const styles = StyleSheet.create({
-  empty: { fontSize: 13, color: COLORS.slate, textAlign: 'center', padding: 16, fontFamily: FONT.medium },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  empty: { fontSize: 13, color: colors.slate, textAlign: 'center', padding: 16, fontFamily: FONT.medium },
   bar: {
     flexDirection: 'row',
     height: 12,
     borderRadius: 6,
     overflow: 'hidden',
     marginBottom: 14,
-    backgroundColor: COLORS.slateLight,
+    backgroundColor: colors.slateLight,
   },
   legend: { gap: 10 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   dot: { width: 9, height: 9, borderRadius: 3 },
-  label: { flex: 1, fontSize: 13, color: COLORS.slateDark, fontFamily: FONT.medium },
-  value: { fontSize: 13, color: COLORS.slate, fontFamily: FONT.medium, fontVariant: ['tabular-nums'] },
-  pct: { width: 40, textAlign: 'right', fontSize: 13, color: COLORS.slateDark, fontFamily: FONT.bold, fontVariant: ['tabular-nums'] },
+  label: { flex: 1, fontSize: 13, color: colors.slateDark, fontFamily: FONT.medium },
+  value: { fontSize: 13, color: colors.slate, fontFamily: FONT.medium, fontVariant: ['tabular-nums'] },
+  pct: { width: 40, textAlign: 'right', fontSize: 13, color: colors.slateDark, fontFamily: FONT.bold, fontVariant: ['tabular-nums'] },
 })

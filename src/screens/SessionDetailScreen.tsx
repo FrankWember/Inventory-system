@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useMemo, useState, useEffect, useRef } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -18,8 +19,7 @@ import { Session, Expense } from '../types'
 import { SessionExpensesPanel } from '../components/SessionExpensesPanel'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { LoadingModal } from '../components/LoadingModal'
-import { useSettings } from '../contexts/SettingsContext'
-import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers, formatWithCassiersShort, today } from '../utils/helpers'
+import { FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers, formatWithCassiersShort, today, ThemeColors } from '../utils/helpers'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SessionDetail'>
 
@@ -49,7 +49,9 @@ function usePrintStyles() {
 
 export default function SessionDetailScreen({ route, navigation }: Props) {
   const { sessionId } = route.params
-  const { barInfo } = useSettings()
+  const { barInfo, colors } = useSettings()
+  const st = useMemo(() => makeSt(colors), [colors])
+  const s = useMemo(() => makeS(colors), [colors])
   const [session, setSession] = useState<Session | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
@@ -112,7 +114,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
   if (loading) {
     return (
       <View style={s.loadingWrap}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={s.loadingText}>Chargement du journal…</Text>
       </View>
     )
@@ -121,7 +123,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
   if (!session) {
     return (
       <View style={s.loadingWrap}>
-        <Ionicons name="alert-circle-outline" size={40} color={COLORS.slate} />
+        <Ionicons name="alert-circle-outline" size={40} color={colors.slate} />
         <Text style={s.loadingText}>Session introuvable</Text>
       </View>
     )
@@ -153,7 +155,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
         right={
           Platform.OS === 'web' ? (
             <TouchableOpacity onPress={handlePrint} style={s.printBtn}>
-              <Ionicons name="print-outline" size={18} color={COLORS.white} />
+              <Ionicons name="print-outline" size={18} color={colors.white} />
               <Text style={s.printBtnText}>Imprimer</Text>
             </TouchableOpacity>
           ) : undefined
@@ -181,31 +183,31 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
           <Ionicons
             name={session.closed ? 'checkmark-circle' : 'time-outline'}
             size={15}
-            color={session.closed ? COLORS.emerald : COLORS.amber}
+            color={session.closed ? colors.emerald : colors.amber}
           />
-          <Text style={[s.statusText, { color: session.closed ? COLORS.emerald : COLORS.amber }]}>
+          <Text style={[s.statusText, { color: session.closed ? colors.emerald : colors.amber }]}>
             {session.closed ? 'Journée clôturée' : 'Session en cours'}
           </Text>
         </View>
 
         {/* ── P&L Summary ── */}
         <Section title="Compte de résultat" icon="bar-chart-outline">
-          <JRow label="Revenu des ventes" value={fmt(session.total_revenue)} accent={COLORS.primary} />
+          <JRow label="Revenu des ventes" value={fmt(session.total_revenue)} accent={colors.primary} />
           <JRow label={`Unités vendues`} value={fmtNum(totalUnits)} muted />
-          <JRow label="Coût des achats" value={`-${fmt(session.total_cost)}`} accent={COLORS.rose} />
+          <JRow label="Coût des achats" value={`-${fmt(session.total_cost)}`} accent={colors.rose} />
           <Divider />
           <JRow
             label="Marge brute"
             value={fmt(grossProfit)}
-            accent={grossProfit >= 0 ? COLORS.primary : COLORS.rose}
+            accent={grossProfit >= 0 ? colors.primary : colors.rose}
             highlight
           />
-          <JRow label="Dépenses opérationnelles" value={`-${fmt(totalExpenses)}`} accent={COLORS.rose} />
+          <JRow label="Dépenses opérationnelles" value={`-${fmt(totalExpenses)}`} accent={colors.rose} />
           <Divider />
           <JRow
             label="Résultat net"
             value={fmt(netProfit)}
-            accent={netProfit >= 0 ? COLORS.emerald : COLORS.rose}
+            accent={netProfit >= 0 ? colors.emerald : colors.rose}
             bold
           />
         </Section>
@@ -228,7 +230,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
                   <Text style={[s.sth, s.sthNum]}>+Reçu</Text>
                   <Text style={[s.sth, s.sthNum]}>Dispo</Text>
                   <Text style={[s.sth, s.sthNum]}>Compté</Text>
-                  <Text style={[s.sth, s.sthNum, { color: COLORS.primary }]}>Vendus</Text>
+                  <Text style={[s.sth, s.sthNum, { color: colors.primary }]}>Vendus</Text>
                   <Text style={[s.sth, s.sthMoney]}>Revenu</Text>
                 </View>
 
@@ -265,7 +267,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
                   <Text style={[s.stTotal, s.stdNum]}>—</Text>
                   <Text style={[s.stTotal, s.stdNum]}>—</Text>
                   <Text style={[s.stTotal, s.stdNum, s.stdAccent]}>{fmtNum(totalUnits)}</Text>
-                  <Text style={[s.stTotal, s.stdMoney, { color: COLORS.primary }]}>{fmt(session.total_revenue)}</Text>
+                  <Text style={[s.stTotal, s.stdMoney, { color: colors.primary }]}>{fmt(session.total_revenue)}</Text>
                 </View>
               </View>
             </ScrollView>
@@ -324,7 +326,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
                 <View style={s.stockTotalRow}>
                   <Text style={[s.stTotal, s.stdSalesArticle]}>TOTAL</Text>
                   <Text style={[s.stTotal, s.stdNum, s.stdAccent]}>{fmtNum(totalUnits)}</Text>
-                  <Text style={[s.stTotal, s.stdMoney, { color: COLORS.primary }]}>{fmt(session.total_revenue)}</Text>
+                  <Text style={[s.stTotal, s.stdMoney, { color: colors.primary }]}>{fmt(session.total_revenue)}</Text>
                 </View>
               </View>
             </View>
@@ -354,6 +356,8 @@ function Section({
 }: {
   title: string; icon?: string; count?: number; children: React.ReactNode
 }) {
+  const { colors } = useSettings()
+  const sc = useMemo(() => makeSc(colors), [colors])
   const [isExpanded, setIsExpanded] = useState(true)
   const animationHeight = useRef(new Animated.Value(1)).current
 
@@ -380,7 +384,7 @@ function Section({
     <View style={sc.wrap}>
       <TouchableOpacity onPress={toggleSection} style={sc.head} activeOpacity={0.7}>
         <View style={sc.headLeft}>
-          {icon && <Ionicons name={icon as any} size={16} color={COLORS.primary} />}
+          {icon && <Ionicons name={icon as any} size={16} color={colors.primary} />}
           <Text style={sc.title}>{title}</Text>
         </View>
         <View style={sc.headRight}>
@@ -399,7 +403,7 @@ function Section({
               }],
             }}
           >
-            <Ionicons name="chevron-down" size={18} color={COLORS.slate} />
+            <Ionicons name="chevron-down" size={18} color={colors.slate} />
           </Animated.View>
         </View>
       </TouchableOpacity>
@@ -419,13 +423,13 @@ function Section({
   )
 }
 
-const sc = StyleSheet.create({
+const makeSc = (colors: ThemeColors) => StyleSheet.create({
   wrap: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: colors.glass,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: colors.glassBorder,
     marginBottom: 14,
     ...Platform.select({
       web: {
@@ -457,7 +461,7 @@ const sc = StyleSheet.create({
   },
   headLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   headRight: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  title: { fontSize: 15, fontFamily: FONT.bold, color: COLORS.slateDark },
+  title: { fontSize: 15, fontFamily: FONT.bold, color: colors.slateDark },
   countPill: {
     paddingHorizontal: 10,
     paddingVertical: 4,
@@ -469,7 +473,7 @@ const sc = StyleSheet.create({
       },
     }),
   },
-  countText: { fontSize: 12, fontFamily: FONT.bold, color: COLORS.primary },
+  countText: { fontSize: 12, fontFamily: FONT.bold, color: colors.primary },
   content: {
     paddingTop: 14,
     ...Platform.select({
@@ -481,11 +485,13 @@ const sc = StyleSheet.create({
 })
 
 function Divider() {
-  return <View style={{ height: 1, backgroundColor: COLORS.border, marginVertical: 6 }} />
+  const { colors } = useSettings()
+  return <View style={{ height: 1, backgroundColor: colors.border, marginVertical: 6 }} />
 }
 
 function EmptySection({ label }: { label: string }) {
-  return <Text style={{ fontSize: 13, fontFamily: FONT.regular, color: COLORS.slate, fontStyle: 'italic' }}>{label}</Text>
+  const { colors } = useSettings()
+  return <Text style={{ fontSize: 13, fontFamily: FONT.regular, color: colors.slate, fontStyle: 'italic' }}>{label}</Text>
 }
 
 function JRow({
@@ -493,6 +499,8 @@ function JRow({
 }: {
   label: string; value: string; muted?: boolean; accent?: string; bold?: boolean; highlight?: boolean
 }) {
+  const { colors } = useSettings()
+  const jr = useMemo(() => makeJr(colors), [colors])
   return (
     <View style={[jr.row, highlight && jr.highlight]}>
       <Text style={[jr.label, muted && jr.muted]}>{label}</Text>
@@ -501,16 +509,19 @@ function JRow({
   )
 }
 
-const jr = StyleSheet.create({
+const makeJr = (colors: ThemeColors) => StyleSheet.create({
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 7 },
-  highlight: { backgroundColor: COLORS.slateLight + '60', marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 8 },
-  label: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: COLORS.slate },
-  muted: { fontSize: 12, color: COLORS.slate },
-  value: { fontSize: 14, fontFamily: FONT.semibold, color: COLORS.slateDark, fontVariant: ['tabular-nums'] },
+  highlight: { backgroundColor: colors.slateLight + '60', marginHorizontal: -8, paddingHorizontal: 8, borderRadius: 8 },
+  label: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: colors.slate },
+  muted: { fontSize: 12, color: colors.slate },
+  value: { fontSize: 14, fontFamily: FONT.semibold, color: colors.slateDark, fontVariant: ['tabular-nums'] },
   bold: { fontSize: 16, fontFamily: FONT.bold },
 })
 
 function SimpleTable({ headers, rows }: { headers: string[]; rows: string[][] }) {
+  const { colors } = useSettings()
+  const st = useMemo(() => makeSt(colors), [colors])
+  const s = useMemo(() => makeS(colors), [colors])
   return (
     <ScrollView
       horizontal
@@ -537,16 +548,16 @@ function SimpleTable({ headers, rows }: { headers: string[]; rows: string[][] })
   )
 }
 
-const st = StyleSheet.create({
+const makeSt = (colors: ThemeColors) => StyleSheet.create({
   table: {
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 10,
     overflow: 'hidden',
     width: '100%',
   },
-  head: { flexDirection: 'row', backgroundColor: COLORS.surface, paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
-  th: { fontSize: 10, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
+  head: { flexDirection: 'row', backgroundColor: colors.surface, paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: colors.border },
+  th: { fontSize: 10, fontFamily: FONT.bold, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
   thFirst: {
     flex: 2,
     minWidth: 140,
@@ -560,9 +571,9 @@ const st = StyleSheet.create({
     paddingHorizontal: 8,
     ...Platform.select({ web: { flex: 1 } }),
   },
-  row: { flexDirection: 'row', paddingVertical: 11, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center' },
-  rowEven: { backgroundColor: COLORS.surface + '60' },
-  td: { fontSize: 13, fontFamily: FONT.medium, color: COLORS.slateDark },
+  row: { flexDirection: 'row', paddingVertical: 11, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: colors.border, alignItems: 'center' },
+  rowEven: { backgroundColor: colors.surface + '60' },
+  td: { fontSize: 13, fontFamily: FONT.medium, color: colors.slateDark },
   tdFirst: {
     flex: 2,
     minWidth: 140,
@@ -580,10 +591,10 @@ const st = StyleSheet.create({
 })
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const s = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surface },
-  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: COLORS.surface },
-  loadingText: { fontSize: 14, fontFamily: FONT.regular, color: COLORS.slate },
+const makeS = (colors: ThemeColors) => StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.surface },
+  loadingWrap: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 12, backgroundColor: colors.surface },
+  loadingText: { fontSize: 14, fontFamily: FONT.regular, color: colors.slate },
 
   header: {
     ...Platform.select({
@@ -600,7 +611,7 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
     borderWidth: 0,
     ...Platform.select({
       web: {
@@ -612,7 +623,7 @@ const s = StyleSheet.create({
         },
       },
       default: {
-        shadowColor: COLORS.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.3,
         shadowRadius: 6,
@@ -623,7 +634,7 @@ const s = StyleSheet.create({
   printBtnText: {
     fontSize: 13,
     fontFamily: FONT.semibold,
-    color: COLORS.white,
+    color: colors.white,
   },
 
   body: {
@@ -641,9 +652,9 @@ const s = StyleSheet.create({
 
   // print header (only visible when printing via CSS)
   printHeader: { display: 'none', marginBottom: 20 },
-  printTitle: { fontSize: 20, fontFamily: FONT.bold, color: COLORS.slateDark },
-  printDate: { fontSize: 14, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 4 },
-  printDivider: { height: 2, backgroundColor: COLORS.primary, marginTop: 12 },
+  printTitle: { fontSize: 20, fontFamily: FONT.bold, color: colors.slateDark },
+  printDate: { fontSize: 14, fontFamily: FONT.regular, color: colors.slate, marginTop: 4 },
+  printDivider: { height: 2, backgroundColor: colors.primary, marginTop: 12 },
 
   statusBadge: {
     flexDirection: 'row',
@@ -691,7 +702,7 @@ const s = StyleSheet.create({
   // stock movement table
   stockTable: {
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 10,
     overflow: 'hidden',
     minWidth: '100%',
@@ -699,13 +710,13 @@ const s = StyleSheet.create({
   },
   stockHead: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     paddingVertical: 10,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
-  sth: { fontSize: 9, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
+  sth: { fontSize: 9, fontFamily: FONT.bold, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
   sthArticle: {
     flex: 2,
     minWidth: 120,
@@ -727,9 +738,9 @@ const s = StyleSheet.create({
     ...Platform.select({ web: { flex: 1.5 } }),
   },
   sthSalesArticle: { flex: 1, minWidth: 140, paddingRight: 12 },
-  stockRow: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center' },
-  stockRowEven: { backgroundColor: COLORS.surface + '60' },
-  std: { fontSize: 12, fontFamily: FONT.medium, color: COLORS.slateDark },
+  stockRow: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: colors.border, alignItems: 'center' },
+  stockRowEven: { backgroundColor: colors.surface + '60' },
+  std: { fontSize: 12, fontFamily: FONT.medium, color: colors.slateDark },
   stdArticle: {
     flex: 2,
     minWidth: 120,
@@ -750,42 +761,42 @@ const s = StyleSheet.create({
     minWidth: 90,
     textAlign: 'right',
     fontFamily: FONT.bold,
-    color: COLORS.primary,
+    color: colors.primary,
     fontVariant: ['tabular-nums'],
     fontSize: 11,
     paddingHorizontal: 6,
     ...Platform.select({ web: { flex: 1.5 } }),
   },
   stdSalesArticle: { flex: 1, minWidth: 140, paddingRight: 12 },
-  stdPos: { color: COLORS.primary },
-  stdAccent: { color: COLORS.primary },
+  stdPos: { color: colors.primary },
+  stdAccent: { color: colors.primary },
   stockTotalRow: {
     flexDirection: 'row',
     paddingVertical: 11,
     paddingHorizontal: 10,
-    backgroundColor: COLORS.primaryLight + '50',
+    backgroundColor: colors.primaryLight + '50',
     borderTopWidth: 1.5,
-    borderTopColor: COLORS.primary + '40',
+    borderTopColor: colors.primary + '40',
     alignItems: 'center',
   },
-  stTotal: { fontSize: 12, fontFamily: FONT.bold, color: COLORS.slateDark },
+  stTotal: { fontSize: 12, fontFamily: FONT.bold, color: colors.slateDark },
 
   // sales table
   salesTable: {
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     borderRadius: 10,
     overflow: 'hidden',
     width: '100%',
   },
   salesHead: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
     paddingVertical: 10,
     paddingHorizontal: 10,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
-  salesRow: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center', gap: 8 },
-  saleFlow: { fontSize: 9, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 2, fontVariant: ['tabular-nums'] },
+  salesRow: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: colors.border, alignItems: 'center', gap: 8 },
+  saleFlow: { fontSize: 9, fontFamily: FONT.regular, color: colors.slate, marginTop: 2, fontVariant: ['tabular-nums'] },
 })

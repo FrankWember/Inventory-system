@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react'
+import React, { useMemo, useState, useEffect } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import {
   View,
   Text,
@@ -17,11 +18,13 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { Badge } from '../components/Badge'
 import { ScreenSkeleton } from '../components/Skeleton'
 import { ProfessionalBarChart } from '../components/ProfessionalBarChart'
-import { COLORS, FONT, fmt, fmtShort, fmtNum, today, dateLabel, formatWithCassiers } from '../utils/helpers'
+import { FONT, fmt, fmtShort, fmtNum, today, dateLabel, formatWithCassiers, ThemeColors } from '../utils/helpers'
 
 const BREAKPOINT = 768
 
 export default function DashboardScreen({ navigation }: any) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
@@ -137,7 +140,7 @@ export default function DashboardScreen({ navigation }: any) {
           <View style={styles.statBox} className="glass-card">
             <Text style={styles.statLabel}>Profit 7j</Text>
             <Text
-              style={[styles.statValue, { color: last7Profit >= 0 ? COLORS.primary : COLORS.rose }]}
+              style={[styles.statValue, { color: last7Profit >= 0 ? colors.primary : colors.rose }]}
               adjustsFontSizeToFit
               numberOfLines={1}
             >
@@ -160,7 +163,7 @@ export default function DashboardScreen({ navigation }: any) {
             {attention.slice(0, 5).map(d => {
               const isOut = d.stock === 0
               const isCritical = !isOut && d.stock <= d.min_stock / 2
-              const stockColor = isOut ? COLORS.rose : (isCritical ? COLORS.amber : COLORS.primary)
+              const stockColor = isOut ? colors.rose : (isCritical ? colors.amber : colors.primary)
               const stockText = isOut ? 'Rupture' : formatWithCassiers(d.stock, d.category)
               return (
                 <TouchableOpacity key={d.id} style={styles.alertRow} onPress={() => navigation.navigate('Inventory')} activeOpacity={0.7}>
@@ -174,7 +177,7 @@ export default function DashboardScreen({ navigation }: any) {
                       {stockText}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={COLORS.slate400} />
+                  <Ionicons name="chevron-forward" size={16} color={colors.slate400} />
                 </TouchableOpacity>
               )
             })}
@@ -187,7 +190,7 @@ export default function DashboardScreen({ navigation }: any) {
         ) : (
           <View style={styles.healthyCard}>
             <View style={styles.healthyIcon}>
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
+              <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
             </View>
             <Text style={styles.healthyText}>Tout le stock est au-dessus du seuil.</Text>
           </View>
@@ -210,7 +213,7 @@ export default function DashboardScreen({ navigation }: any) {
                     return {
                       label: s.date.slice(-5),
                       value: s.total_profit,
-                      color: s.total_profit >= 0 ? COLORS.primary : COLORS.rose,
+                      color: s.total_profit >= 0 ? colors.primary : colors.rose,
                       revenue: s.total_revenue,
                       unitsSold: unitsSold,
                       cost: s.total_cost,
@@ -256,7 +259,7 @@ export default function DashboardScreen({ navigation }: any) {
 
         {attention.length === 0 && top5.length === 0 && (
           <View style={styles.emptyHint}>
-            <Ionicons name="information-circle-outline" size={20} color={COLORS.slate} />
+            <Ionicons name="information-circle-outline" size={20} color={colors.slate} />
             <Text style={styles.emptyHintText}>
               Clôturez une session pour voir les tendances de vente.
             </Text>
@@ -267,16 +270,16 @@ export default function DashboardScreen({ navigation }: any) {
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
+    backgroundColor: colors.surface,
   },
   scroll: {
     flex: 1,
@@ -297,12 +300,12 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: 16, marginBottom: 20 },
   statBox: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: colors.glass,
     borderRadius: 16,
     paddingVertical: 20,
     paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: colors.glassBorder,
     ...Platform.select({
       web: {
         backdropFilter: 'blur(12px)',
@@ -317,15 +320,15 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  statLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.slate, letterSpacing: 0.3, textTransform: 'uppercase' },
-  statValue: { fontSize: 20, fontFamily: FONT.extrabold, color: COLORS.slateDark, marginTop: 8, fontVariant: ['tabular-nums'], letterSpacing: -0.5, minHeight: 28 },
+  statLabel: { fontSize: 11, fontFamily: FONT.semibold, color: colors.slate, letterSpacing: 0.3, textTransform: 'uppercase' },
+  statValue: { fontSize: 20, fontFamily: FONT.extrabold, color: colors.slateDark, marginTop: 8, fontVariant: ['tabular-nums'], letterSpacing: -0.5, minHeight: 28 },
   section: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: colors.glass,
     borderRadius: 18,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: colors.glassBorder,
     ...Platform.select({
       web: {
         backdropFilter: 'blur(12px)',
@@ -346,8 +349,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  sectionTitle: { fontSize: 17, fontFamily: FONT.bold, color: COLORS.slateDark, letterSpacing: -0.3 },
-  sectionHint: { fontSize: 13, fontFamily: FONT.medium, color: COLORS.slate },
+  sectionTitle: { fontSize: 17, fontFamily: FONT.bold, color: colors.slateDark, letterSpacing: -0.3 },
+  sectionHint: { fontSize: 13, fontFamily: FONT.medium, color: colors.slate },
   badgeRow: { flexDirection: 'row', gap: 6 },
   alertRow: {
     flexDirection: 'row',
@@ -355,15 +358,15 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: colors.border,
   },
   alertBar: { width: 4, height: 36, borderRadius: 2 },
   alertMain: { flex: 1, minWidth: 0 },
-  alertName: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.slateDark },
-  alertSub: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 3 },
+  alertName: { fontSize: 15, fontFamily: FONT.semibold, color: colors.slateDark },
+  alertSub: { fontSize: 12, fontFamily: FONT.regular, color: colors.slate, marginTop: 3 },
   alertRight: { alignItems: 'flex-end' },
   alertStock: { fontSize: 14, fontFamily: FONT.bold, fontVariant: ['tabular-nums'] },
-  moreLink: { fontSize: 14, fontFamily: FONT.bold, color: COLORS.primary, marginTop: 12 },
+  moreLink: { fontSize: 14, fontFamily: FONT.bold, color: colors.primary, marginTop: 12 },
   healthyCard: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -379,7 +382,7 @@ const styles = StyleSheet.create({
         backdropFilter: 'blur(10px)',
       },
       default: {
-        shadowColor: COLORS.primary,
+        shadowColor: colors.primary,
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.15,
         shadowRadius: 8,
@@ -389,7 +392,7 @@ const styles = StyleSheet.create({
   },
   healthyIcon: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)', alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.glass, alignItems: 'center', justifyContent: 'center',
     ...Platform.select({
       web: {
         backdropFilter: 'blur(8px)',
@@ -402,12 +405,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
+    borderTopColor: colors.border,
     gap: 14,
   },
   topRank: {
     width: 28, height: 28, borderRadius: 8,
-    backgroundColor: 'rgba(74, 144, 226, 0.15)', color: COLORS.primary,
+    backgroundColor: 'rgba(74, 144, 226, 0.15)', color: colors.primary,
     fontSize: 14, fontFamily: FONT.bold, textAlign: 'center', lineHeight: 28,
     ...Platform.select({
       web: {
@@ -416,21 +419,21 @@ const styles = StyleSheet.create({
     }),
   },
   topMain: { flex: 1, minWidth: 0, gap: 7 },
-  topName: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.slateDark },
-  topBarTrack: { height: 6, borderRadius: 3, backgroundColor: COLORS.slateLight, overflow: 'hidden' },
-  topBarFill: { height: '100%', borderRadius: 3, backgroundColor: COLORS.primary },
+  topName: { fontSize: 15, fontFamily: FONT.semibold, color: colors.slateDark },
+  topBarTrack: { height: 6, borderRadius: 3, backgroundColor: colors.slateLight, overflow: 'hidden' },
+  topBarFill: { height: '100%', borderRadius: 3, backgroundColor: colors.primary },
   topRight: { alignItems: 'flex-end' },
-  topRevenue: { fontSize: 16, fontFamily: FONT.bold, color: COLORS.slateDark, fontVariant: ['tabular-nums'] },
-  topSold: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 2 },
+  topRevenue: { fontSize: 16, fontFamily: FONT.bold, color: colors.slateDark, fontVariant: ['tabular-nums'] },
+  topSold: { fontSize: 12, fontFamily: FONT.regular, color: colors.slate, marginTop: 2 },
   emptyHint: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     padding: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
+    backgroundColor: colors.glass,
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
+    borderColor: colors.glassBorder,
     ...Platform.select({
       web: {
         backdropFilter: 'blur(12px)',
@@ -444,7 +447,7 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  emptyHintText: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: COLORS.slate, lineHeight: 20 },
+  emptyHintText: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: colors.slate, lineHeight: 20 },
   profitChartContainer: {
     paddingTop: 8,
     width: '100%',

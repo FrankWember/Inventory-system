@@ -1,8 +1,11 @@
-import React, { useEffect, useRef } from 'react'
+import React, { useMemo, useEffect, useRef } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, Animated, StyleSheet, ViewStyle, ScrollView } from 'react-native'
-import { COLORS, RADIUS, SPACE, shadow } from '../utils/helpers'
+import { RADIUS, SPACE, shadow, ThemeColors } from '../utils/helpers'
 
 export function Skeleton({ style }: { style?: ViewStyle | ViewStyle[] }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const opacity = useRef(new Animated.Value(0.5)).current
 
   useEffect(() => {
@@ -20,6 +23,8 @@ export function Skeleton({ style }: { style?: ViewStyle | ViewStyle[] }) {
 }
 
 function SkeletonCard({ height = 80 }: { height?: number }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
     <View style={[styles.card, { minHeight: height }]}>
       <Skeleton style={{ width: '40%', height: 12, marginBottom: 12 }} />
@@ -30,8 +35,10 @@ function SkeletonCard({ height = 80 }: { height?: number }) {
 
 /** Full-screen skeleton for list/dashboard screens. */
 export function ScreenSkeleton({ variant = 'list' }: { variant?: 'list' | 'dashboard' | 'grid' }) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   return (
-    <View style={{ flex: 1, backgroundColor: COLORS.surface }}>
+    <View style={{ flex: 1, backgroundColor: colors.surface }}>
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{ padding: SPACE.lg, flexGrow: 1 }}
@@ -84,27 +91,27 @@ export function ScreenSkeleton({ variant = 'list' }: { variant?: 'list' | 'dashb
   )
 }
 
-const styles = StyleSheet.create({
-  base: { backgroundColor: COLORS.border, borderRadius: RADIUS.sm },
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
+  base: { backgroundColor: colors.border, borderRadius: RADIUS.sm },
   card: {
     flex: 1,
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.md,
     padding: SPACE.lg,
     marginBottom: SPACE.sm,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     ...shadow(1),
   },
   row: { flexDirection: 'row', gap: SPACE.sm },
   gridWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACE.sm },
   gridCell: {
     width: '48%',
-    backgroundColor: COLORS.card,
+    backgroundColor: colors.card,
     borderRadius: RADIUS.md,
     padding: SPACE.md,
     borderWidth: 1,
-    borderColor: COLORS.border,
+    borderColor: colors.border,
     ...shadow(1),
   },
 })

@@ -1,6 +1,7 @@
-import React from 'react'
+import React, { useMemo } from 'react'
+import { useSettings } from '../contexts/SettingsContext'
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
-import { COLORS } from '../utils/helpers'
+import { ThemeColors } from '../utils/helpers'
 
 interface Step {
   key: string
@@ -14,6 +15,8 @@ interface StepIndicatorProps {
 }
 
 export function StepIndicator({ steps, current, onStepPress }: StepIndicatorProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const currentIndex = steps.findIndex(s => s.key === current)
 
   return (
@@ -54,14 +57,14 @@ export function StepIndicator({ steps, current, onStepPress }: StepIndicatorProp
   )
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (colors: ThemeColors) => StyleSheet.create({
   container: {
     flexDirection: 'row',
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.white,
+    backgroundColor: colors.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
+    borderBottomColor: colors.border,
   },
   step: {
     flex: 1,
@@ -72,33 +75,33 @@ const styles = StyleSheet.create({
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: COLORS.grayLight,
+    backgroundColor: colors.grayLight,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: 4,
   },
   dotActive: {
-    backgroundColor: COLORS.primary,
+    backgroundColor: colors.primary,
   },
   dotDone: {
-    backgroundColor: COLORS.emerald,
+    backgroundColor: colors.emerald,
   },
   dotText: {
     fontSize: 12,
     fontWeight: '700',
-    color: COLORS.slate,
+    color: colors.slate,
   },
   dotTextActive: {
-    color: COLORS.white,
+    color: colors.white,
   },
   label: {
     fontSize: 10,
-    color: COLORS.slate,
+    color: colors.slate,
     fontWeight: '500',
     textAlign: 'center',
   },
   labelActive: {
-    color: COLORS.primary,
+    color: colors.primary,
     fontWeight: '700',
   },
   line: {
@@ -107,10 +110,10 @@ const styles = StyleSheet.create({
     left: '60%',
     right: '-40%',
     height: 2,
-    backgroundColor: COLORS.border,
+    backgroundColor: colors.border,
     zIndex: -1,
   },
   lineDone: {
-    backgroundColor: COLORS.emerald,
+    backgroundColor: colors.emerald,
   },
 })
