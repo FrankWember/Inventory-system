@@ -19,6 +19,7 @@ import { DrinkSelector } from '../components/DrinkSelector'
 import { DrinkTemplate } from '../data/cameroonianDrinks'
 import { COLORS, fmt } from '../utils/helpers'
 import { useTranslation } from '../i18n'
+import { createShadow } from '../styles/theme'
 
 const BREAKPOINT = 768
 
@@ -382,11 +383,7 @@ const styles = StyleSheet.create({
   },
   unitToggleButtonActive: {
     backgroundColor: COLORS.white,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 2,
-    elevation: 1,
+    ...createShadow('#000', { width: 0, height: 1 }, 0.05, 2, 1),
   },
   unitToggleText: {
     fontSize: 14,

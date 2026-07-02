@@ -13,7 +13,7 @@ import {
   setBarInfo as saveBarInfo,
 } from '../lib/storage'
 import { getColors, LIGHT_COLORS } from '../styles/theme'
-import { setLang } from '../i18n'
+import { setLang } from '../i18n/core'
 
 interface SettingsContextType {
   theme: Theme

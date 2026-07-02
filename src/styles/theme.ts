@@ -217,4 +217,42 @@ export const shadow = (level: 1 | 2 | 3 = 1) => {
   }) as object
 }
 
+/**
+ * Create platform-specific shadow styles with custom parameters
+ * @param color - Shadow color (hex or rgba)
+ * @param offset - Shadow offset { width, height }
+ * @param opacity - Shadow opacity (0-1)
+ * @param radius - Shadow blur radius
+ * @param elevation - Android elevation (optional, defaults to 1-4 based on radius)
+ */
+export const createShadow = (
+  color: string,
+  offset: { width: number; height: number },
+  opacity: number,
+  radius: number,
+  elevation?: number
+) => {
+  // Convert hex color to RGB for boxShadow
+  const getRgb = (hex: string) => {
+    if (hex.startsWith('rgba')) return hex
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
+    return result
+      ? `rgba(${parseInt(result[1], 16)}, ${parseInt(result[2], 16)}, ${parseInt(result[3], 16)}, ${opacity})`
+      : `rgba(0, 0, 0, ${opacity})`
+  }
+
+  return Platform.select({
+    web: {
+      boxShadow: `${offset.width}px ${offset.height}px ${radius}px ${getRgb(color)}`,
+    },
+    default: {
+      shadowColor: color,
+      shadowOffset: offset,
+      shadowOpacity: opacity,
+      shadowRadius: radius,
+      elevation: elevation ?? Math.min(Math.ceil(radius / 4), 4),
+    },
+  }) as object
+}
+
 export const MAX_CONTENT = 1100 // desktop content max-width
