@@ -1,20 +1,27 @@
-import React from 'react'
-import { View, Text, StyleSheet, Dimensions } from 'react-native'
-import { COLORS } from '../../utils/helpers'
+import React, { useMemo } from 'react'
+import { View, Text, StyleSheet } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
+import { FONT, TYPE, SPACE, RADIUS, LIGHT_COLORS } from '../../utils/helpers'
+import { useSettings } from '../../contexts/SettingsContext'
+
+type Colors = typeof LIGHT_COLORS
 
 interface TourSlideProps {
-  icon: string
+  icon: keyof typeof Ionicons.glyphMap
   title: string
   description: string
+  /** Width of the slide so paging aligns with the carousel viewport. */
+  width: number
 }
 
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
+export function TourSlide({ icon, title, description, width }: TourSlideProps) {
+  const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
-export function TourSlide({ icon, title, description }: TourSlideProps) {
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { width }]}>
       <View style={styles.iconContainer}>
-        <Text style={styles.icon}>{icon}</Text>
+        <Ionicons name={icon} size={48} color={colors.primary} />
       </View>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.description}>{description}</Text>
@@ -22,36 +29,37 @@ export function TourSlide({ icon, title, description }: TourSlideProps) {
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    width: SCREEN_WIDTH - 48,
-    paddingVertical: 32,
-    paddingHorizontal: 24,
-    alignItems: 'center',
-  },
-  iconContainer: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: '#eff6ff',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 24,
-  },
-  icon: {
-    fontSize: 56,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#111827',
-    textAlign: 'center',
-    marginBottom: 12,
-  },
-  description: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
-    lineHeight: 24,
-  },
-})
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: {
+      paddingVertical: SPACE['3xl'],
+      paddingHorizontal: SPACE['2xl'],
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    iconContainer: {
+      width: 112,
+      height: 112,
+      borderRadius: RADIUS.pill,
+      backgroundColor: c.primaryLight,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginBottom: SPACE['2xl'],
+    },
+    title: {
+      ...TYPE.h1,
+      color: c.slateDark,
+      textAlign: 'center',
+      marginBottom: SPACE.md,
+    },
+    description: {
+      ...TYPE.body,
+      fontFamily: FONT.regular,
+      fontSize: 15,
+      lineHeight: 22,
+      color: c.slate,
+      textAlign: 'center',
+      maxWidth: 340,
+    },
+  })
+}

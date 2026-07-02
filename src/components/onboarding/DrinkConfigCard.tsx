@@ -1,9 +1,14 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { DrinkTemplate } from '../../data/cameroonianDrinks'
 import { DrinkConfig } from '../../contexts/OnboardingContext'
-import { COLORS, fmt } from '../../utils/helpers'
+import { FONT, TYPE, SPACE, RADIUS, LIGHT_COLORS, fmt } from '../../utils/helpers'
+import { useSettings } from '../../contexts/SettingsContext'
+import { useTranslation } from '../../i18n'
 import { Badge } from '../Badge'
+
+type Colors = typeof LIGHT_COLORS
 
 interface DrinkConfigCardProps {
   drink: DrinkTemplate
@@ -12,12 +17,15 @@ interface DrinkConfigCardProps {
 }
 
 export function DrinkConfigCard({ drink, config, onPress }: DrinkConfigCardProps) {
-  const isConfigured = config && config.price > 0 && config.cassierCost > 0 && config.cassierQuantity > 0
+  const { colors } = useSettings()
+  const { t } = useTranslation()
+  const styles = useMemo(() => makeStyles(colors), [colors])
+
+  const isConfigured = !!config && config.price > 0 && config.cassierCost > 0 && config.cassierQuantity > 0
 
   const costPerUnit = config && config.cassierQuantity > 0
     ? Math.round(config.cassierCost / config.cassierQuantity)
     : 0
-
   const profitPerUnit = config ? config.price - costPerUnit : 0
   const marginPercent = config && config.price > 0
     ? ((profitPerUnit / config.price) * 100).toFixed(0)
@@ -31,108 +39,106 @@ export function DrinkConfigCard({ drink, config, onPress }: DrinkConfigCardProps
     >
       <View style={styles.header}>
         <View style={styles.titleRow}>
-          <Text style={styles.name}>{drink.name}</Text>
-          {isConfigured && (
+          <Text style={styles.name} numberOfLines={1}>{drink.name}</Text>
+          {isConfigured ? (
             <View style={styles.checkIcon}>
-              <Text style={styles.checkMark}>✓</Text>
+              <Ionicons name="checkmark" size={14} color={colors.white} />
             </View>
+          ) : (
+            <Ionicons name="chevron-forward" size={18} color={colors.slate400} />
           )}
         </View>
-        <Badge variant="default">
-          {drink.category}
-        </Badge>
+        <Badge variant="default">{drink.category}</Badge>
       </View>
 
       {isConfigured && config ? (
         <View style={styles.details}>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Prix de vente:</Text>
+            <Text style={styles.detailLabel}>{t('onboarding.customizeSalePrice')}</Text>
             <Text style={styles.detailValue}>{fmt(config.price)}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Coût unitaire:</Text>
+            <Text style={styles.detailLabel}>{t('onboarding.customizeUnitCost')}</Text>
             <Text style={styles.detailValue}>{fmt(costPerUnit)}</Text>
           </View>
           <View style={styles.detailRow}>
-            <Text style={styles.detailLabel}>Marge:</Text>
+            <Text style={styles.detailLabel}>{t('onboarding.customizeMargin')}</Text>
             <Text style={[styles.detailValue, styles.profit]}>
               {fmt(profitPerUnit)} ({marginPercent}%)
             </Text>
           </View>
         </View>
       ) : (
-        <Text style={styles.unconfiguredText}>Appuyez pour configurer</Text>
+        <Text style={styles.unconfiguredText}>{t('onboarding.customizeTapToConfig')}</Text>
       )}
     </TouchableOpacity>
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    padding: 16,
-    marginBottom: 12,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-  },
-  containerConfigured: {
-    borderColor: '#10b981',
-    backgroundColor: '#f0fdf4',
-  },
-  header: {
-    marginBottom: 8,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: 6,
-  },
-  name: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#111827',
-    flex: 1,
-  },
-  checkIcon: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: '#10b981',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 8,
-  },
-  checkMark: {
-    color: '#fff',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  details: {
-    marginTop: 8,
-  },
-  detailRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 4,
-  },
-  detailLabel: {
-    fontSize: 14,
-    color: '#6b7280',
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  profit: {
-    color: '#10b981',
-  },
-  unconfiguredText: {
-    fontSize: 14,
-    color: '#9ca3af',
-    fontStyle: 'italic',
-    marginTop: 4,
-  },
-})
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: {
+      backgroundColor: c.card,
+      borderRadius: RADIUS.md,
+      padding: SPACE.lg,
+      marginBottom: SPACE.md,
+      borderWidth: 1.5,
+      borderColor: c.border,
+    },
+    containerConfigured: {
+      borderColor: c.emerald,
+      backgroundColor: c.emeraldLight,
+    },
+    header: {
+      gap: SPACE.sm,
+      marginBottom: SPACE.sm,
+    },
+    titleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      gap: SPACE.sm,
+    },
+    name: {
+      ...TYPE.h3,
+      fontFamily: FONT.semibold,
+      color: c.slateDark,
+      flex: 1,
+    },
+    checkIcon: {
+      width: 24,
+      height: 24,
+      borderRadius: RADIUS.pill,
+      backgroundColor: c.emerald,
+      justifyContent: 'center',
+      alignItems: 'center',
+    },
+    details: {
+      marginTop: SPACE.xs,
+      gap: SPACE.xs,
+    },
+    detailRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+    },
+    detailLabel: {
+      ...TYPE.body,
+      color: c.slate,
+    },
+    detailValue: {
+      ...TYPE.bodyMedium,
+      fontFamily: FONT.semibold,
+      color: c.inkSoft,
+      fontVariant: ['tabular-nums'],
+    },
+    profit: {
+      color: c.emerald,
+    },
+    unconfiguredText: {
+      ...TYPE.body,
+      color: c.slate400,
+      fontStyle: 'italic',
+      marginTop: SPACE.xs,
+    },
+  })
+}

@@ -1,139 +1,164 @@
-import React from 'react'
-import { View, Text, StyleSheet, ScrollView } from 'react-native'
+import React, { useMemo } from 'react'
+import { View, Text, StyleSheet, ScrollView, useWindowDimensions, Platform } from 'react-native'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
+import { Ionicons } from '@expo/vector-icons'
 import { OnboardingStackParamList } from './OnboardingNavigator'
+import { OnboardingLayout } from '../../components/onboarding/OnboardingLayout'
 import { Button } from '../../components/Button'
-import { COLORS } from '../../utils/helpers'
+import { FONT, TYPE, SPACE, RADIUS, LIGHT_COLORS } from '../../utils/helpers'
+import { useSettings } from '../../contexts/SettingsContext'
+import { useTranslation } from '../../i18n'
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Welcome'>
+type Colors = typeof LIGHT_COLORS
 
 export default function OnboardingWelcomeScreen({ navigation }: Props) {
+  const { colors } = useSettings()
+  const { t } = useTranslation()
+  const { width } = useWindowDimensions()
+  const styles = useMemo(() => makeStyles(colors), [colors])
+  const isWide = width >= 640
+
+  const features: { icon: keyof typeof Ionicons.glyphMap; title: string; desc: string }[] = [
+    { icon: 'cube-outline', title: t('onboarding.featureStockTitle'), desc: t('onboarding.featureStockDesc') },
+    { icon: 'cash-outline', title: t('onboarding.featureSalesTitle'), desc: t('onboarding.featureSalesDesc') },
+    { icon: 'trending-up-outline', title: t('onboarding.featureAnalyticsTitle'), desc: t('onboarding.featureAnalyticsDesc') },
+    { icon: 'shield-checkmark-outline', title: t('onboarding.featureSecureTitle'), desc: t('onboarding.featureSecureDesc') },
+  ]
+
   return (
-    <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <OnboardingLayout
+      maxWidth={620}
+      footer={
+        <Button variant="primary" size="large" onPress={() => navigation.navigate('BarSetup')}>
+          {t('onboarding.welcomeStart')}
+        </Button>
+      }
+    >
+      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <View style={styles.hero}>
-          <Text style={styles.logo}>📊</Text>
-          <Text style={styles.title}>Bienvenue sur BarTrack</Text>
-          <Text style={styles.subtitle}>
-            Gérez votre bar en toute simplicité
-          </Text>
+          <View style={styles.logoWrap}>
+            <Ionicons name="beer" size={34} color={colors.primary} />
+          </View>
+          <Text style={styles.title}>{t('onboarding.welcomeTitle')}</Text>
+          <Text style={styles.subtitle}>{t('onboarding.welcomeSubtitle')}</Text>
+          <View style={styles.timePill}>
+            <Ionicons name="time-outline" size={14} color={colors.slate} />
+            <Text style={styles.timeText}>{t('onboarding.welcomeTimeHint')}</Text>
+          </View>
         </View>
 
-        <View style={styles.features}>
-          <FeatureItem
-            icon="📦"
-            title="Gestion du Stock"
-            description="Suivez votre inventaire en temps réel et recevez des alertes de stock faible"
-          />
-          <FeatureItem
-            icon="💰"
-            title="Suivi des Ventes"
-            description="Enregistrez vos sessions quotidiennes et calculez automatiquement vos profits"
-          />
-          <FeatureItem
-            icon="📈"
-            title="Analyses & Rapports"
-            description="Visualisez vos tendances de vente et identifiez vos produits les plus rentables"
-          />
-          <FeatureItem
-            icon="🔒"
-            title="Données Sécurisées"
-            description="Vos données sont sauvegardées en ligne et accessibles depuis n'importe où"
-          />
+        <View style={[styles.grid, isWide && styles.gridWide]}>
+          {features.map(f => (
+            <View key={f.title} style={[styles.featureCard, isWide && styles.featureCardWide]}>
+              <View style={styles.featureIcon}>
+                <Ionicons name={f.icon} size={22} color={colors.primary} />
+              </View>
+              <Text style={styles.featureTitle}>{f.title}</Text>
+              <Text style={styles.featureDesc}>{f.desc}</Text>
+            </View>
+          ))}
         </View>
       </ScrollView>
-
-      <View style={styles.footer}>
-        <Button
-          variant="primary"
-          size="large"
-          onPress={() => navigation.navigate('BarSetup')}
-        >
-          Commencer
-        </Button>
-      </View>
-    </View>
+    </OnboardingLayout>
   )
 }
 
-interface FeatureItemProps {
-  icon: string
-  title: string
-  description: string
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    scroll: {
+      paddingBottom: SPACE.xl,
+    },
+    hero: {
+      alignItems: 'center',
+      marginBottom: SPACE['3xl'],
+    },
+    logoWrap: {
+      width: 76,
+      height: 76,
+      borderRadius: RADIUS.xl,
+      backgroundColor: c.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: SPACE.xl,
+      ...Platform.select({
+        web: { boxShadow: '0 12px 32px rgba(24,119,242,0.18)' } as object,
+        default: {
+          shadowColor: c.primary,
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.18,
+          shadowRadius: 16,
+          elevation: 4,
+        },
+      }),
+    },
+    title: {
+      ...TYPE.display,
+      color: c.slateDark,
+      textAlign: 'center',
+      marginBottom: SPACE.sm,
+    },
+    subtitle: {
+      ...TYPE.body,
+      fontFamily: FONT.regular,
+      fontSize: 15,
+      color: c.slate,
+      textAlign: 'center',
+      marginBottom: SPACE.lg,
+    },
+    timePill: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: SPACE.xs,
+      paddingVertical: SPACE.xs,
+      paddingHorizontal: SPACE.md,
+      borderRadius: RADIUS.pill,
+      backgroundColor: c.surface,
+      borderWidth: 1,
+      borderColor: c.border,
+    },
+    timeText: {
+      ...TYPE.small,
+      fontFamily: FONT.semibold,
+      color: c.slate,
+    },
+    grid: {
+      gap: SPACE.md,
+    },
+    gridWide: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+    },
+    featureCard: {
+      backgroundColor: c.card,
+      borderRadius: RADIUS.lg,
+      borderWidth: 1,
+      borderColor: c.border,
+      padding: SPACE.lg,
+    },
+    featureCardWide: {
+      width: '48%',
+      flexGrow: 1,
+    },
+    featureIcon: {
+      width: 44,
+      height: 44,
+      borderRadius: RADIUS.md,
+      backgroundColor: c.primaryLight,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: SPACE.md,
+    },
+    featureTitle: {
+      ...TYPE.h3,
+      fontFamily: FONT.semibold,
+      color: c.slateDark,
+      marginBottom: SPACE.xs,
+    },
+    featureDesc: {
+      ...TYPE.body,
+      color: c.slate,
+      lineHeight: 20,
+    },
+  })
 }
-
-function FeatureItem({ icon, title, description }: FeatureItemProps) {
-  return (
-    <View style={styles.featureItem}>
-      <Text style={styles.featureIcon}>{icon}</Text>
-      <View style={styles.featureText}>
-        <Text style={styles.featureTitle}>{title}</Text>
-        <Text style={styles.featureDescription}>{description}</Text>
-      </View>
-    </View>
-  )
-}
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  content: {
-    flexGrow: 1,
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 24,
-  },
-  hero: {
-    alignItems: 'center',
-    marginBottom: 48,
-  },
-  logo: {
-    fontSize: 80,
-    marginBottom: 24,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: '700',
-    color: '#111827',
-    textAlign: 'center',
-    marginBottom: 8,
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#6b7280',
-    textAlign: 'center',
-  },
-  features: {
-    gap: 24,
-  },
-  featureItem: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  featureIcon: {
-    fontSize: 32,
-    marginRight: 16,
-  },
-  featureText: {
-    flex: 1,
-  },
-  featureTitle: {
-    fontSize: 17,
-    fontWeight: '600',
-    color: '#111827',
-    marginBottom: 4,
-  },
-  featureDescription: {
-    fontSize: 15,
-    color: '#6b7280',
-    lineHeight: 22,
-  },
-  footer: {
-    padding: 24,
-    paddingBottom: 32,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-})

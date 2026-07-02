@@ -1,198 +1,209 @@
-import React, { useState, useRef } from 'react'
-import { View, Text, StyleSheet, ScrollView, Dimensions, NativeSyntheticEvent, NativeScrollEvent } from 'react-native'
+import React, { useMemo, useRef, useState } from 'react'
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  NativeSyntheticEvent,
+  NativeScrollEvent,
+  LayoutChangeEvent,
+} from 'react-native'
+import { useSafeAreaInsets } from 'react-native-safe-area-context'
+import { Ionicons } from '@expo/vector-icons'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { OnboardingStackParamList } from './OnboardingNavigator'
 import { useOnboarding } from '../../contexts/OnboardingContext'
 import { TourSlide } from '../../components/onboarding/TourSlide'
+import { OnboardingFinishing, FinishStage } from '../../components/onboarding/OnboardingFinishing'
 import { Button } from '../../components/Button'
 import { showAlert } from '../../utils/appAlert'
-import { completeOnboarding } from '../../services/onboardingService'
-import { COLORS } from '../../utils/helpers'
+import { updateBarSettings, bulkInsertDrinks } from '../../services/onboardingService'
+import { setOnboardingCompleted } from '../../lib/storage'
+import { FONT, TYPE, SPACE, RADIUS, LIGHT_COLORS } from '../../utils/helpers'
+import { useSettings } from '../../contexts/SettingsContext'
+import { useTranslation } from '../../i18n'
 
 type Props = NativeStackScreenProps<OnboardingStackParamList, 'Tour'>
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window')
-
-const TOUR_SLIDES = [
-  {
-    icon: '📊',
-    title: 'Tableau de Bord',
-    description: 'Visualisez vos ventes, profits et performances en temps réel avec des graphiques intuitifs.',
-  },
-  {
-    icon: '🎯',
-    title: 'Sessions Quotidiennes',
-    description: 'Enregistrez vos ventes du jour, suivez les achats et calculez automatiquement vos profits.',
-  },
-  {
-    icon: '📦',
-    title: 'Gestion du Stock',
-    description: 'Suivez votre inventaire, recevez des alertes de stock faible et gérez vos réapprovisionnements.',
-  },
-  {
-    icon: '📈',
-    title: 'Analyses & Rapports',
-    description: 'Identifiez vos produits les plus rentables et suivez les tendances de votre bar.',
-  },
-]
+type Colors = typeof LIGHT_COLORS
 
 export default function OnboardingTourScreen({ navigation }: Props) {
   const { state, reset } = useOnboarding()
-  const [currentSlide, setCurrentSlide] = useState(0)
-  const [completing, setCompleting] = useState(false)
-  const scrollViewRef = useRef<ScrollView>(null)
+  const { colors } = useSettings()
+  const { t } = useTranslation()
+  const insets = useSafeAreaInsets()
+  const styles = useMemo(() => makeStyles(colors), [colors])
 
-  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
-    const slideIndex = Math.round(event.nativeEvent.contentOffset.x / SCREEN_WIDTH)
-    setCurrentSlide(slideIndex)
+  const [currentSlide, setCurrentSlide] = useState(0)
+  const [finishStage, setFinishStage] = useState<FinishStage | null>(null)
+  const [carouselWidth, setCarouselWidth] = useState(0)
+  const scrollRef = useRef<ScrollView>(null)
+
+  const slides: { icon: keyof typeof Ionicons.glyphMap; title: string; description: string }[] = [
+    { icon: 'bar-chart', title: t('onboarding.tourSlide1Title'), description: t('onboarding.tourSlide1Desc') },
+    { icon: 'today', title: t('onboarding.tourSlide2Title'), description: t('onboarding.tourSlide2Desc') },
+    { icon: 'cube', title: t('onboarding.tourSlide3Title'), description: t('onboarding.tourSlide3Desc') },
+    { icon: 'trending-up', title: t('onboarding.tourSlide4Title'), description: t('onboarding.tourSlide4Desc') },
+  ]
+
+  const onCarouselLayout = (e: LayoutChangeEvent) => setCarouselWidth(e.nativeEvent.layout.width)
+
+  const handleScroll = (e: NativeSyntheticEvent<NativeScrollEvent>) => {
+    if (carouselWidth <= 0) return
+    setCurrentSlide(Math.round(e.nativeEvent.contentOffset.x / carouselWidth))
   }
 
   const handleComplete = async () => {
-    setCompleting(true)
-
     try {
-      const result = await completeOnboarding(
-        state.barName,
-        state.selectedDrinks,
-        state.drinkConfigs
-      )
+      setFinishStage('bar')
+      const barResult = await updateBarSettings(state.barName)
+      if (!barResult.success) throw new Error(barResult.error)
 
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to complete onboarding')
-      }
+      setFinishStage('drinks')
+      const drinksResult = await bulkInsertDrinks(state.selectedDrinks, state.drinkConfigs)
+      if (!drinksResult.success) throw new Error(drinksResult.error)
 
-      // Reset onboarding context
+      setFinishStage('wrap')
+      await setOnboardingCompleted()
+
+      setFinishStage('done')
       reset()
-
-      // The App.tsx will automatically redirect to MainTabs after onboarding is marked complete
-      // We use replace to prevent going back to onboarding
-      navigation.getParent()?.reset({
-        index: 0,
-        routes: [{ name: 'MainTabs' as never }],
-      })
+      // Brief success beat before handing off to the app.
+      setTimeout(() => {
+        navigation.getParent()?.reset({ index: 0, routes: [{ name: 'MainTabs' as never }] })
+      }, 900)
     } catch (error: any) {
       console.error('Error completing onboarding:', error)
+      setFinishStage(null)
       showAlert(
-        'Erreur',
-        `Impossible de terminer la configuration: ${error.message}. Veuillez réessayer.`,
+        t('onboarding.errorTitle'),
+        t('onboarding.errorCompleteFail', { msg: error?.message || '' }),
         [
-          {
-            text: 'Réessayer',
-            onPress: handleComplete,
-          },
-          {
-            text: 'Annuler',
-            style: 'cancel',
-          },
+          { text: t('onboarding.errorRetry'), onPress: handleComplete },
+          { text: t('onboarding.errorCancel'), style: 'cancel' },
         ]
       )
-    } finally {
-      setCompleting(false)
     }
   }
 
-  const isLastSlide = currentSlide === TOUR_SLIDES.length - 1
+  if (finishStage) {
+    return <OnboardingFinishing stage={finishStage} drinkCount={state.selectedDrinks.length} />
+  }
 
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>✅ Configuration terminée!</Text>
-        <Text style={styles.headerSubtitle}>Découvrez les fonctionnalités de BarTrack</Text>
+      <View style={[styles.header, { paddingTop: insets.top + SPACE['2xl'] }]}>
+        <View style={styles.doneBadge}>
+          <Ionicons name="checkmark" size={20} color={colors.white} />
+        </View>
+        <Text style={styles.headerTitle}>{t('onboarding.tourDoneTitle')}</Text>
+        <Text style={styles.headerSubtitle}>{t('onboarding.tourDoneSubtitle')}</Text>
       </View>
 
-      <ScrollView
-        ref={scrollViewRef}
-        horizontal
-        pagingEnabled
-        showsHorizontalScrollIndicator={false}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
-        style={styles.carousel}
-      >
-        {TOUR_SLIDES.map((slide, index) => (
-          <TourSlide
-            key={index}
-            icon={slide.icon}
-            title={slide.title}
-            description={slide.description}
-          />
-        ))}
-      </ScrollView>
+      <View style={styles.carouselWrap} onLayout={onCarouselLayout}>
+        {carouselWidth > 0 && (
+          <ScrollView
+            ref={scrollRef}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+          >
+            {slides.map((slide, i) => (
+              <TourSlide
+                key={i}
+                icon={slide.icon}
+                title={slide.title}
+                description={slide.description}
+                width={carouselWidth}
+              />
+            ))}
+          </ScrollView>
+        )}
+      </View>
 
-      {/* Pagination Dots */}
       <View style={styles.pagination}>
-        {TOUR_SLIDES.map((_, index) => (
-          <View
-            key={index}
-            style={[
-              styles.dot,
-              index === currentSlide && styles.dotActive,
-            ]}
-          />
+        {slides.map((_, i) => (
+          <View key={i} style={[styles.dot, i === currentSlide && styles.dotActive]} />
         ))}
       </View>
 
-      <View style={styles.footer}>
-        <Button
-          variant="primary"
-          size="large"
-          onPress={handleComplete}
-          loading={completing}
-          disabled={completing}
-        >
-          {isLastSlide ? 'Commencer à utiliser BarTrack' : 'Passer la visite'}
-        </Button>
+      <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, SPACE.lg) + SPACE.sm }]}>
+        <View style={styles.footerInner}>
+          <Button variant="primary" size="large" onPress={handleComplete}>
+            {t('onboarding.tourFinish')}
+          </Button>
+        </View>
       </View>
     </View>
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-  },
-  header: {
-    paddingHorizontal: 24,
-    paddingTop: 60,
-    paddingBottom: 24,
-    alignItems: 'center',
-  },
-  headerTitle: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#111827',
-    marginBottom: 8,
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    color: '#6b7280',
-    textAlign: 'center',
-  },
-  carousel: {
-    flex: 1,
-  },
-  pagination: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 24,
-    gap: 8,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#d1d5db',
-  },
-  dotActive: {
-    width: 24,
-    backgroundColor: COLORS.primary,
-  },
-  footer: {
-    padding: 24,
-    paddingBottom: 32,
-    borderTopWidth: 1,
-    borderTopColor: '#e5e7eb',
-  },
-})
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: {
+      flex: 1,
+      backgroundColor: c.background,
+    },
+    header: {
+      paddingHorizontal: SPACE.xl,
+      paddingBottom: SPACE.lg,
+      alignItems: 'center',
+    },
+    doneBadge: {
+      width: 48,
+      height: 48,
+      borderRadius: RADIUS.pill,
+      backgroundColor: c.emerald,
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: SPACE.md,
+    },
+    headerTitle: {
+      ...TYPE.h1,
+      color: c.slateDark,
+      textAlign: 'center',
+      marginBottom: SPACE.xs,
+    },
+    headerSubtitle: {
+      ...TYPE.body,
+      color: c.slate,
+      textAlign: 'center',
+    },
+    carouselWrap: {
+      flex: 1,
+      width: '100%',
+      maxWidth: 560,
+      alignSelf: 'center',
+    },
+    pagination: {
+      flexDirection: 'row',
+      justifyContent: 'center',
+      alignItems: 'center',
+      paddingVertical: SPACE.xl,
+      gap: SPACE.sm,
+    },
+    dot: {
+      width: 8,
+      height: 8,
+      borderRadius: RADIUS.pill,
+      backgroundColor: c.borderStrong,
+    },
+    dotActive: {
+      width: 24,
+      backgroundColor: c.primary,
+    },
+    footer: {
+      paddingHorizontal: SPACE.xl,
+      paddingTop: SPACE.lg,
+      backgroundColor: c.card,
+      borderTopWidth: 1,
+      borderTopColor: c.border,
+    },
+    footerInner: {
+      width: '100%',
+      maxWidth: 560,
+      alignSelf: 'center',
+    },
+  })
+}

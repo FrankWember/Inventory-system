@@ -1,8 +1,13 @@
-import React from 'react'
+import React, { useMemo } from 'react'
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
+import { Ionicons } from '@expo/vector-icons'
 import { DrinkTemplate } from '../../data/cameroonianDrinks'
-import { COLORS } from '../../utils/helpers'
+import { FONT, TYPE, SPACE, RADIUS, LIGHT_COLORS } from '../../utils/helpers'
+import { useSettings } from '../../contexts/SettingsContext'
+import { useTranslation } from '../../i18n'
 import { Badge } from '../Badge'
+
+type Colors = typeof LIGHT_COLORS
 
 interface DrinkCheckboxItemProps {
   drink: DrinkTemplate
@@ -11,89 +16,82 @@ interface DrinkCheckboxItemProps {
 }
 
 export function DrinkCheckboxItem({ drink, selected, onToggle }: DrinkCheckboxItemProps) {
+  const { colors } = useSettings()
+  const { t } = useTranslation()
+  const styles = useMemo(() => makeStyles(colors), [colors])
+
   return (
     <TouchableOpacity
       style={[styles.container, selected && styles.containerSelected]}
       onPress={onToggle}
       activeOpacity={0.7}
+      accessibilityRole="checkbox"
+      accessibilityState={{ checked: selected }}
     >
       <View style={[styles.checkbox, selected && styles.checkboxSelected]}>
-        {selected && <View style={styles.checkmark} />}
+        {selected && <Ionicons name="checkmark" size={15} color={colors.white} />}
       </View>
 
       <View style={styles.content}>
-        <View style={styles.nameRow}>
-          <Text style={[styles.name, selected && styles.nameSelected]}>
-            {drink.name}
-          </Text>
-          {drink.popular && (
-            <Badge variant="info" style={styles.popularBadge}>
-              Populaire
-            </Badge>
-          )}
-        </View>
-        <Badge variant="default">
-          {drink.category}
-        </Badge>
+        <Text style={[styles.name, selected && styles.nameSelected]} numberOfLines={1}>
+          {drink.name}
+        </Text>
+        <Badge variant="default">{drink.category}</Badge>
       </View>
+
+      {drink.popular && (
+        <Badge variant="info" style={styles.popularBadge}>
+          {t('onboarding.drinksPopular')}
+        </Badge>
+      )}
     </TouchableOpacity>
   )
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    padding: 12,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#e5e7eb',
-    marginBottom: 8,
-  },
-  containerSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: '#eff6ff',
-  },
-  checkbox: {
-    width: 24,
-    height: 24,
-    borderRadius: 6,
-    borderWidth: 2,
-    borderColor: '#d1d5db',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 12,
-  },
-  checkboxSelected: {
-    borderColor: COLORS.primary,
-    backgroundColor: COLORS.primary,
-  },
-  checkmark: {
-    width: 12,
-    height: 12,
-    backgroundColor: '#fff',
-    borderRadius: 2,
-  },
-  content: {
-    flex: 1,
-  },
-  nameRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: '500',
-    color: '#374151',
-    marginRight: 8,
-  },
-  nameSelected: {
-    color: COLORS.primary,
-    fontWeight: '600',
-  },
-  popularBadge: {
-    marginLeft: 'auto',
-  },
-})
+function makeStyles(c: Colors) {
+  return StyleSheet.create({
+    container: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      padding: SPACE.md,
+      backgroundColor: c.card,
+      borderRadius: RADIUS.md,
+      borderWidth: 1.5,
+      borderColor: c.border,
+      marginBottom: SPACE.sm,
+    },
+    containerSelected: {
+      borderColor: c.primary,
+      backgroundColor: c.primaryLight,
+    },
+    checkbox: {
+      width: 24,
+      height: 24,
+      borderRadius: RADIUS.sm,
+      borderWidth: 2,
+      borderColor: c.borderStrong,
+      justifyContent: 'center',
+      alignItems: 'center',
+      marginRight: SPACE.md,
+    },
+    checkboxSelected: {
+      borderColor: c.primary,
+      backgroundColor: c.primary,
+    },
+    content: {
+      flex: 1,
+      gap: SPACE.xs,
+    },
+    name: {
+      ...TYPE.bodyMedium,
+      color: c.inkSoft,
+    },
+    nameSelected: {
+      color: c.primary,
+      fontFamily: FONT.semibold,
+    },
+    popularBadge: {
+      marginLeft: SPACE.sm,
+    },
+  })
+}

@@ -14,6 +14,7 @@ import session from './locales/session'
 import stats from './locales/stats'
 import settings from './locales/settings'
 import misc from './locales/misc'
+import onboarding from './locales/onboarding'
 
 export type Lang = 'fr' | 'en'
 
@@ -28,6 +29,7 @@ export const NAMESPACES: Record<string, Namespace> = {
   stats,
   settings,
   misc,
+  onboarding,
 }
 
 let currentLang: Lang = 'fr'
