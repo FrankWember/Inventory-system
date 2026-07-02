@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { StatusBar } from 'expo-status-bar'
 import { Platform, Dimensions, View, ActivityIndicator, Text as RNText, TouchableOpacity } from 'react-native'
-import { NavigationContainer, NavigationState, PartialState } from '@react-navigation/native'
+import { NavigationContainer, NavigationState, PartialState, NavigatorScreenParams } from '@react-navigation/native'
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
 import { Ionicons } from '@expo/vector-icons'
@@ -43,7 +43,7 @@ import AuthScreen from './src/screens/AuthScreen'
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen'
 import { WelcomeLoadingScreen } from './src/components/WelcomeLoadingScreen'
 import { BarChartItem } from './src/components/SimpleBarChart'
-import OnboardingNavigator from './src/screens/onboarding/OnboardingNavigator'
+import OnboardingNavigator, { OnboardingStackParamList } from './src/screens/onboarding/OnboardingNavigator'
 import { hasCompletedOnboarding } from './src/services/onboardingService'
 
 const BREAKPOINT = 768
@@ -97,7 +97,7 @@ export type RootStackParamList = {
   SignIn: { mode?: 'signin' } | undefined
   SignUp: { mode?: 'signup' } | undefined
   ForgotPassword: undefined
-  Onboarding: undefined
+  Onboarding: NavigatorScreenParams<OnboardingStackParamList>
   MainTabs: undefined
   EditDrink: { drinkId: string; hideHeader?: boolean }
   SessionDetail: { sessionId: string }
@@ -135,6 +135,17 @@ const linking = Platform.OS === 'web' ? {
       SignIn: 'signin',
       SignUp: 'signup',
       ForgotPassword: 'forgot-password',
+      Onboarding: {
+        path: 'onboarding',
+        screens: {
+          Welcome: 'welcome',
+          BarSetup: 'bar-setup',
+          DrinkSelection: 'drink-selection',
+          Customize: 'customize',
+          StockOverview: 'stock-overview',
+          Tour: 'tour',
+        },
+      },
       MainTabs: {
         path: '',
         screens: {
