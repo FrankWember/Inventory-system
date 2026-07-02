@@ -512,6 +512,12 @@ export default function SessionScreen({ navigation }: any) {
   const savePurchases = async () => {
     setSaving(true)
     try {
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        throw new Error('User not authenticated')
+      }
+
       if (openSession) {
         const ops: any[] = []
         const nextLines: Record<string, LineState> = { ...lineStates }
@@ -540,7 +546,7 @@ export default function SessionScreen({ navigation }: any) {
       // calendar) — not necessarily today.
       const { data: session, error: sessionError } = await supabase
         .from('sessions')
-        .insert({ date: sessionDate, label: dateLabelLong(sessionDate), total_purchase: 0, total_revenue: 0, total_cost: 0, total_profit: 0, closed: false })
+        .insert({ user_id: user.id, date: sessionDate, label: dateLabelLong(sessionDate), total_purchase: 0, total_revenue: 0, total_cost: 0, total_profit: 0, closed: false })
         .select().single()
       if (sessionError) throw sessionError
 
@@ -554,7 +560,7 @@ export default function SessionScreen({ navigation }: any) {
         const expected = opening + purchased
         lines[drink.id] = { openingStock: opening, purchased, closingStock: expected }
         sessionLines.push({
-          session_id: session.id, drink_id: drink.id, drink_name: drink.name,
+          user_id: user.id, session_id: session.id, drink_id: drink.id, drink_name: drink.name,
           opening_stock: opening, purchased, sold: 0, closing_stock: expected, revenue: 0, cost: purchased * drink.cost,
         })
         if (purchased > 0) stockUpdates.push(supabase.from('drinks').update({ stock: expected }).eq('id', drink.id))

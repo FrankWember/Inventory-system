@@ -5,6 +5,7 @@ export type ExpenseCategory = 'Approvisionnement' | 'Salaires' | 'Loyer' | 'Éle
 
 export interface Drink {
   id: string
+  user_id: string
   name: string
   category: Category
   price: number  // Selling price per unit (FCFA)
@@ -22,6 +23,7 @@ export interface Drink {
 
 export interface SessionLine {
   id: string
+  user_id: string
   session_id: string
   drink_id: string
   drink_name: string
@@ -35,6 +37,7 @@ export interface SessionLine {
 
 export interface Session {
   id: string
+  user_id: string
   date: string
   label: string
   total_purchase: number
@@ -48,6 +51,7 @@ export interface Session {
 
 export interface Expense {
   id: string
+  user_id: string
   date: string
   description: string
   category: ExpenseCategory
@@ -57,6 +61,7 @@ export interface Expense {
 
 export interface Settings {
   id: string
+  user_id: string
   bar_name: string
   currency: string
 }

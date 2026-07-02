@@ -62,7 +62,14 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
     }
     setSaving(true)
     try {
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        throw new Error('User not authenticated')
+      }
+
       const { error } = await supabase.from('expenses').insert({
+        user_id: user.id,
         date,
         description: description.trim(),
         category,

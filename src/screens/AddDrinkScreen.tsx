@@ -63,10 +63,15 @@ export default function AddDrinkScreen({ navigation, route }: any) {
   const handleDrinkSelect = async (drink: DrinkTemplate) => {
     // Check if this drink already exists in the database
     try {
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
       const { data: existingDrinks, error } = await supabase
         .from('drinks')
         .select('id')
         .eq('name', drink.name)
+        .eq('user_id', user.id)
         .eq('active', true)
         .limit(1)
 
@@ -133,7 +138,14 @@ export default function AddDrinkScreen({ navigation, route }: any) {
 
     setSaving(true)
     try {
+      // Get current user ID
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        throw new Error('User not authenticated')
+      }
+
       const { error } = await supabase.from('drinks').insert({
+        user_id: user.id,
         name: selectedDrink.name,
         category: selectedDrink.category,
         price: sellingPrice,

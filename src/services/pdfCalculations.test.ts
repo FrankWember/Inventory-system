@@ -19,6 +19,7 @@ const nextId = () => `id-${++idSeq}`
 function line(partial: Partial<SessionLine>): SessionLine {
   return {
     id: nextId(),
+    user_id: 'test-user-id',
     session_id: 's1',
     drink_id: 'd1',
     drink_name: 'Castel',
@@ -35,6 +36,7 @@ function line(partial: Partial<SessionLine>): SessionLine {
 function session(partial: Partial<Session>): Session {
   return {
     id: nextId(),
+    user_id: 'test-user-id',
     date: '2026-06-30',
     label: 'Session',
     total_purchase: 0,
@@ -51,6 +53,7 @@ function session(partial: Partial<Session>): Session {
 function expense(amount: number, date = '2026-06-30'): Expense {
   return {
     id: nextId(),
+    user_id: 'test-user-id',
     date,
     description: 'Test',
     category: 'Autre',
