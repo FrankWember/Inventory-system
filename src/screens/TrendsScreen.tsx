@@ -22,12 +22,14 @@ import { Card, CardHeader, CardContent } from '../components/Card'
 import { Badge } from '../components/Badge'
 import { COLORS, fmt, fmtNum, fmtShort, fmtShortBare, dateLabel, dateLabelLong, getCategoryColor, today } from '../utils/helpers'
 import { isoDaysAgo } from '../utils/calculations'
+import { useTranslation } from '../i18n'
 
 const BREAKPOINT = 768
 
 type TrendsScreenNavigationProp = NativeStackNavigationProp<RootStackParamList>
 
 export default function TrendsScreen() {
+  const { t } = useTranslation()
   const navigation = useNavigation<TrendsScreenNavigationProp>()
   const [sessions, setSessions] = useState<Session[]>([])
   const [drinks, setDrinks] = useState<Drink[]>([])
@@ -125,7 +127,7 @@ export default function TrendsScreen() {
           revenue += line?.revenue || 0
         }
         const avgDaily = sold / Math.max(1, closedSessions.length)
-        const rotation = avgDaily >= 8 ? 'Fort' : avgDaily >= 3 ? 'Moyen' : 'Lent'
+        const rotation = avgDaily >= 8 ? 'high' : avgDaily >= 3 ? 'medium' : 'low'
         return { drink, sold, revenue, avgDaily, rotation }
       })
       .sort((a, b) => b.revenue - a.revenue)
@@ -166,8 +168,8 @@ export default function TrendsScreen() {
   if (loading) {
     return (
       <View style={styles.wrapper}>
-        <ScreenHeader title="Stats" subtitle={`${period} derniers jours`} />
-        <ScreenSkeleton variant="list" />
+        <ScreenHeader title={t('stats.title')} subtitle={t('stats.lastDays', { period })} />
+        <ScreenSkeleton variant="trends" />
       </View>
     )
   }
@@ -182,13 +184,13 @@ export default function TrendsScreen() {
   const revenueRows = chartSessions.map(s => ({
     label: dateLabelLong(s.date),
     value: s.total_revenue,
-    sublabel: `${fmtNum(s.session_lines?.reduce((a, l) => a + l.sold, 0) || 0)} unités vendues`,
+    sublabel: t('stats.unitsSold', { count: fmtNum(s.session_lines?.reduce((a, l) => a + l.sold, 0) || 0) }),
   }))
 
   const profitRows = chartSessions.map(s => ({
     label: dateLabelLong(s.date),
     value: s.total_profit,
-    sublabel: `Revenu ${fmt(s.total_revenue)}`,
+    sublabel: t('stats.revenueValue', { value: fmt(s.total_revenue) }),
   }))
 
   const top5Rows = drinkPerformance
@@ -197,12 +199,12 @@ export default function TrendsScreen() {
     .map(d => ({
       label: d.drink.name,
       value: d.revenue,
-      sublabel: `${fmtNum(d.sold)} vendus · ${d.avgDaily.toFixed(1)}/jour`,
+      sublabel: t('stats.soldPerDay', { count: fmtNum(d.sold), avg: d.avgDaily.toFixed(1) }),
     }))
 
   return (
     <View style={styles.wrapper}>
-      <ScreenHeader title="Stats" subtitle={`${period} derniers jours`} />
+      <ScreenHeader title={t('stats.title')} subtitle={t('stats.lastDays', { period })} />
       <ScrollView
         style={styles.container}
         contentContainerStyle={styles.scrollContent}
@@ -214,21 +216,23 @@ export default function TrendsScreen() {
               key={p}
               onPress={() => setPeriod(p as 7 | 30 | 90)}
               style={[styles.periodButton, period === p && styles.periodButtonActive]}
+              // @ts-ignore - web-only className
+              className={period === p ? 'glass-primary' : 'glass-button'}
             >
-              <Text style={[styles.periodButtonText, period === p && styles.periodButtonTextActive]}>{p}j</Text>
+              <Text style={[styles.periodButtonText, period === p && styles.periodButtonTextActive]}>{t('stats.daysShort', { count: p })}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
         <View style={styles.kpiRow}>
           <View style={styles.kpi}>
-            <Text style={styles.kpiLabel}>Revenu</Text>
+            <Text style={styles.kpiLabel}>{t('stats.revenue')}</Text>
             <Text style={styles.kpiValue} numberOfLines={1}>
               {fmtShort(totalRevenue)}
             </Text>
           </View>
           <View style={styles.kpi}>
-            <Text style={styles.kpiLabel}>Profit</Text>
+            <Text style={styles.kpiLabel}>{t('stats.profit')}</Text>
             <Text
               style={[styles.kpiValue, { color: totalProfit >= 0 ? COLORS.primary : COLORS.rose }]}
               numberOfLines={1}
@@ -237,7 +241,7 @@ export default function TrendsScreen() {
             </Text>
           </View>
           <View style={styles.kpi}>
-            <Text style={styles.kpiLabel}>Vendus</Text>
+            <Text style={styles.kpiLabel}>{t('stats.soldLabel')}</Text>
             <Text style={styles.kpiValue}>{fmtNum(totalUnits)}</Text>
           </View>
         </View>
@@ -245,13 +249,13 @@ export default function TrendsScreen() {
         <View style={isDesktop ? styles.chartRow : null}>
           <View style={isDesktop ? styles.chartHalf : null}>
             <ExpandableChartCard
-              title="Revenu par jour"
+              title={t('stats.revenuePerDay')}
               data={revenueChartData}
               height={isDesktop ? 240 : 200}
               formatValue={fmtShortBare}
               onExpand={isDesktop ? undefined : () => navigation.navigate('ChartDetail', {
-                title: 'Revenu par jour',
-                subtitle: `${period} derniers jours`,
+                title: t('stats.revenuePerDay'),
+                subtitle: t('stats.lastDays', { period }),
                 chartData: revenueChartData,
                 rows: revenueRows,
                 valueIsMoney: true,
@@ -261,13 +265,13 @@ export default function TrendsScreen() {
 
           <View style={isDesktop ? styles.chartHalf : null}>
             <ExpandableChartCard
-              title="Profit par jour"
+              title={t('stats.profitPerDay')}
               data={profitChartData}
               height={isDesktop ? 240 : 200}
               formatValue={fmtShortBare}
               onExpand={isDesktop ? undefined : () => navigation.navigate('ChartDetail', {
-                title: 'Profit par jour',
-                subtitle: `${period} derniers jours`,
+                title: t('stats.profitPerDay'),
+                subtitle: t('stats.lastDays', { period }),
                 chartData: profitChartData,
                 rows: profitRows,
                 valueIsMoney: true,
@@ -277,13 +281,13 @@ export default function TrendsScreen() {
         </View>
 
         <ExpandableChartCard
-          title="Top boissons"
+          title={t('stats.topDrinks')}
           data={top5Chart}
           horizontal
           formatValue={fmtShortBare}
           onExpand={isDesktop ? undefined : () => navigation.navigate('ChartDetail', {
-            title: 'Top boissons par revenu',
-            subtitle: `Période ${period} jours`,
+            title: t('stats.topDrinksByRevenue'),
+            subtitle: t('stats.periodDays', { period }),
             chartData: top10Chart,
             rows: top5Rows,
             horizontal: true,
@@ -293,7 +297,7 @@ export default function TrendsScreen() {
 
         {categoryMix.length > 0 && (
           <Card>
-            <CardHeader title="Par catégorie" />
+            <CardHeader title={t('stats.byCategory')} />
             <CardContent>
               <CategoryShare data={categoryMix} />
             </CardContent>
@@ -301,7 +305,7 @@ export default function TrendsScreen() {
         )}
 
         <Card>
-          <CardHeader title="Détail par boisson" />
+          <CardHeader title={t('stats.detailByDrink')} />
           <CardContent>
             {drinkPerformance.slice(0, 15).map((item, i) => (
               <View key={item.drink.id} style={styles.performanceItem}>
@@ -309,19 +313,19 @@ export default function TrendsScreen() {
                 <View style={styles.performanceInfo}>
                   <Text style={styles.performanceName} numberOfLines={1}>{item.drink.name}</Text>
                   <Text style={styles.performanceDetails}>
-                    {fmtNum(item.sold)} unités · {item.avgDaily.toFixed(1)}/jour
+                    {t('stats.unitsPerDay', { count: fmtNum(item.sold), avg: item.avgDaily.toFixed(1) })}
                   </Text>
                 </View>
                 <View style={styles.performanceRight}>
-                  <Badge variant={item.rotation === 'Fort' ? 'success' : item.rotation === 'Moyen' ? 'warning' : 'default'}>
-                    {item.rotation}
+                  <Badge variant={item.rotation === 'high' ? 'success' : item.rotation === 'medium' ? 'warning' : 'default'}>
+                    {t(`stats.rotation_${item.rotation}`)}
                   </Badge>
                   <Text style={styles.performanceRevenue}>{fmt(item.revenue)}</Text>
                 </View>
               </View>
             ))}
             {drinkPerformance.length === 0 && (
-              <Text style={styles.empty}>Clôturez des sessions pour voir les stats</Text>
+              <Text style={styles.empty}>{t('stats.emptyStats')}</Text>
             )}
           </CardContent>
         </Card>

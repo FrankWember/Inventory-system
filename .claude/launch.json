@@ -5,7 +5,8 @@
       "name": "bartrack-dist",
       "runtimeExecutable": "node",
       "runtimeArgs": [".claude/serve-dist.js"],
-      "port": 8088
+      "port": 8088,
+      "autoPort": true
     }
   ]
 }

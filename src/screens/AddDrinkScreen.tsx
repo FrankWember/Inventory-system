@@ -18,10 +18,12 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { DrinkSelector } from '../components/DrinkSelector'
 import { DrinkTemplate } from '../data/cameroonianDrinks'
 import { COLORS, fmt } from '../utils/helpers'
+import { useTranslation } from '../i18n'
 
 const BREAKPOINT = 768
 
 export default function AddDrinkScreen({ navigation, route }: any) {
+  const { t } = useTranslation()
   const hideHeader = route?.params?.hideHeader
   const [saving, setSaving] = useState(false)
   const [unitMode, setUnitMode] = useState<'units' | 'cassiers'>('cassiers')
@@ -73,15 +75,15 @@ export default function AddDrinkScreen({ navigation, route }: any) {
       if (existingDrinks && existingDrinks.length > 0) {
         // Drink already exists - navigate to edit mode
         showAlert(
-          'Boisson existante',
-          'Cette boisson existe déjà dans votre stock. Voulez-vous la modifier?',
+          t('inventory.drinkExistsTitle'),
+          t('inventory.drinkExistsMessage'),
           [
             {
-              text: 'Annuler',
+              text: t('common.cancel'),
               style: 'cancel'
             },
             {
-              text: 'Modifier',
+              text: t('common.edit'),
               onPress: () => {
                 // Use switchToEdit if available (for embedded mode in InventoryScreen)
                 if (navigation.switchToEdit) {
@@ -110,22 +112,22 @@ export default function AddDrinkScreen({ navigation, route }: any) {
 
   const handleSave = async () => {
     if (!selectedDrink) {
-      showAlert('Erreur', 'Veuillez sélectionner une boisson')
+      showAlert(t('common.error'), t('inventory.errSelectDrink'))
       return
     }
 
     if (!form.cassierQuantity || cassierQuantity === 0) {
-      showAlert('Erreur', 'Veuillez entrer le nombre d\'unités par cassier')
+      showAlert(t('common.error'), t('inventory.errUnitsPerCrate'))
       return
     }
 
     if (!form.cassierCost || cassierCost === 0) {
-      showAlert('Erreur', 'Veuillez entrer le coût du cassier')
+      showAlert(t('common.error'), t('inventory.errCrateCost'))
       return
     }
 
     if (!form.price || sellingPrice === 0) {
-      showAlert('Erreur', 'Veuillez entrer le prix de vente')
+      showAlert(t('common.error'), t('inventory.errPrice'))
       return
     }
 
@@ -148,11 +150,11 @@ export default function AddDrinkScreen({ navigation, route }: any) {
 
       if (error) throw error
 
-      showAlert('Succès', 'Boisson ajoutée avec succès!')
+      showAlert(t('common.success'), t('inventory.drinkAdded'))
       navigation.goBack()
     } catch (error: any) {
       console.error('Error adding drink:', error)
-      showAlert('Erreur', `Erreur lors de l'ajout de la boisson: ${error.message || error}`)
+      showAlert(t('common.error'), t('inventory.addDrinkError', { error: error.message || String(error) }))
     } finally {
       setSaving(false)
     }
@@ -162,8 +164,8 @@ export default function AddDrinkScreen({ navigation, route }: any) {
     <View style={styles.wrapper}>
       {!hideHeader && (
         <ScreenHeader
-          title="Ajouter une boisson"
-          subtitle="Sélectionnez et configurez"
+          title={t('inventory.addDrink')}
+          subtitle={t('inventory.addSubtitle')}
           onBack={() => navigation.goBack()}
         />
       )}
@@ -176,8 +178,8 @@ export default function AddDrinkScreen({ navigation, route }: any) {
           contentContainerStyle={[styles.scrollContent, isDesktop && styles.containerDesktop]}
         >
         <Card style={{ overflow: 'visible', zIndex: 1000 }}>
-          <Text style={styles.sectionTitle}>Boisson</Text>
-          <Text style={styles.label}>Choisir une boisson *</Text>
+          <Text style={styles.sectionTitle}>{t('inventory.drinkSection')}</Text>
+          <Text style={styles.label}>{t('inventory.chooseDrink')}</Text>
           <DrinkSelector
             selectedDrink={selectedDrink}
             onSelectDrink={handleDrinkSelect}
@@ -188,49 +190,49 @@ export default function AddDrinkScreen({ navigation, route }: any) {
         {selectedDrink && (
           <>
             <Card>
-              <Text style={styles.sectionTitle}>Tarification par cassier</Text>
+              <Text style={styles.sectionTitle}>{t('inventory.pricingSection')}</Text>
               <Text style={styles.helpText}>
-                Entrez les informations du cassier pour calculer automatiquement vos coûts et profits
+                {t('inventory.pricingHelp')}
               </Text>
 
               <Input
-                label="Combien d'unités dans un cassier? *"
+                label={t('inventory.unitsPerCrateQuestion')}
                 value={form.cassierQuantity}
                 onChangeText={(text) => setForm({ ...form, cassierQuantity: text })}
                 keyboardType="number-pad"
-                placeholder="Ex: 12, 24"
+                placeholder={t('inventory.exampleUnitsPerCrate')}
               />
 
               <Input
-                label="Combien coûte le cassier? (FCFA) *"
+                label={t('inventory.crateCostQuestion')}
                 value={form.cassierCost}
                 onChangeText={(text) => setForm({ ...form, cassierCost: text })}
                 keyboardType="number-pad"
-                placeholder="Ex: 6000"
+                placeholder={t('inventory.exampleCrateCost')}
               />
 
               <Input
-                label="Prix de vente par unité (FCFA) *"
+                label={t('inventory.pricePerUnit')}
                 value={form.price}
                 onChangeText={(text) => setForm({ ...form, price: text })}
                 keyboardType="number-pad"
-                placeholder="Ex: 600"
+                placeholder={t('inventory.examplePrice')}
               />
 
               {cassierQuantity > 0 && cassierCost > 0 && sellingPrice > 0 && (
                 <View style={styles.calculationCard}>
                   <View style={styles.calculationRow}>
-                    <Text style={styles.calculationLabel}>Coût par unité (COGS)</Text>
+                    <Text style={styles.calculationLabel}>{t('inventory.costPerUnit')}</Text>
                     <Text style={styles.calculationValue}>{fmt(costPerUnit)}</Text>
                   </View>
                   <View style={styles.calculationRow}>
-                    <Text style={styles.calculationLabel}>Profit par unité</Text>
+                    <Text style={styles.calculationLabel}>{t('inventory.profitPerUnit')}</Text>
                     <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
                       {fmt(profitPerUnit)}
                     </Text>
                   </View>
                   <View style={styles.calculationRow}>
-                    <Text style={styles.calculationLabel}>Marge bénéficiaire</Text>
+                    <Text style={styles.calculationLabel}>{t('inventory.margin')}</Text>
                     <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
                       {marginPercent}%
                     </Text>
@@ -240,15 +242,16 @@ export default function AddDrinkScreen({ navigation, route }: any) {
             </Card>
 
             <Card>
-              <Text style={styles.sectionTitle}>Stock initial</Text>
+              <Text style={styles.sectionTitle}>{t('inventory.initialStockSection')}</Text>
 
-              <View style={styles.unitToggle}>
+              {/* @ts-ignore - web-only className */}
+              <View style={styles.unitToggle} className="glass-toggle">
                 <TouchableOpacity
                   style={[styles.unitToggleButton, unitMode === 'units' && styles.unitToggleButtonActive]}
                   onPress={() => setUnitMode('units')}
                 >
                   <Text style={[styles.unitToggleText, unitMode === 'units' && styles.unitToggleTextActive]}>
-                    Unités
+                    {t('inventory.unitsToggle')}
                   </Text>
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -256,13 +259,13 @@ export default function AddDrinkScreen({ navigation, route }: any) {
                   onPress={() => setUnitMode('cassiers')}
                 >
                   <Text style={[styles.unitToggleText, unitMode === 'cassiers' && styles.unitToggleTextActive]}>
-                    Cassiers
+                    {t('inventory.cratesToggle')}
                   </Text>
                 </TouchableOpacity>
               </View>
 
               <Input
-                label={`Stock initial (${unitMode === 'units' ? 'unités' : 'cassiers'})`}
+                label={t('inventory.initialStockLabel', { unit: unitMode === 'units' ? t('inventory.unitsLower') : t('inventory.cratesLower') })}
                 value={form.stock}
                 onChangeText={(text) => setForm({ ...form, stock: text })}
                 keyboardType="number-pad"
@@ -270,7 +273,7 @@ export default function AddDrinkScreen({ navigation, route }: any) {
               />
 
               <Input
-                label={`Seuil d'alerte (${unitMode === 'units' ? 'unités' : 'cassiers'})`}
+                label={t('inventory.alertThresholdLabel', { unit: unitMode === 'units' ? t('inventory.unitsLower') : t('inventory.cratesLower') })}
                 value={form.minStock}
                 onChangeText={(text) => setForm({ ...form, minStock: text })}
                 keyboardType="number-pad"
@@ -278,10 +281,10 @@ export default function AddDrinkScreen({ navigation, route }: any) {
               />
 
               <Input
-                label="Fournisseur (optionnel)"
+                label={t('inventory.supplierOptional')}
                 value={form.supplier}
                 onChangeText={(text) => setForm({ ...form, supplier: text })}
-                placeholder="Ex: Brasseries du Cameroun"
+                placeholder={t('inventory.exampleSupplier')}
               />
             </Card>
           </>
@@ -299,7 +302,7 @@ export default function AddDrinkScreen({ navigation, route }: any) {
               disabled={saving || !selectedDrink}
               style={{ flex: 1 }}
             >
-              Enregistrer
+              {t('common.save')}
             </Button>
             <Button
               onPress={() => navigation.goBack()}
@@ -307,7 +310,7 @@ export default function AddDrinkScreen({ navigation, route }: any) {
               disabled={saving}
               style={{ flex: 1 }}
             >
-              Annuler
+              {t('common.cancel')}
             </Button>
           </View>
         </View>

@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native'
 import { showAlert } from '../utils/appAlert'
+import { useTranslation } from '../i18n'
 import { supabase } from '../lib/supabase'
 import { Drink } from '../types'
 import { Card } from '../components/Card'
@@ -21,6 +22,7 @@ import { COLORS, fmt, fmtNum } from '../utils/helpers'
 const BREAKPOINT = 768
 
 export default function EditDrinkScreen({ route, navigation }: any) {
+  const { t } = useTranslation()
   const { drinkId, hideHeader } = route.params
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
 
@@ -64,7 +66,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
       setPrice(data.price.toString())
     } catch (error) {
       console.error('Error loading drink:', error)
-      showAlert('Erreur', 'Erreur lors du chargement de la boisson')
+      showAlert(t('common.error'), t('inventory.loadDrinkError'))
       navigation.goBack()
     } finally {
       setLoading(false)
@@ -101,11 +103,11 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 
       if (error) throw error
 
-      showAlert('Succès', 'Boisson mise à jour')
+      showAlert(t('common.success'), t('inventory.drinkUpdated'))
       navigation.goBack()
     } catch (error) {
       console.error('Error updating drink:', error)
-      showAlert('Erreur', 'Erreur lors de la mise à jour')
+      showAlert(t('common.error'), t('inventory.updateError'))
     } finally {
       setSaving(false)
     }
@@ -117,7 +119,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 
   const handleDelete = async () => {
     if (!deleteConfirmMatches) {
-      showAlert('Erreur', 'Le nom ne correspond pas')
+      showAlert(t('common.error'), t('inventory.nameMismatch'))
       return
     }
 
@@ -129,11 +131,11 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 
       if (error) throw error
 
-      showAlert('Succès', 'Boisson supprimée')
+      showAlert(t('common.success'), t('inventory.drinkDeleted'))
       navigation.goBack()
     } catch (error) {
       console.error('Error deleting drink:', error)
-      showAlert('Erreur', 'Erreur lors de la suppression')
+      showAlert(t('common.error'), t('inventory.deleteError'))
     }
   }
 
@@ -165,7 +167,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
     >
       {showHeader && (
         <ScreenHeader
-          title="Modifier"
+          title={t('common.edit')}
           subtitle={drink?.name}
           onBack={() => navigation.goBack()}
         />
@@ -176,7 +178,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
           <Text style={styles.categoryBadge}>{drink.category}</Text>
 
           <Input
-            label="Unités par casier"
+            label={t('inventory.unitsPerRack')}
             value={rackSize}
             onChangeText={setRackSize}
             keyboardType="number-pad"
@@ -184,20 +186,20 @@ export default function EditDrinkScreen({ route, navigation }: any) {
           />
 
           <Input
-            label="Stock actuel (unités)"
+            label={t('inventory.currentStock')}
             value={stock}
             onChangeText={setStock}
             keyboardType="number-pad"
           />
 
           <Input
-            label="Seuil minimum (unités)"
+            label={t('inventory.minThreshold')}
             value={minStock}
             onChangeText={setMinStock}
             keyboardType="number-pad"
           />
           <Input
-            label="Combien coûte le cassier? (FCFA) *"
+            label={t('inventory.crateCostQuestion')}
             value={cassierCost}
             onChangeText={setCassierCost}
             keyboardType="number-pad"
@@ -205,7 +207,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
           />
 
           <Input
-            label="Prix de vente par unité (FCFA) *"
+            label={t('inventory.pricePerUnit')}
             value={price}
             onChangeText={setPrice}
             keyboardType="number-pad"
@@ -215,17 +217,17 @@ export default function EditDrinkScreen({ route, navigation }: any) {
           {cassierCostNum > 0 && priceNum > 0 && rackSizeNum > 0 && (
             <View style={styles.calculationCard}>
               <View style={styles.calculationRow}>
-                <Text style={styles.calculationLabel}>Coût par unité (COGS)</Text>
+                <Text style={styles.calculationLabel}>{t('inventory.costPerUnit')}</Text>
                 <Text style={styles.calculationValue}>{fmt(costPerUnit)}</Text>
               </View>
               <View style={styles.calculationRow}>
-                <Text style={styles.calculationLabel}>Profit par unité</Text>
+                <Text style={styles.calculationLabel}>{t('inventory.profitPerUnit')}</Text>
                 <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
                   {fmt(profitPerUnit)}
                 </Text>
               </View>
               <View style={styles.calculationRow}>
-                <Text style={styles.calculationLabel}>Marge bénéficiaire</Text>
+                <Text style={styles.calculationLabel}>{t('inventory.margin')}</Text>
                 <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
                   {margin}%
                 </Text>
@@ -236,17 +238,17 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 
         <View style={styles.buttons}>
           <Button onPress={handleSave} loading={saving} disabled={saving} style={{ flex: 1 }}>
-            Enregistrer
+            {t('common.save')}
           </Button>
           <Button onPress={() => navigation.goBack()} variant="outline" disabled={saving} style={{ flex: 1 }}>
-            Annuler
+            {t('common.cancel')}
           </Button>
         </View>
 
         <Card style={styles.dangerCard}>
-          <Text style={styles.dangerTitle}>Zone de danger</Text>
+          <Text style={styles.dangerTitle}>{t('inventory.dangerZone')}</Text>
           <Text style={styles.dangerText}>
-            Tapez le nom de la boisson pour confirmer la suppression
+            {t('inventory.deleteConfirmHint')}
           </Text>
           <Input
             placeholder={drink.name}
@@ -260,7 +262,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
             variant="danger"
             disabled={!deleteConfirmMatches}
           >
-            Supprimer cette boisson
+            {t('inventory.deleteThisDrink')}
           </Button>
         </Card>
 

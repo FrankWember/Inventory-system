@@ -100,10 +100,10 @@ export function splitRacks(units: number, rackSize: number): { racks: number; re
 }
 
 /**
- * French label for a stock count expressed in cassiers + units,
- * e.g. "2 cassiers + 6 unités" (long) or "2c + 6u" (short).
+ * Label for a stock count expressed in cassiers + units,
+ * e.g. "2 cassiers + 6 unités" (fr) / "2 crates + 6 units" (en) / "2c + 6u" (short).
  */
-export function cassierLabel(units: number, rackSize: number, short = false): string {
+export function cassierLabel(units: number, rackSize: number, short = false, lang: 'fr' | 'en' = 'fr'): string {
   const { racks, remainder } = splitRacks(units, rackSize)
 
   if (short) {
@@ -112,8 +112,10 @@ export function cassierLabel(units: number, rackSize: number, short = false): st
     return `${racks}c + ${remainder}u`
   }
 
-  const unitWord = (n: number) => `${n} unité${n > 1 ? 's' : ''}`
-  const rackWord = (n: number) => `${n} cassier${n > 1 ? 's' : ''}`
+  const unitNoun = lang === 'en' ? 'unit' : 'unité'
+  const rackNoun = lang === 'en' ? 'crate' : 'cassier'
+  const unitWord = (n: number) => `${n} ${unitNoun}${n > 1 ? 's' : ''}`
+  const rackWord = (n: number) => `${n} ${rackNoun}${n > 1 ? 's' : ''}`
   if (racks === 0) return unitWord(remainder)
   if (remainder === 0) return rackWord(racks)
   return `${rackWord(racks)} + ${unitWord(remainder)}`

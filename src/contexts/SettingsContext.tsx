@@ -13,6 +13,7 @@ import {
   setBarInfo as saveBarInfo,
 } from '../lib/storage'
 import { getColors, LIGHT_COLORS } from '../styles/theme'
+import { setLang } from '../i18n'
 
 interface SettingsContextType {
   theme: Theme
@@ -51,6 +52,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
 
       setThemeState(theme)
       setLanguageState(language)
+      setLang(language)
       setNotificationsState(notifications)
       setBarInfoState(barInfo)
     } catch (error) {
@@ -73,6 +75,7 @@ export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const setLanguage = async (newLanguage: Language) => {
     try {
       await saveLanguage(newLanguage)
+      setLang(newLanguage)
       setLanguageState(newLanguage)
     } catch (error) {
       console.error('Error setting language:', error)

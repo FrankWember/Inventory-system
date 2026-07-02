@@ -20,13 +20,17 @@ export const getCategoryColor = (cat: string): string => {
 }
 
 // Formatting Functions
-export const fmt = (n: number): string => {
-  return Math.round(n).toLocaleString('en-US') + '\u00A0FCFA'
+// All formatters coerce null/undefined/NaN to 0 — a single null column in an
+// old database row must never render as "NaN FCFA" in the UI.
+const safe = (n: number | null | undefined): number => (Number.isFinite(n as number) ? (n as number) : 0)
+
+export const fmt = (n: number | null | undefined): string => {
+  return Math.round(safe(n)).toLocaleString('en-US') + '\u00A0FCFA'
 }
 
 /** Full number with commas — no abbreviation */
-export const fmtNum = (n: number): string => {
-  return Math.round(n).toLocaleString('en-US')
+export const fmtNum = (n: number | null | undefined): string => {
+  return Math.round(safe(n)).toLocaleString('en-US')
 }
 
 /**
@@ -35,18 +39,20 @@ export const fmtNum = (n: number): string => {
  * and ≥1M to "M"; smaller amounts stay exact. Full values remain in heroes,
  * ledgers and tables.
  */
-export const fmtShort = (n: number): string => {
-  const a = Math.abs(n)
-  const sign = n < 0 ? '-' : ''
+export const fmtShort = (n: number | null | undefined): string => {
+  const v = safe(n)
+  const a = Math.abs(v)
+  const sign = v < 0 ? '-' : ''
   if (a >= 1_000_000) return `${sign}${(a / 1_000_000).toLocaleString('en-US', { maximumFractionDigits: 1 })}\u00A0M\u00A0FCFA`
   if (a >= 10_000) return `${sign}${Math.round(a / 1000).toLocaleString('en-US')}\u00A0k\u00A0FCFA`
-  return fmt(n)
+  return fmt(v)
 }
 
 /** Compact number with no currency — for chart bar labels (currency implied). */
-export const fmtShortBare = (n: number): string => {
-  const a = Math.abs(n)
-  const sign = n < 0 ? '-' : ''
+export const fmtShortBare = (n: number | null | undefined): string => {
+  const v = safe(n)
+  const a = Math.abs(v)
+  const sign = v < 0 ? '-' : ''
   if (a >= 1_000_000) return `${sign}${(a / 1_000_000).toLocaleString('en-US', { maximumFractionDigits: 1 })} M`
   if (a >= 1_000) return `${sign}${Math.round(a / 1000).toLocaleString('en-US')} k`
   return `${sign}${Math.round(a)}`
@@ -89,7 +95,7 @@ export const toISODateString = (date: Date): string => {
 
 export const dateLabel = (iso: string): string => {
   const date = parseLocalDate(iso)
-  return date.toLocaleDateString('fr-FR', {
+  return date.toLocaleDateString(getLocale(), {
     weekday: 'short',
     day: 'numeric',
     month: 'short',
@@ -98,7 +104,7 @@ export const dateLabel = (iso: string): string => {
 
 export const dateLabelLong = (iso: string): string => {
   const date = parseLocalDate(iso)
-  return date.toLocaleDateString('fr-FR', {
+  return date.toLocaleDateString(getLocale(), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',
@@ -111,6 +117,7 @@ export const dateLabelLong = (iso: string): string => {
 // pass it explicitly — the old version hardcoded 12 and misformatted drinks
 // sold in 24- or 6-unit cassiers.
 import { cassierLabel, stockStatus } from './calculations'
+import { getLocale, getLang } from '../i18n'
 
 /** Rack size for a drink, preferring cassier_quantity over legacy rack_size. */
 export const drinkRackSize = (drink: { cassier_quantity?: number | null; rack_size?: number | null }): number => {
@@ -120,16 +127,16 @@ export const drinkRackSize = (drink: { cassier_quantity?: number | null; rack_si
 
 export const formatWithCassiers = (stock: number, category: string, rackSize = 12): string => {
   if (category !== 'Bière') {
-    return `${stock} unités`
+    return getLang() === 'en' ? `${stock} units` : `${stock} unités`
   }
-  return cassierLabel(stock, rackSize)
+  return cassierLabel(stock, rackSize, false, getLang())
 }
 
 export const formatWithCassiersShort = (stock: number, category: string, rackSize = 12): string => {
   if (category !== 'Bière') {
     return `${stock}`
   }
-  return cassierLabel(stock, rackSize, true)
+  return cassierLabel(stock, rackSize, true, getLang())
 }
 
 // Stock Status — single source of truth in calculations.ts (treats negative

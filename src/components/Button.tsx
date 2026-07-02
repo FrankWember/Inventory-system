@@ -46,12 +46,17 @@ export function Button({
     textStyle,
   ]
 
+  // Web-only gloss/glass finish (className is ignored on native)
+  const glassClass = variant === 'primary' ? 'glass-primary' : variant === 'outline' || variant === 'secondary' ? 'glass-button' : undefined
+
   return (
     <TouchableOpacity
       onPress={onPress}
       disabled={disabled || loading}
       style={buttonStyles}
       activeOpacity={0.7}
+      // @ts-ignore - web-only className
+      className={glassClass}
     >
       {loading ? (
         <ActivityIndicator color={variant === 'outline' ? COLORS.primary : COLORS.white} />

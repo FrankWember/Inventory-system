@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text, StyleSheet, Platform } from 'react-native'
 import { COLORS, FONT, fmtNum } from '../utils/helpers'
+import { useTranslation } from '../i18n'
 
 export interface BarChartItem {
   label: string
@@ -23,7 +24,8 @@ export function SimpleBarChart({
   formatValue = fmtNum,
   horizontal = false,
 }: SimpleBarChartProps) {
-  if (data.length === 0) return <Text style={styles.empty}>Aucune donnée</Text>
+  const { t } = useTranslation()
+  if (data.length === 0) return <Text style={styles.empty}>{t('common.noData')}</Text>
 
   // Calculate values with improved scaling
   const values = data.map(d => d.value)

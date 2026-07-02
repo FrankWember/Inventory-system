@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text, StyleSheet } from 'react-native'
 import { COLORS, FONT, fmt } from '../utils/helpers'
+import { useTranslation } from '../i18n'
 
 export interface ShareSlice {
   label: string
@@ -11,8 +12,9 @@ export interface ShareSlice {
 // Minimal category-mix viz: one segmented bar + a compact legend. Pure Views,
 // cross-platform, far less visual noise than a multi-colour donut.
 export function CategoryShare({ data }: { data: ShareSlice[] }) {
+  const { t } = useTranslation()
   const slices = data.filter(d => d.value > 0)
-  if (slices.length === 0) return <Text style={styles.empty}>Aucune donnée</Text>
+  if (slices.length === 0) return <Text style={styles.empty}>{t('common.noData')}</Text>
   const total = slices.reduce((s, d) => s + d.value, 0)
 
   return (

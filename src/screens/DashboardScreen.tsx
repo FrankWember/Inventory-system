@@ -19,10 +19,12 @@ import { ScreenSkeleton } from '../components/Skeleton'
 import { ProfessionalBarChart } from '../components/ProfessionalBarChart'
 import { COLORS, FONT, fmt, fmtShort, fmtNum, today, dateLabel, formatWithCassiers, drinkRackSize } from '../utils/helpers'
 import { isWithinLastDays, isoDaysAgo } from '../utils/calculations'
+import { useTranslation } from '../i18n'
 
 const BREAKPOINT = 768
 
 export default function DashboardScreen({ navigation }: any) {
+  const { t } = useTranslation()
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState(true)
@@ -86,7 +88,7 @@ export default function DashboardScreen({ navigation }: any) {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Accueil" subtitle={dateLabel(today())} />
+        <ScreenHeader title={t('dashboard.title')} subtitle={dateLabel(today())} />
         <ScreenSkeleton variant="dashboard" />
       </View>
     )
@@ -134,7 +136,7 @@ export default function DashboardScreen({ navigation }: any) {
 
   return (
     <View style={styles.container}>
-      <ScreenHeader title="Accueil" subtitle={dateLabel(todayStr)} />
+      <ScreenHeader title={t('dashboard.title')} subtitle={dateLabel(todayStr)} />
 
       <ScrollView
         style={styles.scroll}
@@ -145,12 +147,12 @@ export default function DashboardScreen({ navigation }: any) {
         <View style={styles.statsRow}>
           {/* @ts-ignore - web-only className */}
           <View style={styles.statBox} className="glass-card">
-            <Text style={styles.statLabel}>Revenu 7j</Text>
+            <Text style={styles.statLabel}>{t('dashboard.revenue7d')}</Text>
             <Text style={styles.statValue} adjustsFontSizeToFit numberOfLines={1}>{fmt(last7Revenue)}</Text>
           </View>
           {/* @ts-ignore - web-only className */}
           <View style={styles.statBox} className="glass-card">
-            <Text style={styles.statLabel}>Profit 7j</Text>
+            <Text style={styles.statLabel}>{t('dashboard.profit7d')}</Text>
             <Text
               style={[styles.statValue, { color: last7Profit >= 0 ? COLORS.primary : COLORS.rose }]}
               adjustsFontSizeToFit
@@ -166,23 +168,23 @@ export default function DashboardScreen({ navigation }: any) {
           // @ts-ignore - web-only className
           <View style={styles.section} className="glass-card">
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>À surveiller</Text>
+              <Text style={styles.sectionTitle}>{t('dashboard.watchlist')}</Text>
               <View style={styles.badgeRow}>
-                {outOfStock.length > 0 && <Badge variant="danger">{outOfStock.length} rupture</Badge>}
-                {lowStock.length > 0 && <Badge variant="warning">{lowStock.length} bas</Badge>}
+                {outOfStock.length > 0 && <Badge variant="danger">{t('dashboard.outOfStockCount', { count: outOfStock.length })}</Badge>}
+                {lowStock.length > 0 && <Badge variant="warning">{t('dashboard.lowStockCount', { count: lowStock.length })}</Badge>}
               </View>
             </View>
             {attention.slice(0, 5).map(d => {
               const isOut = d.stock === 0
               const isCritical = !isOut && d.stock <= d.min_stock / 2
               const stockColor = isOut ? COLORS.rose : (isCritical ? COLORS.amber : COLORS.primary)
-              const stockText = isOut ? 'Rupture' : formatWithCassiers(d.stock, d.category, drinkRackSize(d))
+              const stockText = isOut ? t('dashboard.outOfStock') : formatWithCassiers(d.stock, d.category, drinkRackSize(d))
               return (
                 <TouchableOpacity key={d.id} style={styles.alertRow} onPress={() => navigation.navigate('Inventory')} activeOpacity={0.7}>
                   <View style={[styles.alertBar, { backgroundColor: stockColor }]} />
                   <View style={styles.alertMain}>
                     <Text style={styles.alertName} numberOfLines={1}>{d.name}</Text>
-                    <Text style={styles.alertSub}>Seuil {d.min_stock} · {d.category}</Text>
+                    <Text style={styles.alertSub}>{t('dashboard.threshold', { value: d.min_stock })} · {d.category}</Text>
                   </View>
                   <View style={styles.alertRight}>
                     <Text style={[styles.alertStock, { color: stockColor }]}>
@@ -195,7 +197,7 @@ export default function DashboardScreen({ navigation }: any) {
             })}
             {attention.length > 5 && (
               <TouchableOpacity onPress={() => navigation.navigate('Inventory')}>
-                <Text style={styles.moreLink}>Voir les {attention.length - 5} autres →</Text>
+                <Text style={styles.moreLink}>{t('dashboard.seeOthers', { count: attention.length - 5 })}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -204,7 +206,7 @@ export default function DashboardScreen({ navigation }: any) {
             <View style={styles.healthyIcon}>
               <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
             </View>
-            <Text style={styles.healthyText}>Tout le stock est au-dessus du seuil.</Text>
+            <Text style={styles.healthyText}>{t('dashboard.allHealthy')}</Text>
           </View>
         )}
 
@@ -215,8 +217,8 @@ export default function DashboardScreen({ navigation }: any) {
             // @ts-ignore - web-only className
             <View style={[styles.section, isDesktop && styles.dashboardHalf]} className="glass-card">
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Profit par jour</Text>
-                <Text style={styles.sectionHint}>7 derniers jours</Text>
+                <Text style={styles.sectionTitle}>{t('dashboard.profitPerDay')}</Text>
+                <Text style={styles.sectionHint}>{t('dashboard.last7days')}</Text>
               </View>
               <View style={styles.profitChartContainer}>
                 <ProfessionalBarChart
@@ -247,8 +249,8 @@ export default function DashboardScreen({ navigation }: any) {
             // @ts-ignore - web-only className
             <View style={[styles.section, isDesktop && styles.dashboardHalf]} className="glass-card">
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Meilleures ventes</Text>
-                <Text style={styles.sectionHint}>7 derniers jours</Text>
+                <Text style={styles.sectionTitle}>{t('dashboard.bestSellers')}</Text>
+                <Text style={styles.sectionHint}>{t('dashboard.last7days')}</Text>
               </View>
               {top5.map((item, i) => (
                 <View key={item.drink.id} style={styles.topRow}>
@@ -261,7 +263,7 @@ export default function DashboardScreen({ navigation }: any) {
                   </View>
                   <View style={styles.topRight}>
                     <Text style={styles.topRevenue} numberOfLines={1}>{fmtShort(item.revenue)}</Text>
-                    <Text style={styles.topSold}>{item.sold} vendus</Text>
+                    <Text style={styles.topSold}>{t('dashboard.soldCount', { count: item.sold })}</Text>
                   </View>
                 </View>
               ))}
@@ -273,7 +275,7 @@ export default function DashboardScreen({ navigation }: any) {
           <View style={styles.emptyHint}>
             <Ionicons name="information-circle-outline" size={20} color={COLORS.slate} />
             <Text style={styles.emptyHintText}>
-              Clôturez une session pour voir les tendances de vente.
+              {t('dashboard.emptyHint')}
             </Text>
           </View>
         )}

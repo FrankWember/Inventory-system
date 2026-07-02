@@ -1,112 +1,100 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useRef } from 'react'
 import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { COLORS, FONT } from '../utils/helpers'
 import { useSettings } from '../contexts/SettingsContext'
+import { useTranslation } from '../i18n'
 
 interface WelcomeLoadingScreenProps {
   name?: string
   isReturningUser?: boolean
 }
 
-// Personalized welcome messages based on time of day
 const getTimeBasedGreeting = () => {
   const hour = new Date().getHours()
-  if (hour < 12) return 'Bon matin'
-  if (hour < 18) return 'Bon après-midi'
-  return 'Bonsoir'
+  if (hour < 12) return 'misc.greetingMorning'
+  if (hour < 18) return 'misc.greetingAfternoon'
+  return 'misc.greetingEvening'
 }
 
-// Motivational tips for bar management
-const dailyTips = [
-  "Suivre votre stock régulièrement vous aide à éviter les ruptures",
-  "Les ventes du weekend sont souvent 30% plus élevées",
-  "Un inventaire organisé est la clé d'un service rapide",
-  "Vos clients apprécient la constance dans la qualité",
-  "Les données de vos sessions vous aident à prendre de meilleures décisions",
-  "Un bar bien géré commence par un bon suivi",
-  "Chaque session clôturée est une opportunité d'analyser vos ventes",
-  "La préparation d'aujourd'hui fait le succès de demain",
-]
-
-export function WelcomeLoadingScreen({ name, isReturningUser = false }: WelcomeLoadingScreenProps) {
+// Apple-style welcome: a quiet screen, one large greeting that settles into
+// place, and a soft progress shimmer. No cards, no clutter.
+export function WelcomeLoadingScreen({ name }: WelcomeLoadingScreenProps) {
   const { barInfo } = useSettings()
-  const [fadeAnim] = useState(new Animated.Value(0))
-  const [scaleAnim] = useState(new Animated.Value(0.9))
-  const [slideAnim] = useState(new Animated.Value(30))
+  const { t } = useTranslation()
+  const fadeAnim = useRef(new Animated.Value(0)).current
+  const riseAnim = useRef(new Animated.Value(16)).current
+  const barFade = useRef(new Animated.Value(0)).current
+  const progress = useRef(new Animated.Value(0)).current
 
   useEffect(() => {
-    Animated.parallel([
-      Animated.timing(fadeAnim, {
+    Animated.sequence([
+      Animated.parallel([
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 700,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(riseAnim, {
+          toValue: 0,
+          duration: 700,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]),
+      Animated.timing(barFade, {
         toValue: 1,
-        duration: 800,
-        easing: Easing.out(Easing.cubic),
-        useNativeDriver: true,
-      }),
-      Animated.spring(scaleAnim, {
-        toValue: 1,
-        friction: 8,
-        tension: 40,
-        useNativeDriver: true,
-      }),
-      Animated.timing(slideAnim, {
-        toValue: 0,
-        duration: 600,
+        duration: 400,
+        easing: Easing.out(Easing.quad),
         useNativeDriver: true,
       }),
     ]).start()
+
+    const loop = Animated.loop(
+      Animated.timing(progress, {
+        toValue: 1,
+        duration: 1100,
+        easing: Easing.inOut(Easing.quad),
+        useNativeDriver: true,
+      })
+    )
+    loop.start()
+    return () => loop.stop()
   }, [])
 
-  const firstName = name?.split(' ')[0] || 'utilisateur'
-  const barName = barInfo?.name || 'votre établissement'
-  const greeting = getTimeBasedGreeting()
-  const dailyTip = dailyTips[Math.floor(Math.random() * dailyTips.length)]
+  const firstName = name?.split(' ')[0] || ''
+  const greeting = t(getTimeBasedGreeting())
+
+  const shimmerX = progress.interpolate({
+    inputRange: [0, 1],
+    outputRange: [-72, 72],
+  })
 
   return (
     <View style={styles.container}>
       <Animated.View
-        style={[
-          styles.content,
-          {
-            opacity: fadeAnim,
-            transform: [
-              { scale: scaleAnim },
-              { translateY: slideAnim },
-            ],
-          },
-        ]}
+        style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: riseAnim }] }]}
       >
-        {/* Icon with glass effect */}
-        <View style={styles.iconContainer}>
-          <View style={styles.iconCircle}>
-            <Ionicons name="bar-chart" size={48} color={COLORS.primary} />
-          </View>
+        <View style={styles.logoWrap}>
+          <Ionicons name="beer" size={30} color={COLORS.primary} />
         </View>
 
-        {/* Greeting */}
-        <Text style={styles.welcomeText}>{greeting},</Text>
-        <Text style={styles.nameText}>{firstName}</Text>
+        <Text style={styles.greeting}>{greeting},</Text>
+        <Text style={styles.name} numberOfLines={1}>
+          {firstName || t('misc.welcomeFallback')}
+        </Text>
 
-        {/* Bar info */}
-        <View style={styles.barInfoContainer}>
-          <Ionicons name="business" size={16} color={COLORS.slate} />
-          <Text style={styles.barName}>{barName}</Text>
-        </View>
+        {barInfo?.name ? (
+          <Animated.Text style={[styles.barName, { opacity: barFade }]}>
+            {barInfo.name}
+          </Animated.Text>
+        ) : null}
+      </Animated.View>
 
-        {/* Daily tip */}
-        <View style={styles.tipContainer}>
-          <View style={styles.tipIconBox}>
-            <Ionicons name="bulb" size={14} color={COLORS.amber} />
-          </View>
-          <Text style={styles.tipText}>{dailyTip}</Text>
-        </View>
-
-        {/* Loading indicator */}
-        <View style={styles.loaderContainer}>
-          <View style={styles.loaderDot} />
-          <View style={[styles.loaderDot, styles.loaderDotDelay1]} />
-          <View style={[styles.loaderDot, styles.loaderDotDelay2]} />
-        </View>
+      {/* Thin indeterminate progress line, Apple-style */}
+      <Animated.View style={[styles.progressTrack, { opacity: barFade }]}>
+        <Animated.View style={[styles.progressGlow, { transform: [{ translateX: shimmerX }] }]} />
       </Animated.View>
     </View>
   )
@@ -124,128 +112,63 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     maxWidth: 480,
     width: '100%',
+    marginBottom: 48,
   },
-  iconContainer: {
-    marginBottom: 32,
-  },
-  iconCircle: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    backgroundColor: 'rgba(74, 144, 226, 0.12)',
+  logoWrap: {
+    width: 68,
+    height: 68,
+    borderRadius: 20,
+    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(74, 144, 226, 0.3)',
+    marginBottom: 36,
     ...Platform.select({
       web: {
-        backdropFilter: 'blur(10px)',
-        boxShadow: '0 8px 24px rgba(74, 144, 226, 0.2)',
+        backdropFilter: 'blur(12px)',
+        boxShadow: '0 12px 32px rgba(24, 119, 242, 0.18), 0 1px 0 rgba(255,255,255,0.6) inset',
       },
       default: {
         shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.2,
-        shadowRadius: 12,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.18,
+        shadowRadius: 16,
         elevation: 4,
       },
     }),
   },
-  welcomeText: {
-    fontSize: 20,
+  greeting: {
+    fontSize: 22,
     fontFamily: FONT.medium,
     color: COLORS.slate,
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  nameText: {
-    fontSize: 32,
-    fontFamily: FONT.bold,
+  name: {
+    fontSize: 40,
+    fontFamily: FONT.extrabold,
     color: COLORS.slateDark,
-    marginBottom: 20,
+    letterSpacing: -1,
     textAlign: 'center',
-  },
-  barInfoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderRadius: 20,
-    marginBottom: 32,
-    ...Platform.select({
-      web: {
-        backdropFilter: 'blur(10px)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 1,
-      },
-    }),
+    marginBottom: 14,
   },
   barName: {
     fontSize: 14,
     fontFamily: FONT.semibold,
-    color: COLORS.slateDark,
-  },
-  tipContainer: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: 12,
-    padding: 16,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
-    borderRadius: 16,
-    marginBottom: 40,
-    borderWidth: 1,
-    borderColor: 'rgba(251, 191, 36, 0.2)',
-    ...Platform.select({
-      web: {
-        backdropFilter: 'blur(10px)',
-      },
-      default: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.05,
-        shadowRadius: 8,
-        elevation: 2,
-      },
-    }),
-  },
-  tipIconBox: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: 'rgba(251, 191, 36, 0.15)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: 2,
-  },
-  tipText: {
-    flex: 1,
-    fontSize: 14,
-    fontFamily: FONT.regular,
     color: COLORS.slate,
-    lineHeight: 20,
+    letterSpacing: 0.2,
   },
-  loaderContainer: {
-    flexDirection: 'row',
-    gap: 8,
-    alignItems: 'center',
+  progressTrack: {
+    position: 'absolute',
+    bottom: 72,
+    width: 144,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: COLORS.border,
+    overflow: 'hidden',
   },
-  loaderDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+  progressGlow: {
+    width: 72,
+    height: '100%',
+    borderRadius: 2,
     backgroundColor: COLORS.primary,
-    opacity: 0.3,
-  },
-  loaderDotDelay1: {
-    opacity: 0.6,
-  },
-  loaderDotDelay2: {
-    opacity: 1,
   },
 })

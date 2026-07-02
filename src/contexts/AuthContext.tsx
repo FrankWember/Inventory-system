@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useRef } from 'r
 import { Session, User } from '@supabase/supabase-js'
 import { supabase } from '../lib/supabase'
 import { getRedirectUrl } from '../utils/config'
+import { t } from '../i18n'
 
 interface AuthError {
   message: string
@@ -24,34 +25,34 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 function parseAuthError(error: any): AuthError {
-  if (!error) return { message: 'Une erreur inconnue est survenue', type: 'unknown' }
+  if (!error) return { message: t('auth.errUnknown'), type: 'unknown' }
 
   const errorMessage = error.message?.toLowerCase() || ''
 
   if (errorMessage.includes('invalid login credentials') ||
       errorMessage.includes('invalid password') ||
       errorMessage.includes('wrong password')) {
-    return { message: 'Email/téléphone ou mot de passe incorrect', type: 'invalid_credentials' }
+    return { message: t('auth.errInvalidCredentials'), type: 'invalid_credentials' }
   }
   if (errorMessage.includes('user not found') || errorMessage.includes('no user found')) {
-    return { message: 'Aucun compte associé à ces identifiants', type: 'user_not_found' }
+    return { message: t('auth.errUserNotFound'), type: 'user_not_found' }
   }
   if (errorMessage.includes('email not confirmed') || errorMessage.includes('email address not confirmed')) {
-    return { message: 'Veuillez confirmer votre email avant de vous connecter', type: 'email_not_confirmed' }
+    return { message: t('auth.errEmailNotConfirmed'), type: 'email_not_confirmed' }
   }
   if (errorMessage.includes('password') && errorMessage.includes('weak')) {
-    return { message: 'Le mot de passe est trop faible', type: 'weak_password' }
+    return { message: t('auth.errWeakPassword'), type: 'weak_password' }
   }
   if (errorMessage.includes('user already registered') ||
       errorMessage.includes('email already registered') ||
       errorMessage.includes('already exists')) {
-    return { message: 'Un compte existe déjà avec ces identifiants', type: 'email_exists' }
+    return { message: t('auth.errAccountExists'), type: 'email_exists' }
   }
   if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('timeout')) {
-    return { message: 'Erreur de connexion. Vérifiez votre connexion internet', type: 'network_error' }
+    return { message: t('auth.errNetwork'), type: 'network_error' }
   }
 
-  return { message: error.message || 'Une erreur est survenue', type: 'unknown' }
+  return { message: error.message || t('auth.errGeneric'), type: 'unknown' }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -125,7 +126,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       const phoneEmail = `+237${phone}@phone.bartrack.app`
       const { error } = await supabase.auth.signInWithPassword({ email: phoneEmail, password })
-      if (error) return { error: parseAuthError(error) }
+      if (error) {
+        const parsed = parseAuthError(error)
+        // A phone account has no inbox — "confirm your email" is impossible
+        // advice. Surface the real problem instead.
+        if (parsed.type === 'email_not_confirmed') {
+          return {
+            error: {
+              message: t('auth.errPhonePendingActivation'),
+              type: 'email_not_confirmed' as const,
+            },
+          }
+        }
+        return { error: parsed }
+      }
       return { error: null }
     } catch (error) {
       return { error: parseAuthError(error) }
@@ -141,7 +155,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         email: authEmail,
         password,
         options: {
-          emailRedirectTo: redirectUrl || undefined,
+          // Phone accounts use a synthetic inbox-less address — never send a
+          // confirmation link there (see supabase-auto-confirm-phone.sql).
+          emailRedirectTo: phone ? undefined : (redirectUrl || undefined),
           data: {
             display_name: name,
             phone: phone ? `+237${phone}` : undefined,

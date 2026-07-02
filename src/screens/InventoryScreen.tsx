@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import {
   View,
   Text,
@@ -23,6 +23,7 @@ import { SlideIn } from '../components/SlideIn'
 import EditDrinkScreen from './EditDrinkScreen'
 import AddDrinkScreen from './AddDrinkScreen'
 import { FloatingModal } from '../components/FloatingModal'
+import { useTranslation } from '../i18n'
 import {
   COLORS,
   FONT,
@@ -38,6 +39,7 @@ const GRID_PADDING = 16
 const BREAKPOINT = 768
 
 export default function InventoryScreen({ navigation }: any) {
+  const { t } = useTranslation()
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
@@ -65,7 +67,32 @@ export default function InventoryScreen({ navigation }: any) {
     'Tout', 'Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre',
   ]
 
-  const loadDrinks = async () => {
+  // Stable ordering: the grid sorts by urgency (rupture → low → ok), but
+  // re-sorting after every stock edit made the card the user just touched jump
+  // to a new position. The order is computed on first load / explicit refresh
+  // and then FROZEN — edits update values in place, new drinks append at the end.
+  const orderRef = useRef<Map<string, number>>(new Map())
+
+  const statusRank: Record<string, number> = { rupture: 0, low: 1, medium: 2, ok: 3 }
+  const urgencySort = (a: Drink, b: Drink) => {
+    const ra = statusRank[getStockStatus(a.stock, a.min_stock)]
+    const rb = statusRank[getStockStatus(b.stock, b.min_stock)]
+    return ra !== rb ? ra - rb : a.name.localeCompare(b.name)
+  }
+
+  const rememberOrder = (data: Drink[], resort: boolean) => {
+    if (resort || orderRef.current.size === 0) {
+      orderRef.current = new Map([...data].sort(urgencySort).map((d, i) => [d.id, i]))
+      return
+    }
+    const order = orderRef.current
+    let next = order.size
+    for (const d of [...data].sort(urgencySort)) {
+      if (!order.has(d.id)) order.set(d.id, next++)
+    }
+  }
+
+  const loadDrinks = async (resort = false) => {
     try {
       const { data, error } = await supabase
         .from('drinks')
@@ -73,6 +100,7 @@ export default function InventoryScreen({ navigation }: any) {
         .eq('active', true)
         .order('name')
       if (error) throw error
+      rememberOrder(data || [], resort)
       setDrinks(data || [])
     } catch (error) {
       console.error('Error loading drinks:', error)
@@ -82,10 +110,10 @@ export default function InventoryScreen({ navigation }: any) {
     }
   }
 
-  useEffect(() => { loadDrinks() }, [])
+  useEffect(() => { loadDrinks(true) }, [])
 
   useEffect(() => {
-    const sub = navigation.addListener('focus', loadDrinks)
+    const sub = navigation.addListener('focus', () => loadDrinks(false))
     return sub
   }, [navigation])
 
@@ -99,25 +127,20 @@ export default function InventoryScreen({ navigation }: any) {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Stock" subtitle="Chargement…" />
+        <ScreenHeader title={t('common.stock')} subtitle={t('common.loading')} />
         <ScreenSkeleton variant="grid" />
       </View>
     )
   }
 
-  const statusRank: Record<string, number> = { rupture: 0, low: 1, medium: 2, ok: 3 }
   const filtered = drinks
     .filter(d => {
       if (!d.name.toLowerCase().includes(search.toLowerCase())) return false
       if (categoryFilter !== 'Tout' && d.category !== categoryFilter) return false
       return true
     })
-    // Most urgent first (rupture → low → medium → ok), then alphabetical.
-    .sort((a, b) => {
-      const ra = statusRank[getStockStatus(a.stock, a.min_stock)]
-      const rb = statusRank[getStockStatus(b.stock, b.min_stock)]
-      return ra !== rb ? ra - rb : a.name.localeCompare(b.name)
-    })
+    // Frozen urgency order (see rememberOrder) so cards don't jump mid-edit.
+    .sort((a, b) => (orderRef.current.get(a.id) ?? 9999) - (orderRef.current.get(b.id) ?? 9999))
 
   const ruptureCount = drinks.filter(d => d.stock === 0).length
   const lowCount = drinks.filter(d => d.stock > 0 && d.stock <= d.min_stock).length
@@ -155,7 +178,7 @@ export default function InventoryScreen({ navigation }: any) {
           <StockProgressBar stock={drink.stock} minStock={drink.min_stock} />
           {(status === 'rupture' || status === 'low') && (
             <Text style={styles.gridAlert}>
-              {status === 'rupture' ? 'Rupture' : 'Stock bas'}
+              {status === 'rupture' ? t('inventory.outOfStock') : t('inventory.lowStock')}
             </Text>
           )}
         </View>
@@ -166,22 +189,22 @@ export default function InventoryScreen({ navigation }: any) {
   const drinkListContent = (
     <>
       <ScreenHeader
-        title="Stock"
-        subtitle={`${drinks.length} références`}
+        title={t('common.stock')}
+        subtitle={t('inventory.refCount', { count: drinks.length })}
       />
 
       <View style={styles.summaryRow}>
         <View style={styles.summaryTile}>
           <Text style={styles.summaryValue}>{fmtShort(stockValue)}</Text>
-          <Text style={styles.summaryLabel}>Valeur stock</Text>
+          <Text style={styles.summaryLabel}>{t('inventory.stockValue')}</Text>
         </View>
         <View style={[styles.summaryTile, styles.summaryTileBordered]}>
           <Text style={[styles.summaryValue, ruptureCount > 0 && { color: COLORS.rose }]}>{ruptureCount}</Text>
-          <Text style={styles.summaryLabel}>Ruptures</Text>
+          <Text style={styles.summaryLabel}>{t('inventory.outages')}</Text>
         </View>
         <View style={styles.summaryTile}>
           <Text style={[styles.summaryValue, lowCount > 0 && { color: COLORS.primary }]}>{lowCount}</Text>
-          <Text style={styles.summaryLabel}>Stock bas</Text>
+          <Text style={styles.summaryLabel}>{t('inventory.lowStock')}</Text>
         </View>
       </View>
 
@@ -189,7 +212,7 @@ export default function InventoryScreen({ navigation }: any) {
         <Ionicons name="search" size={18} color={COLORS.slate} />
         <TextInput
           style={styles.searchInput}
-          placeholder="Rechercher..."
+          placeholder={t('common.search')}
           value={search}
           onChangeText={setSearch}
           placeholderTextColor={COLORS.slate}
@@ -214,7 +237,7 @@ export default function InventoryScreen({ navigation }: any) {
               className={isActive ? "glass-primary" : "glass-button"}
             >
               <Text style={[styles.categoryTabText, isActive && styles.categoryTabTextActive]}>
-                {cat} ({count})
+                {cat === 'Tout' ? t('common.all') : cat} ({count})
               </Text>
             </TouchableOpacity>
           )
@@ -230,10 +253,10 @@ export default function InventoryScreen({ navigation }: any) {
         columnWrapperStyle={styles.gridRow}
         style={{ flex: 1 }}
         contentContainerStyle={{ paddingHorizontal: GRID_PADDING, paddingBottom: 72 }}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadDrinks() }} />}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadDrinks(true) }} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>Aucune boisson trouvée</Text>
+            <Text style={styles.emptyText}>{t('inventory.noDrinksFound')}</Text>
           </View>
         }
       />
@@ -261,7 +284,7 @@ export default function InventoryScreen({ navigation }: any) {
         {selectedDrinkId && (
           <SlideIn style={styles.desktopRight} duration={250}>
             <View style={styles.editHeader}>
-              <Text style={styles.editHeaderTitle}>Modifier le stock</Text>
+              <Text style={styles.editHeaderTitle}>{t('inventory.editStock')}</Text>
               <TouchableOpacity
                 onPress={() => setSelectedDrinkId(null)}
                 style={styles.closeButton}
@@ -286,7 +309,7 @@ export default function InventoryScreen({ navigation }: any) {
         {showAddDrink && (
           <SlideIn style={styles.desktopRight} duration={250}>
             <View style={styles.editHeader}>
-              <Text style={styles.editHeaderTitle}>Ajouter une boisson</Text>
+              <Text style={styles.editHeaderTitle}>{t('inventory.addDrink')}</Text>
               <TouchableOpacity
                 onPress={() => setShowAddDrink(false)}
                 style={styles.closeButton}
@@ -322,7 +345,7 @@ export default function InventoryScreen({ navigation }: any) {
       <FloatingModal
         visible={showAddDrink}
         onClose={() => setShowAddDrink(false)}
-        title="Ajouter une boisson"
+        title={t('inventory.addDrink')}
       >
         <AddDrinkScreen
           route={{ params: { hideHeader: true } }}

@@ -15,6 +15,7 @@ import { PhoneInput } from '../components/PhoneInput'
 import { COLORS, FONT } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from '../i18n'
 
 interface SignUpScreenProps {
   navigation: any
@@ -40,13 +41,13 @@ function setStoredAuthMethod(method: AuthMethod) {
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function SignUpScreen({ navigation }: SignUpScreenProps) {
+  const { t } = useTranslation()
   const { signUp, signInWithPhone } = useAuth()
   const [authMethod, setAuthMethod] = useState<AuthMethod>(getStoredAuthMethod)
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -85,15 +86,14 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
   }
 
   const validate = (): string | null => {
-    if (!name.trim()) return 'Le nom est requis'
+    if (!name.trim()) return t('auth.nameRequired')
     if (authMethod === 'email') {
-      if (!email.trim()) return 'L\'email est requis'
-      if (!EMAIL_REGEX.test(email.trim())) return 'Adresse email invalide'
+      if (!email.trim()) return t('auth.emailRequired')
+      if (!EMAIL_REGEX.test(email.trim())) return t('auth.invalidEmail')
     } else {
-      if (phone.length < 9) return 'Numéro de téléphone invalide (9 chiffres)'
+      if (phone.length < 9) return t('auth.invalidPhone9')
     }
-    if (password.length < 6) return 'Le mot de passe doit contenir au moins 6 caractères'
-    if (password !== confirmPassword) return 'Les mots de passe ne correspondent pas'
+    if (password.length < 6) return t('auth.passwordMin6')
     return null
   }
 
@@ -127,13 +127,13 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
       const { error: signInError } = await signInWithPhone(phone, password)
       if (signInError) {
         setLoading(false)
-        setSuccessMessage('Compte créé ! Vous pouvez maintenant vous connecter.')
+        setSuccessMessage(t('auth.accountCreatedSignIn'))
       }
       // If signIn succeeds, AuthContext will update and navigate automatically
     } else {
       // Email accounts may need confirmation
       setLoading(false)
-      setSuccessMessage('Compte créé ! Vérifiez votre email pour confirmer votre compte.')
+      setSuccessMessage(t('auth.accountCreatedCheckEmail'))
     }
   }
 
@@ -170,8 +170,8 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
               <View style={styles.logoWrap}>
                 <Ionicons name="beer" size={28} color={COLORS.primary} />
               </View>
-              <Text style={styles.appName}>Créer un compte</Text>
-              <Text style={styles.tagline}>Rejoignez BarTrack aujourd'hui</Text>
+              <Text style={styles.appName}>{t('auth.signUpTitle')}</Text>
+              <Text style={styles.tagline}>{t('auth.signUpTagline')}</Text>
             </View>
 
             <View style={styles.divider} />
@@ -180,46 +180,47 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
             {successMessage ? (
               <View style={styles.successBox}>
                 <Ionicons name="checkmark-circle" size={40} color="#22C55E" style={{ marginBottom: 10 }} />
-                <Text style={styles.successTitle}>Inscription réussie !</Text>
+                <Text style={styles.successTitle}>{t('auth.signUpSuccess')}</Text>
                 <Text style={styles.successText}>{successMessage}</Text>
                 <TouchableOpacity
                   style={styles.successBtn}
                   onPress={() => navigation.navigate('SignIn')}
                 >
-                  <Text style={styles.successBtnText}>Se connecter</Text>
+                  <Text style={styles.successBtnText}>{t('auth.signIn')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
               <>
                 {/* Method toggle */}
-                <View style={styles.toggle}>
-                  <ToggleBtn label="Téléphone" icon="call" active={authMethod === 'phone'} onPress={() => switchMethod('phone')} />
-                  <ToggleBtn label="Email" icon="mail" active={authMethod === 'email'} onPress={() => switchMethod('email')} />
+                {/* @ts-ignore - web-only className */}
+                <View style={styles.toggle} className="glass-toggle">
+                  <ToggleBtn label={t('auth.phone')} icon="call" active={authMethod === 'phone'} onPress={() => switchMethod('phone')} />
+                  <ToggleBtn label={t('auth.email')} icon="mail" active={authMethod === 'email'} onPress={() => switchMethod('email')} />
                 </View>
 
                 <Input
-                  label="Nom complet"
+                  label={t('auth.nameLabel')}
                   value={name}
-                  onChangeText={t => { setName(t); setError(null) }}
-                  placeholder="Jean Dupont"
+                  onChangeText={v => { setName(v); setError(null) }}
+                  placeholder={t('auth.namePlaceholder')}
                   autoCapitalize="words"
                   editable={!loading}
                 />
 
                 {authMethod === 'phone' ? (
                   <PhoneInput
-                    label="Numéro de téléphone"
+                    label={t('auth.phoneLabel')}
                     value={phone}
-                    onChangeText={t => { setPhone(t); setError(null) }}
-                    placeholder="6 XX XX XX XX"
+                    onChangeText={v => { setPhone(v); setError(null) }}
+                    placeholder={t('auth.phonePlaceholder')}
                     editable={!loading}
                   />
                 ) : (
                   <Input
-                    label="Adresse email"
+                    label={t('auth.emailLabel')}
                     value={email}
-                    onChangeText={t => { setEmail(t); setError(null) }}
-                    placeholder="votre@email.com"
+                    onChangeText={v => { setEmail(v); setError(null) }}
+                    placeholder={t('auth.emailPlaceholder')}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     autoCorrect={false}
@@ -229,10 +230,10 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
 
                 <View style={styles.passwordWrap}>
                   <Input
-                    label="Mot de passe"
+                    label={t('auth.passwordLabel')}
                     value={password}
-                    onChangeText={t => { setPassword(t); setError(null) }}
-                    placeholder="Au moins 6 caractères"
+                    onChangeText={v => { setPassword(v); setError(null) }}
+                    placeholder={t('auth.passwordHint')}
                     secureTextEntry={!showPassword}
                     autoCapitalize="none"
                     editable={!loading}
@@ -245,16 +246,6 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
                     <Ionicons name={showPassword ? 'eye-off' : 'eye'} size={18} color={COLORS.slate} />
                   </TouchableOpacity>
                 </View>
-
-                <Input
-                  label="Confirmer le mot de passe"
-                  value={confirmPassword}
-                  onChangeText={t => { setConfirmPassword(t); setError(null) }}
-                  placeholder="Répétez votre mot de passe"
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  editable={!loading}
-                />
 
                 {/* Inline error */}
                 {error ? (
@@ -273,12 +264,12 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
                   {loading ? (
                     <LoadingDots />
                   ) : (
-                    <Text style={styles.submitText}>Créer mon compte</Text>
+                    <Text style={styles.submitText}>{t('auth.signUp')}</Text>
                   )}
                 </TouchableOpacity>
 
                 <Text style={styles.terms}>
-                  En créant un compte, vous acceptez nos conditions d'utilisation.
+                  {t('auth.terms')}
                 </Text>
               </>
             )}
@@ -286,9 +277,9 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
             {/* Footer */}
             {!successMessage && (
               <View style={styles.footer}>
-                <Text style={styles.footerText}>Déjà un compte ?</Text>
+                <Text style={styles.footerText}>{t('auth.alreadyAccount')}</Text>
                 <TouchableOpacity onPress={() => navigation.navigate('SignIn')} disabled={loading}>
-                  <Text style={styles.footerLink}> Se connecter</Text>
+                  <Text style={styles.footerLink}> {t('auth.signIn')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -310,6 +301,8 @@ function ToggleBtn({ label, icon, active, onPress }: {
       style={[styles.toggleBtn, active && styles.toggleBtnActive]}
       onPress={onPress}
       activeOpacity={0.8}
+      // @ts-ignore - web-only className
+      className={active ? 'glass-toggle-active' : ''}
     >
       <Ionicons name={icon} size={15} color={active ? COLORS.white : COLORS.slate} />
       <Text style={[styles.toggleText, active && styles.toggleTextActive]}>{label}</Text>

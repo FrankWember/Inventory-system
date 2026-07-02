@@ -15,6 +15,7 @@ import { PhoneInput } from '../components/PhoneInput'
 import { COLORS, FONT } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
 import { Ionicons } from '@expo/vector-icons'
+import { useTranslation } from '../i18n'
 
 interface SignInScreenProps {
   navigation: any
@@ -38,6 +39,7 @@ function setStoredAuthMethod(method: AuthMethod) {
 }
 
 export default function SignInScreen({ navigation }: SignInScreenProps) {
+  const { t } = useTranslation()
   const { signIn, signInWithPhone } = useAuth()
   const [authMethod, setAuthMethod] = useState<AuthMethod>(getStoredAuthMethod)
   const [email, setEmail] = useState('')
@@ -85,7 +87,7 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
 
     if (authMethod === 'email') {
       if (!email.trim() || !password.trim()) {
-        setError('Veuillez remplir tous les champs')
+        setError(t('auth.fillAllFields'))
         shakeError()
         return
       }
@@ -98,7 +100,7 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
       }
     } else {
       if (phone.length < 9 || !password.trim()) {
-        setError('Numéro invalide ou mot de passe manquant')
+        setError(t('auth.invalidPhoneOrPassword'))
         shakeError()
         return
       }
@@ -146,21 +148,22 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
                 <Ionicons name="beer" size={28} color={COLORS.primary} />
               </View>
               <Text style={styles.appName}>BarTrack</Text>
-              <Text style={styles.tagline}>Gestion de bar simplifiée</Text>
+              <Text style={styles.tagline}>{t('auth.tagline')}</Text>
             </View>
 
             <View style={styles.divider} />
 
             {/* Method toggle */}
-            <View style={styles.toggle}>
+            {/* @ts-ignore - web-only className */}
+            <View style={styles.toggle} className="glass-toggle">
               <ToggleBtn
-                label="Téléphone"
+                label={t('auth.phone')}
                 icon="call"
                 active={authMethod === 'phone'}
                 onPress={() => switchMethod('phone')}
               />
               <ToggleBtn
-                label="Email"
+                label={t('auth.email')}
                 icon="mail"
                 active={authMethod === 'email'}
                 onPress={() => switchMethod('email')}
@@ -170,18 +173,18 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
             {/* Fields */}
             {authMethod === 'phone' ? (
               <PhoneInput
-                label="Numéro de téléphone"
+                label={t('auth.phoneLabel')}
                 value={phone}
-                onChangeText={t => { setPhone(t); setError(null) }}
-                placeholder="6 XX XX XX XX"
+                onChangeText={v => { setPhone(v); setError(null) }}
+                placeholder={t('auth.phonePlaceholder')}
                 editable={!loading}
               />
             ) : (
               <Input
-                label="Adresse email"
+                label={t('auth.emailLabel')}
                 value={email}
-                onChangeText={t => { setEmail(t); setError(null) }}
-                placeholder="votre@email.com"
+                onChangeText={v => { setEmail(v); setError(null) }}
+                placeholder={t('auth.emailPlaceholder')}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -191,10 +194,10 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
 
             <View style={styles.passwordWrap}>
               <Input
-                label="Mot de passe"
+                label={t('auth.passwordLabel')}
                 value={password}
-                onChangeText={t => { setPassword(t); setError(null) }}
-                placeholder="••••••••"
+                onChangeText={v => { setPassword(v); setError(null) }}
+                placeholder={t('auth.passwordPlaceholder')}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 editable={!loading}
@@ -213,7 +216,7 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
               style={styles.forgotBtn}
               disabled={loading}
             >
-              <Text style={styles.forgotText}>Mot de passe oublié ?</Text>
+              <Text style={styles.forgotText}>{t('auth.forgotPassword')}</Text>
             </TouchableOpacity>
 
             {/* Inline error */}
@@ -236,15 +239,15 @@ export default function SignInScreen({ navigation }: SignInScreenProps) {
                   <LoadingDots />
                 </View>
               ) : (
-                <Text style={styles.submitText}>Se connecter</Text>
+                <Text style={styles.submitText}>{t('auth.signIn')}</Text>
               )}
             </TouchableOpacity>
 
             {/* Footer */}
             <View style={styles.footer}>
-              <Text style={styles.footerText}>Pas encore de compte ?</Text>
+              <Text style={styles.footerText}>{t('auth.noAccount')}</Text>
               <TouchableOpacity onPress={() => navigation.navigate('SignUp')} disabled={loading}>
-                <Text style={styles.footerLink}> Créer un compte</Text>
+                <Text style={styles.footerLink}> {t('auth.createAccount')}</Text>
               </TouchableOpacity>
             </View>
           </Animated.View>
@@ -265,6 +268,8 @@ function ToggleBtn({ label, icon, active, onPress }: {
       style={[styles.toggleBtn, active && styles.toggleBtnActive]}
       onPress={onPress}
       activeOpacity={0.8}
+      // @ts-ignore - web-only className
+      className={active ? 'glass-toggle-active' : ''}
     >
       <Ionicons name={icon} size={15} color={active ? COLORS.white : COLORS.slate} />
       <Text style={[styles.toggleText, active && styles.toggleTextActive]}>{label}</Text>

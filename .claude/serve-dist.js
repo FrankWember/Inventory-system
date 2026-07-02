@@ -4,7 +4,7 @@ const fs = require('fs')
 const path = require('path')
 
 const ROOT = path.join(__dirname, '..', 'dist')
-const PORT = 8088
+const PORT = process.env.PORT ? Number(process.env.PORT) : 8088
 const TYPES = {
   '.html': 'text/html', '.js': 'text/javascript', '.css': 'text/css',
   '.json': 'application/json', '.ttf': 'font/ttf', '.png': 'image/png',

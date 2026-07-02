@@ -2,6 +2,7 @@ import React from 'react'
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { PdfData, calculateSummary, getTopProducts, getCategoryBreakdown, getDailyTrends } from '../services/pdfService'
 import { fmt, fmtNum, dateLabelLong, fmtShortBare } from '../utils/helpers'
+import { t } from '../i18n'
 
 interface PdfDocumentProps {
   data: PdfData
@@ -188,70 +189,70 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
       <Page size="A4" style={styles.page}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={styles.title}>{barName} - Rapport d'activité</Text>
+          <Text style={styles.title}>{barName} - {t('misc.pdfReportTitle')}</Text>
           <Text style={styles.subtitle}>{periodLabel}</Text>
-          {userName && <Text style={styles.subtitle}>Préparé pour: {userName}</Text>}
-          <Text style={styles.subtitle}>Généré le {timestamp}</Text>
+          {userName && <Text style={styles.subtitle}>{t('misc.pdfPreparedFor', { name: userName })}</Text>}
+          <Text style={styles.subtitle}>{t('misc.pdfGeneratedOn', { timestamp })}</Text>
         </View>
 
         {/* Summary Section */}
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Résumé Financier</Text>
+          <Text style={styles.sectionTitle}>{t('misc.pdfFinancialSummary')}</Text>
 
           <View style={styles.row}>
-            <Text style={styles.label}>Nombre de sessions</Text>
+            <Text style={styles.label}>{t('misc.pdfSessionCount')}</Text>
             <Text style={styles.value}>{summary.sessionCount}</Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={styles.row}>
-            <Text style={styles.label}>Revenu des ventes</Text>
+            <Text style={styles.label}>{t('misc.pdfSalesRevenue')}</Text>
             <Text style={[styles.value, styles.primary]}>{fmt(summary.totalRevenue)}</Text>
           </View>
 
           <View style={styles.row}>
-            <Text style={styles.label}>Unités vendues</Text>
+            <Text style={styles.label}>{t('misc.pdfUnitsSold')}</Text>
             <Text style={styles.value}>{fmtNum(summary.totalUnitsSold)}</Text>
           </View>
 
           <View style={styles.row}>
-            <Text style={styles.label}>Coût des achats</Text>
+            <Text style={styles.label}>{t('misc.pdfPurchaseCost')}</Text>
             <Text style={[styles.value, styles.negative]}>-{fmt(summary.totalCost)}</Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={[styles.row, styles.rowHighlight]}>
-            <Text style={styles.label}>Marge brute</Text>
+            <Text style={styles.label}>{t('misc.pdfGrossMargin')}</Text>
             <Text style={[styles.value, summary.grossProfit >= 0 ? styles.positive : styles.negative]}>
               {fmt(summary.grossProfit)}
             </Text>
           </View>
 
           <View style={styles.row}>
-            <Text style={styles.label}>Marge brute (%)</Text>
+            <Text style={styles.label}>{t('misc.pdfGrossMarginPct')}</Text>
             <Text style={styles.value}>{summary.grossMarginPercent.toFixed(1)}%</Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={styles.row}>
-            <Text style={styles.label}>Dépenses opérationnelles</Text>
+            <Text style={styles.label}>{t('misc.pdfOperatingExpenses')}</Text>
             <Text style={[styles.value, styles.negative]}>-{fmt(summary.totalExpenses)}</Text>
           </View>
 
           <View style={styles.divider} />
 
           <View style={[styles.row, styles.rowHighlight]}>
-            <Text style={styles.label}>Résultat net</Text>
+            <Text style={styles.label}>{t('misc.pdfNetResult')}</Text>
             <Text style={[styles.valueLarge, summary.netProfit >= 0 ? styles.positive : styles.negative]}>
               {fmt(summary.netProfit)}
             </Text>
           </View>
 
           <View style={styles.row}>
-            <Text style={styles.label}>Marge nette (%)</Text>
+            <Text style={styles.label}>{t('misc.pdfNetMarginPct')}</Text>
             <Text style={styles.value}>{summary.netMarginPercent.toFixed(1)}%</Text>
           </View>
         </View>
@@ -259,7 +260,7 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
         {/* Top Selling Products Chart */}
         {topProducts.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Top 10 Produits par Revenu</Text>
+            <Text style={styles.sectionTitle}>{t('misc.pdfTopProducts')}</Text>
             <View style={styles.chartContainer}>
               {topProducts.map((product, index) => {
                 const barWidthPercent = maxRevenue > 0 ? (product.revenue / maxRevenue) * 65 : 0
@@ -275,7 +276,7 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
             </View>
             <View style={styles.insightBox}>
               <Text style={styles.insightText}>
-                {topProducts.length > 0 && `Produit le plus vendu: ${topProducts[0].name} avec ${fmt(topProducts[0].revenue)} de revenu (${fmtNum(topProducts[0].sold)} unités vendues)`}
+                {topProducts.length > 0 && t('misc.pdfTopProductInsight', { name: topProducts[0].name, revenue: fmt(topProducts[0].revenue), units: fmtNum(topProducts[0].sold) })}
               </Text>
             </View>
           </View>
@@ -284,7 +285,7 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
         {/* Category Breakdown Chart */}
         {categories.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Répartition par Catégorie</Text>
+            <Text style={styles.sectionTitle}>{t('misc.pdfCategoryBreakdown')}</Text>
             <View style={styles.chartContainer}>
               {categories.map((category, index) => {
                 const barWidthPercent = maxCategoryRevenue > 0 ? (category.revenue / maxCategoryRevenue) * 65 : 0
@@ -300,7 +301,7 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
             </View>
             <View style={styles.insightBox}>
               <Text style={styles.insightText}>
-                {categories.length > 0 && `Catégorie dominante: ${categories[0].name} représente ${fmt(categories[0].revenue)} de revenu (${fmtNum(categories[0].sold)} unités)`}
+                {categories.length > 0 && t('misc.pdfCategoryInsight', { name: categories[0].name, revenue: fmt(categories[0].revenue), units: fmtNum(categories[0].sold) })}
               </Text>
             </View>
           </View>
@@ -309,27 +310,27 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
         {/* Key Insights */}
         {summary.sessionCount > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Analyses et Insights</Text>
+            <Text style={styles.sectionTitle}>{t('misc.pdfInsightsTitle')}</Text>
 
             <View style={styles.insightBox}>
               <Text style={styles.insightText}>
-                Revenu moyen par session: {fmt(summary.totalRevenue / summary.sessionCount)}
+                {t('misc.pdfAvgRevenuePerSession', { value: fmt(summary.totalRevenue / summary.sessionCount) })}
               </Text>
             </View>
 
             <View style={styles.insightBox}>
               <Text style={styles.insightText}>
-                Marge bénéficiaire: Marge brute de {summary.grossMarginPercent.toFixed(1)}% et marge nette de {summary.netMarginPercent.toFixed(1)}%.
-                {summary.netMarginPercent < 20 && ' Considérez optimiser vos coûts opérationnels.'}
-                {summary.netMarginPercent >= 20 && summary.netMarginPercent < 30 && ' Performance satisfaisante.'}
-                {summary.netMarginPercent >= 30 && ' Excellente rentabilité.'}
+                {t('misc.pdfMarginInsight', { gross: summary.grossMarginPercent.toFixed(1), net: summary.netMarginPercent.toFixed(1) })}
+                {summary.netMarginPercent < 20 && ' ' + t('misc.pdfMarginLow')}
+                {summary.netMarginPercent >= 20 && summary.netMarginPercent < 30 && ' ' + t('misc.pdfMarginOk')}
+                {summary.netMarginPercent >= 30 && ' ' + t('misc.pdfMarginGreat')}
               </Text>
             </View>
 
             {summary.totalUnitsSold > 0 && (
               <View style={styles.insightBox}>
                 <Text style={styles.insightText}>
-                  Volume de vente: {fmtNum(summary.totalUnitsSold)} unités vendues pour un prix moyen de {fmt(summary.totalRevenue / summary.totalUnitsSold)} par unité.
+                  {t('misc.pdfVolumeInsight', { units: fmtNum(summary.totalUnitsSold), avg: fmt(summary.totalRevenue / summary.totalUnitsSold) })}
                 </Text>
               </View>
             )}
@@ -337,7 +338,7 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
             {data.expenses.length > 0 && (
               <View style={styles.insightBox}>
                 <Text style={styles.insightText}>
-                  Dépenses: {data.expenses.length} dépense(s) pour un total de {fmt(summary.totalExpenses)} ({((summary.totalExpenses / summary.totalRevenue) * 100).toFixed(1)}% du revenu).
+                  {t('misc.pdfExpensesInsight', { count: data.expenses.length, total: fmt(summary.totalExpenses), percent: ((summary.totalExpenses / summary.totalRevenue) * 100).toFixed(1) })}
                 </Text>
               </View>
             )}
@@ -347,14 +348,14 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
         {/* Sessions Table */}
         {data.sessions.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Détail des sessions ({data.sessions.length})</Text>
+            <Text style={styles.sectionTitle}>{t('misc.pdfSessionsDetail', { count: data.sessions.length })}</Text>
 
             <View style={styles.table}>
               <View style={styles.tableHeader}>
-                <Text style={[styles.th, styles.col1]}>Date</Text>
-                <Text style={[styles.th, styles.col2]}>Revenu</Text>
-                <Text style={[styles.th, styles.col3]}>Coût</Text>
-                <Text style={[styles.th, styles.col4]}>Profit</Text>
+                <Text style={[styles.th, styles.col1]}>{t('misc.pdfColDate')}</Text>
+                <Text style={[styles.th, styles.col2]}>{t('misc.pdfColRevenue')}</Text>
+                <Text style={[styles.th, styles.col3]}>{t('misc.pdfColCost')}</Text>
+                <Text style={[styles.th, styles.col4]}>{t('misc.pdfColProfit')}</Text>
               </View>
 
               {data.sessions.map((session, index) => (
@@ -374,14 +375,14 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
         {/* Detailed Products Table */}
         {topProducts.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Détail des Produits Vendus</Text>
+            <Text style={styles.sectionTitle}>{t('misc.pdfProductsDetail')}</Text>
 
             <View style={styles.table}>
               <View style={styles.tableHeader}>
-                <Text style={[styles.th, { width: '40%' }]}>Produit</Text>
-                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>Qté</Text>
-                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>Revenu</Text>
-                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>Prix moy.</Text>
+                <Text style={[styles.th, { width: '40%' }]}>{t('misc.pdfColProduct')}</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>{t('misc.pdfColQty')}</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>{t('misc.pdfColRevenue')}</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>{t('misc.pdfColAvgPrice')}</Text>
               </View>
 
               {topProducts.map((product, index) => {
@@ -400,7 +401,7 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
             {topProducts.length > 0 && (
               <View style={styles.insightBox}>
                 <Text style={styles.insightText}>
-                  Les {topProducts.length} produits ci-dessus représentent {fmt(topProducts.reduce((sum, p) => sum + p.revenue, 0))} de revenu total
+                  {t('misc.pdfTopProductsTotal', { count: topProducts.length, total: fmt(topProducts.reduce((sum, p) => sum + p.revenue, 0)) })}
                 </Text>
               </View>
             )}
@@ -410,14 +411,14 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
         {/* Category Performance Breakdown */}
         {categories.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Performance par Catégorie</Text>
+            <Text style={styles.sectionTitle}>{t('misc.pdfCategoryPerformance')}</Text>
 
             <View style={styles.table}>
               <View style={styles.tableHeader}>
-                <Text style={[styles.th, { width: '35%' }]}>Catégorie</Text>
-                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>Unités</Text>
-                <Text style={[styles.th, { width: '25%', textAlign: 'right' }]}>Revenu</Text>
-                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>% Total</Text>
+                <Text style={[styles.th, { width: '35%' }]}>{t('misc.pdfColCategory')}</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>{t('misc.pdfColUnits')}</Text>
+                <Text style={[styles.th, { width: '25%', textAlign: 'right' }]}>{t('misc.pdfColRevenue')}</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>{t('misc.pdfColPctTotal')}</Text>
               </View>
 
               {categories.map((category, index) => {
@@ -438,7 +439,7 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
         {/* Session Performance Analysis */}
         {data.sessions.length > 1 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Analyse des Sessions</Text>
+            <Text style={styles.sectionTitle}>{t('misc.pdfSessionAnalysis')}</Text>
 
             {(() => {
               const sortedByRevenue = [...data.sessions].sort((a, b) => b.total_revenue - a.total_revenue)
@@ -451,27 +452,27 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
                 <>
                   <View style={styles.insightBox}>
                     <Text style={styles.insightText}>
-                      Meilleure session (revenu): {dateLabelLong(bestSession.date)} - {fmt(bestSession.total_revenue)}
+                      {t('misc.pdfBestSession', { date: dateLabelLong(bestSession.date), revenue: fmt(bestSession.total_revenue) })}
                     </Text>
                   </View>
 
                   <View style={styles.insightBox}>
                     <Text style={styles.insightText}>
-                      Session la plus rentable: {dateLabelLong(mostProfitable.date)} - Profit de {fmt(mostProfitable.total_profit)} (Marge: {mostProfitable.total_revenue > 0 ? ((mostProfitable.total_profit / mostProfitable.total_revenue) * 100).toFixed(1) : 0}%)
+                      {t('misc.pdfMostProfitable', { date: dateLabelLong(mostProfitable.date), profit: fmt(mostProfitable.total_profit), margin: mostProfitable.total_revenue > 0 ? ((mostProfitable.total_profit / mostProfitable.total_revenue) * 100).toFixed(1) : 0 })}
                     </Text>
                   </View>
 
                   {bestSession.id !== worstSession.id && (
                     <View style={styles.insightBox}>
                       <Text style={styles.insightText}>
-                        Session la plus faible: {dateLabelLong(worstSession.date)} - {fmt(worstSession.total_revenue)}
+                        {t('misc.pdfWeakestSession', { date: dateLabelLong(worstSession.date), revenue: fmt(worstSession.total_revenue) })}
                       </Text>
                     </View>
                   )}
 
                   <View style={styles.insightBox}>
                     <Text style={styles.insightText}>
-                      Écart de performance: Les sessions varient de {fmt(worstSession.total_revenue)} à {fmt(bestSession.total_revenue)} ({bestSession.total_revenue > 0 && worstSession.total_revenue > 0 ? ((bestSession.total_revenue / worstSession.total_revenue).toFixed(1)) : 'N/A'}x).
+                      {t('misc.pdfPerformanceGap', { min: fmt(worstSession.total_revenue), max: fmt(bestSession.total_revenue), ratio: bestSession.total_revenue > 0 && worstSession.total_revenue > 0 ? ((bestSession.total_revenue / worstSession.total_revenue).toFixed(1)) : 'N/A' })}
                     </Text>
                   </View>
                 </>
@@ -483,14 +484,14 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
         {/* Expenses Table */}
         {data.expenses.length > 0 && (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Dépenses ({data.expenses.length})</Text>
+            <Text style={styles.sectionTitle}>{t('misc.pdfExpensesTitle', { count: data.expenses.length })}</Text>
 
             <View style={styles.table}>
               <View style={styles.tableHeader}>
-                <Text style={[styles.th, styles.col1]}>Description</Text>
-                <Text style={[styles.th, styles.col2]}>Catégorie</Text>
-                <Text style={[styles.th, styles.col3]}>Date</Text>
-                <Text style={[styles.th, styles.col4]}>Montant</Text>
+                <Text style={[styles.th, styles.col1]}>{t('misc.pdfColDescription')}</Text>
+                <Text style={[styles.th, styles.col2]}>{t('misc.pdfColCategory')}</Text>
+                <Text style={[styles.th, styles.col3]}>{t('misc.pdfColDate')}</Text>
+                <Text style={[styles.th, styles.col4]}>{t('misc.pdfColAmount')}</Text>
               </View>
 
               {data.expenses.map((expense, index) => (
@@ -507,8 +508,8 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
 
         {/* Footer */}
         <View style={styles.footer} fixed>
-          <Text>Document généré par {barName}</Text>
-          <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} / ${totalPages}`} />
+          <Text>{t('misc.pdfFooterGeneratedBy', { name: barName })}</Text>
+          <Text render={({ pageNumber, totalPages }) => t('misc.pdfPageOf', { page: pageNumber, total: totalPages })} />
         </View>
       </Page>
     </Document>
@@ -518,16 +519,16 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
 function getPeriodLabel(periodType: string, startDate: string, endDate: string): string {
   switch (periodType) {
     case 'day':
-      return `Journée du ${dateLabelLong(startDate)}`
+      return t('misc.pdfPeriodDay', { date: dateLabelLong(startDate) })
     case '7days':
-      return `7 derniers jours (${startDate} - ${endDate})`
+      return t('misc.pdfPeriod7days', { start: startDate, end: endDate })
     case '30days':
-      return `30 derniers jours (${startDate} - ${endDate})`
+      return t('misc.pdfPeriod30days', { start: startDate, end: endDate })
     case 'all':
-      return `Toutes les périodes (depuis ${startDate})`
+      return t('misc.pdfPeriodAll', { start: startDate })
     case 'session':
-      return `Session du ${dateLabelLong(startDate)}`
+      return t('misc.pdfPeriodSession', { date: dateLabelLong(startDate) })
     default:
-      return `Période: ${startDate} - ${endDate}`
+      return t('misc.pdfPeriodDefault', { start: startDate, end: endDate })
   }
 }

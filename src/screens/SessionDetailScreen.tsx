@@ -19,6 +19,7 @@ import { SessionExpensesPanel } from '../components/SessionExpensesPanel'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { LoadingModal } from '../components/LoadingModal'
 import { useSettings } from '../contexts/SettingsContext'
+import { useTranslation } from '../i18n'
 import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers, formatWithCassiersShort, today } from '../utils/helpers'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SessionDetail'>
@@ -50,6 +51,7 @@ function usePrintStyles() {
 export default function SessionDetailScreen({ route, navigation }: Props) {
   const { sessionId } = route.params
   const { barInfo } = useSettings()
+  const { t } = useTranslation()
   const [session, setSession] = useState<Session | null>(null)
   const [expenses, setExpenses] = useState<Expense[]>([])
   const [loading, setLoading] = useState(true)
@@ -116,7 +118,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
     return (
       <View style={s.loadingWrap}>
         <ActivityIndicator size="large" color={COLORS.primary} />
-        <Text style={s.loadingText}>Chargement du journal…</Text>
+        <Text style={s.loadingText}>{t('settings.loadingJournal')}</Text>
       </View>
     )
   }
@@ -125,7 +127,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
     return (
       <View style={s.loadingWrap}>
         <Ionicons name="alert-circle-outline" size={40} color={COLORS.slate} />
-        <Text style={s.loadingText}>Session introuvable</Text>
+        <Text style={s.loadingText}>{t('settings.sessionNotFound')}</Text>
       </View>
     )
   }
@@ -145,11 +147,11 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
     <Animated.View style={[s.container, { opacity: fadeAnim }]}>
       <LoadingModal
         visible={printLoading}
-        message="Préparation de l'impression..."
+        message={t('settings.printPreparing')}
       />
 
       <ScreenHeader
-        title="Journal de caisse"
+        title={t('settings.journalTitle')}
         subtitle={dateLabelLong(session.date)}
         onBack={() => navigation.goBack()}
         style={s.header}
@@ -157,7 +159,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
           Platform.OS === 'web' ? (
             <TouchableOpacity onPress={handlePrint} style={s.printBtn}>
               <Ionicons name="print-outline" size={18} color={COLORS.white} />
-              <Text style={s.printBtnText}>Imprimer</Text>
+              <Text style={s.printBtnText}>{t('settings.print')}</Text>
             </TouchableOpacity>
           ) : undefined
         }
@@ -172,7 +174,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
         {Platform.OS === 'web' && (
           // @ts-ignore – className is valid on web
           <View style={s.printHeader} className="print-only">
-            <Text style={s.printTitle}>{barInfo?.name || 'BarTrack'} — Journal de caisse</Text>
+            <Text style={s.printTitle}>{t('settings.printHeader', { barName: barInfo?.name || 'BarTrack' })}</Text>
             <Text style={s.printDate}>{dateLabelLong(session.date)}</Text>
             <View style={s.printDivider} />
           </View>
@@ -187,26 +189,26 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
             color={session.closed ? COLORS.emerald : COLORS.amber}
           />
           <Text style={[s.statusText, { color: session.closed ? COLORS.emerald : COLORS.amber }]}>
-            {session.closed ? 'Journée clôturée' : 'Session en cours'}
+            {session.closed ? t('settings.dayClosed') : t('settings.sessionOpen')}
           </Text>
         </View>
 
         {/* ── P&L Summary ── */}
-        <Section title="Compte de résultat" icon="bar-chart-outline">
-          <JRow label="Revenu des ventes" value={fmt(session.total_revenue)} accent={COLORS.primary} />
-          <JRow label={`Unités vendues`} value={fmtNum(totalUnits)} muted />
-          <JRow label="Coût des achats" value={`-${fmt(session.total_cost)}`} accent={COLORS.rose} />
+        <Section title={t('settings.plTitle')} icon="bar-chart-outline">
+          <JRow label={t('settings.salesRevenue')} value={fmt(session.total_revenue)} accent={COLORS.primary} />
+          <JRow label={t('settings.unitsSold')} value={fmtNum(totalUnits)} muted />
+          <JRow label={t('settings.purchasesCost')} value={`-${fmt(session.total_cost)}`} accent={COLORS.rose} />
           <Divider />
           <JRow
-            label="Marge brute"
+            label={t('settings.grossMargin')}
             value={fmt(grossProfit)}
             accent={grossProfit >= 0 ? COLORS.primary : COLORS.rose}
             highlight
           />
-          <JRow label="Dépenses opérationnelles" value={`-${fmt(totalExpenses)}`} accent={COLORS.rose} />
+          <JRow label={t('settings.operatingExpenses')} value={`-${fmt(totalExpenses)}`} accent={COLORS.rose} />
           <Divider />
           <JRow
-            label="Résultat net"
+            label={t('settings.netResult')}
             value={fmt(netProfit)}
             accent={netProfit >= 0 ? COLORS.emerald : COLORS.rose}
             bold
@@ -214,9 +216,9 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
         </Section>
 
         {/* ── Comprehensive stock movement table ── */}
-        <Section title="Mouvements de stock" icon="swap-vertical-outline" count={activeLines.length}>
+        <Section title={t('settings.stockMovements')} icon="swap-vertical-outline" count={activeLines.length}>
           {activeLines.length === 0 ? (
-            <EmptySection label="Aucun mouvement de stock" />
+            <EmptySection label={t('settings.noStockMovement')} />
           ) : (
             <ScrollView
               horizontal
@@ -226,13 +228,13 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
               <View style={s.stockTable}>
                 {/* header */}
                 <View style={s.stockHead}>
-                  <Text style={[s.sth, s.sthArticle]}>Article</Text>
-                  <Text style={[s.sth, s.sthNum]}>Début</Text>
-                  <Text style={[s.sth, s.sthNum]}>+Reçu</Text>
-                  <Text style={[s.sth, s.sthNum]}>Dispo</Text>
-                  <Text style={[s.sth, s.sthNum]}>Compté</Text>
-                  <Text style={[s.sth, s.sthNum, { color: COLORS.primary }]}>Vendus</Text>
-                  <Text style={[s.sth, s.sthMoney]}>Revenu</Text>
+                  <Text style={[s.sth, s.sthArticle]}>{t('settings.colArticle')}</Text>
+                  <Text style={[s.sth, s.sthNum]}>{t('settings.colStart')}</Text>
+                  <Text style={[s.sth, s.sthNum]}>{t('settings.colReceived')}</Text>
+                  <Text style={[s.sth, s.sthNum]}>{t('settings.colAvailable')}</Text>
+                  <Text style={[s.sth, s.sthNum]}>{t('settings.colCounted')}</Text>
+                  <Text style={[s.sth, s.sthNum, { color: COLORS.primary }]}>{t('settings.colSold')}</Text>
+                  <Text style={[s.sth, s.sthMoney]}>{t('settings.colRevenue')}</Text>
                 </View>
 
                 {activeLines.map((line, i) => {
@@ -260,7 +262,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
 
                 {/* totals row */}
                 <View style={s.stockTotalRow}>
-                  <Text style={[s.stTotal, s.stdArticle]}>TOTAL</Text>
+                  <Text style={[s.stTotal, s.stdArticle]}>{t('settings.total')}</Text>
                   <Text style={[s.stTotal, s.stdNum]}>—</Text>
                   <Text style={[s.stTotal, s.stdNum, s.stdPos]}>
                     {totalPurchased > 0 ? `+${fmtNum(totalPurchased)}` : '—'}
@@ -277,11 +279,11 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
 
         {/* ── Purchases detail ── */}
         {purchaseLines.length > 0 && (
-          <Section title="Réceptions / Achats" icon="cube-outline" count={purchaseLines.length}>
+          <Section title={t('settings.receiptsPurchases')} icon="cube-outline" count={purchaseLines.length}>
             <View style={s.simpleTableWrapper}>
               <View style={st.table}>
                 <View style={st.head}>
-                  {['Article', 'Quantité', 'Coût'].map((h, i) => (
+                  {[t('settings.colArticle'), t('settings.colQuantity'), t('settings.colCost')].map((h, i) => (
                     <Text key={i} style={[st.th, i === 0 ? st.thFirst : st.thRight]}>{h}</Text>
                   ))}
                 </View>
@@ -299,13 +301,13 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
 
         {/* ── Sales detail ── */}
         {saleLines.length > 0 && (
-          <Section title="Détail des ventes" icon="trending-up-outline" count={saleLines.length}>
+          <Section title={t('settings.salesDetail')} icon="trending-up-outline" count={saleLines.length}>
             <View style={s.simpleTableWrapper}>
               <View style={s.salesTable}>
                 <View style={s.salesHead}>
-                  <Text style={[s.sth, s.sthSalesArticle]}>Article</Text>
-                  <Text style={[s.sth, s.sthNum]}>Vendu</Text>
-                  <Text style={[s.sth, s.sthMoney]}>Revenu</Text>
+                  <Text style={[s.sth, s.sthSalesArticle]}>{t('settings.colArticle')}</Text>
+                  <Text style={[s.sth, s.sthNum]}>{t('settings.colSold')}</Text>
+                  <Text style={[s.sth, s.sthMoney]}>{t('settings.colRevenue')}</Text>
                 </View>
                 {saleLines.map((line, i) => {
                   const cat = drinksCategoryMap[line.drink_id] ?? 'Autre'
@@ -325,7 +327,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
                   )
                 })}
                 <View style={s.stockTotalRow}>
-                  <Text style={[s.stTotal, s.stdSalesArticle]}>TOTAL</Text>
+                  <Text style={[s.stTotal, s.stdSalesArticle]}>{t('settings.total')}</Text>
                   <Text style={[s.stTotal, s.stdNum, s.stdAccent]}>{fmtNum(totalUnits)}</Text>
                   <Text style={[s.stTotal, s.stdMoney, { color: COLORS.primary }]}>{fmt(session.total_revenue)}</Text>
                 </View>
@@ -335,7 +337,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
         )}
 
         {/* ── Expenses ── */}
-        <Section title="Dépenses du jour" icon="receipt-outline">
+        <Section title={t('settings.dayExpenses')} icon="receipt-outline">
           <SessionExpensesPanel
             date={session.date}
             expenses={expenses}

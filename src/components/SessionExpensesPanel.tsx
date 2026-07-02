@@ -11,6 +11,7 @@ import { supabase } from '../lib/supabase'
 import { showAlert } from '../utils/appAlert'
 import { Expense, ExpenseCategory } from '../types'
 import { COLORS, fmt } from '../utils/helpers'
+import { useTranslation } from '../i18n'
 
 const CATEGORIES: ExpenseCategory[] = [
   'Approvisionnement', 'Salaires', 'Loyer', 'Électricité/Eau', 'Réparations', 'Transport', 'Autre',
@@ -23,7 +24,28 @@ interface SessionExpensesPanelProps {
   readOnly?: boolean
 }
 
+/**
+ * A session closed earlier snapshots net profit into sessions.total_profit.
+ * When expenses for that date change afterwards, resync the snapshot so the
+ * Dashboard/Trends (which read total_profit) agree with the journal (which
+ * recomputes from live expenses).
+ */
+async function syncClosedSessionProfit(date: string): Promise<void> {
+  const [sessionsRes, expensesRes] = await Promise.all([
+    supabase.from('sessions').select('id, total_revenue, total_cost, closed').eq('date', date).eq('closed', true),
+    supabase.from('expenses').select('amount').eq('date', date),
+  ])
+  if (sessionsRes.error || expensesRes.error) return
+  const session = sessionsRes.data?.[0]
+  if (!session) return
+
+  const totalExpenses = (expensesRes.data ?? []).reduce((s, e) => s + (e.amount || 0), 0)
+  const netProfit = (session.total_revenue || 0) - (session.total_cost || 0) - totalExpenses
+  await supabase.from('sessions').update({ total_profit: netProfit }).eq('id', session.id)
+}
+
 export function SessionExpensesPanel({ date, expenses, onChange, readOnly = false }: SessionExpensesPanelProps) {
+  const { t } = useTranslation()
   const [showForm, setShowForm] = useState(false)
   const [description, setDescription] = useState('')
   const [amount, setAmount] = useState('')
@@ -35,7 +57,7 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
   const addExpense = async () => {
     const amt = parseInt(amount, 10)
     if (!description.trim() || !amt || amt <= 0) {
-      showAlert('Erreur', 'Description et montant requis')
+      showAlert(t('common.error'), t('misc.expenseRequired'))
       return
     }
     setSaving(true)
@@ -51,26 +73,28 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
       setAmount('')
       setCategory('Autre')
       setShowForm(false)
+      await syncClosedSessionProfit(date)
       onChange()
     } catch (e) {
-      showAlert('Erreur', 'Impossible d\'ajouter la dépense')
+      showAlert(t('common.error'), t('misc.expenseAddError'))
     } finally {
       setSaving(false)
     }
   }
 
   const deleteExpense = async (id: string) => {
-    showAlert('Supprimer', 'Retirer cette dépense ?', [
-      { text: 'Annuler', style: 'cancel' },
+    showAlert(t('common.delete'), t('misc.expenseDeleteConfirm'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Supprimer',
+        text: t('common.delete'),
         style: 'destructive',
         onPress: async () => {
           const { error } = await supabase.from('expenses').delete().eq('id', id)
           if (error) {
-            showAlert('Erreur', 'Impossible de supprimer la dépense')
+            showAlert(t('common.error'), t('misc.expenseDeleteError'))
             return
           }
+          await syncClosedSessionProfit(date)
           onChange()
         },
       },
@@ -80,7 +104,7 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.title}>Dépenses du jour</Text>
+        <Text style={styles.title}>{t('misc.expensesTitle')}</Text>
         <Text style={styles.total}>{fmt(total)}</Text>
       </View>
 
@@ -103,7 +127,7 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
       ))}
 
       {expenses.length === 0 && (
-        <Text style={styles.empty}>Aucune dépense enregistrée</Text>
+        <Text style={styles.empty}>{t('misc.expensesEmpty')}</Text>
       )}
 
       {!readOnly && (
@@ -112,14 +136,14 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
             <View style={styles.form}>
               <TextInput
                 style={styles.input}
-                placeholder="Description (ex: Transport livraison)"
+                placeholder={t('misc.expenseDescPlaceholder')}
                 value={description}
                 onChangeText={setDescription}
                 placeholderTextColor={COLORS.slate}
               />
               <TextInput
                 style={styles.input}
-                placeholder="Montant FCFA"
+                placeholder={t('misc.expenseAmountPlaceholder')}
                 value={amount}
                 onChangeText={setAmount}
                 keyboardType="number-pad"
@@ -128,21 +152,21 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
               <ScrollCategories category={category} onSelect={setCategory} />
               <View style={styles.formActions}>
                 <TouchableOpacity onPress={() => setShowForm(false)} style={styles.cancelBtn}>
-                  <Text style={styles.cancelText}>Annuler</Text>
+                  <Text style={styles.cancelText}>{t('common.cancel')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   onPress={addExpense}
                   style={[styles.saveBtn, saving && { opacity: 0.6 }]}
                   disabled={saving}
                 >
-                  <Text style={styles.saveText}>Ajouter</Text>
+                  <Text style={styles.saveText}>{t('misc.add')}</Text>
                 </TouchableOpacity>
               </View>
             </View>
           ) : (
             <TouchableOpacity style={styles.addBtn} onPress={() => setShowForm(true)}>
               <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-              <Text style={styles.addText}>Ajouter une dépense</Text>
+              <Text style={styles.addText}>{t('misc.addExpense')}</Text>
             </TouchableOpacity>
           )}
         </>

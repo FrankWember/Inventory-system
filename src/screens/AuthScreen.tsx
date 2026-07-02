@@ -17,6 +17,7 @@ import { PhoneInput } from '../components/PhoneInput'
 import { Button } from '../components/Button'
 import { COLORS, FONT } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from '../i18n'
 import { Ionicons } from '@expo/vector-icons'
 
 interface AuthScreenProps {
@@ -28,6 +29,7 @@ type AuthMethod = 'email' | 'phone'
 type AuthMode = 'signin' | 'signup'
 
 export default function AuthScreen({ navigation, route }: AuthScreenProps) {
+  const { t } = useTranslation()
   const { signIn, signInWithPhone, signUp } = useAuth()
 
   // Determine initial mode based on route or default to signin
@@ -39,7 +41,6 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
   const [password, setPassword] = useState('')
-  const [confirmPassword, setConfirmPassword] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
 
@@ -80,7 +81,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const handleSignIn = async () => {
     if (authMethod === 'email') {
       if (!email.trim() || !password.trim()) {
-        Alert.alert('Erreur', 'Veuillez remplir tous les champs')
+        Alert.alert(t('common.error'), t('auth.fillAllFields'))
         return
       }
 
@@ -90,16 +91,16 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
       if (error) {
         const title = error.type === 'email_not_confirmed'
-          ? 'Email non confirmé'
+          ? t('auth.emailNotConfirmed')
           : error.type === 'user_not_found'
-          ? 'Compte introuvable'
-          : 'Erreur de connexion'
+          ? t('auth.accountNotFound')
+          : t('auth.signInError')
 
         Alert.alert(title, error.message)
       }
     } else {
       if (phone.length !== 9 || !password.trim()) {
-        Alert.alert('Erreur', 'Veuillez entrer un numéro valide et un mot de passe')
+        Alert.alert(t('common.error'), t('auth.enterValidPhoneAndPassword'))
         return
       }
 
@@ -109,8 +110,8 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
       if (error) {
         const title = error.type === 'user_not_found'
-          ? 'Compte introuvable'
-          : 'Erreur de connexion'
+          ? t('auth.accountNotFound')
+          : t('auth.signInError')
 
         Alert.alert(title, error.message)
       }
@@ -118,36 +119,31 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   }
 
   const handleSignUp = async () => {
-    if (!name.trim() || !password.trim() || !confirmPassword.trim()) {
-      Alert.alert('Erreur', 'Veuillez remplir tous les champs')
+    if (!name.trim() || !password.trim()) {
+      Alert.alert(t('common.error'), t('auth.fillAllFields'))
       return
     }
 
     if (authMethod === 'email') {
       if (!email.trim()) {
-        Alert.alert('Erreur', 'Veuillez entrer votre email')
+        Alert.alert(t('common.error'), t('auth.enterYourEmail'))
         return
       }
       if (!validateEmail(email.trim())) {
-        Alert.alert('Erreur', 'Veuillez entrer une adresse email valide')
+        Alert.alert(t('common.error'), t('auth.enterValidEmail'))
         return
       }
     }
 
     if (authMethod === 'phone') {
       if (phone.length !== 9) {
-        Alert.alert('Erreur', 'Veuillez entrer un numéro de téléphone valide (9 chiffres)')
+        Alert.alert(t('common.error'), t('auth.enterValidPhone9'))
         return
       }
     }
 
     if (password.length < 6) {
-      Alert.alert('Erreur', 'Le mot de passe doit contenir au moins 6 caractères')
-      return
-    }
-
-    if (password !== confirmPassword) {
-      Alert.alert('Erreur', 'Les mots de passe ne correspondent pas')
+      Alert.alert(t('common.error'), t('auth.passwordMin6'))
       return
     }
 
@@ -158,32 +154,40 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
       name.trim(),
       authMethod === 'phone' ? phone : undefined
     )
-    setLoading(false)
 
     if (error) {
+      setLoading(false)
       const title = error.type === 'email_exists' || error.type === 'phone_exists'
-        ? 'Compte existant'
+        ? t('auth.accountExists')
         : error.type === 'weak_password'
-        ? 'Mot de passe faible'
+        ? t('auth.weakPassword')
         : error.type === 'network_error'
-        ? 'Erreur réseau'
-        : "Erreur d'inscription"
+        ? t('auth.networkError')
+        : t('auth.signUpError')
 
       Alert.alert(title, error.message)
-    } else {
-      Alert.alert(
-        '✅ Inscription réussie !',
-        authMethod === 'email'
-          ? 'Vérifiez votre email pour confirmer votre compte, puis connectez-vous.'
-          : 'Votre compte a été créé avec succès ! Vous pouvez maintenant vous connecter.',
-        [
-          {
-            text: 'Se connecter',
-            onPress: () => toggleMode('signin'),
-          },
-        ]
-      )
+      return
     }
+
+    // Phone accounts sign in immediately — no email to confirm, no extra step.
+    if (authMethod === 'phone') {
+      const { error: signInError } = await signInWithPhone(phone, password)
+      setLoading(false)
+      if (signInError) {
+        Alert.alert(t('auth.signUpSuccessEmoji'), t('auth.accountCreatedNowSignIn'), [
+          { text: 'Se connecter', onPress: () => toggleMode('signin') },
+        ])
+      }
+      // On success AuthContext updates and the app navigates automatically.
+      return
+    }
+
+    setLoading(false)
+    Alert.alert(
+      t('auth.signUpSuccessEmoji'),
+      t('auth.checkEmailThenSignIn'),
+      [{ text: 'Se connecter', onPress: () => toggleMode('signin') }]
+    )
   }
 
   const handleForgotPassword = () => {
@@ -242,12 +246,12 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
                 <Ionicons name="beer" size={48} color={COLORS.primary} />
               </View>
               <Text style={styles.title}>
-                {mode === 'signin' ? 'BarTrack' : 'Créer un compte'}
+                {mode === 'signin' ? 'BarTrack' : t('auth.signUpTitle')}
               </Text>
               <Text style={styles.subtitle}>
                 {mode === 'signin'
-                  ? 'Connectez-vous à votre compte'
-                  : "Rejoignez BarTrack aujourd'hui"}
+                  ? t('auth.signInSubtitle')
+                  : t('auth.signUpTagline')}
               </Text>
             </View>
 
@@ -312,7 +316,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
               {authMethod === 'phone' ? (
                 <PhoneInput
-                  label="Numéro de téléphone"
+                  label={t('auth.phoneLabel')}
                   value={phone}
                   onChangeText={setPhone}
                   placeholder="X XX XX XX XX"
@@ -336,7 +340,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
                   label="Mot de passe"
                   value={password}
                   onChangeText={setPassword}
-                  placeholder={mode === 'signup' ? 'Au moins 6 caractères' : '••••••••'}
+                  placeholder={mode === 'signup' ? t('auth.passwordHint') : t('auth.passwordPlaceholder')}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   editable={!loading}
@@ -354,21 +358,9 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
                 </TouchableOpacity>
               </View>
 
-              {mode === 'signup' && (
-                <Input
-                  label="Confirmer le mot de passe"
-                  value={confirmPassword}
-                  onChangeText={setConfirmPassword}
-                  placeholder="Répétez votre mot de passe"
-                  secureTextEntry={!showPassword}
-                  autoCapitalize="none"
-                  editable={!loading}
-                />
-              )}
-
               {mode === 'signin' && (
                 <TouchableOpacity onPress={handleForgotPassword} disabled={loading}>
-                  <Text style={styles.forgotPassword}>Mot de passe oublié ?</Text>
+                  <Text style={styles.forgotPassword}>{t('auth.forgotPassword')}</Text>
                 </TouchableOpacity>
               )}
 
@@ -376,10 +368,10 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
                 {loading
                   ? mode === 'signin'
                     ? 'Connexion...'
-                    : 'Création...'
+                    : t('auth.creating')
                   : mode === 'signin'
                   ? 'Se connecter'
-                  : 'Créer mon compte'}
+                  : t('auth.signUp')}
               </Button>
 
               {loading && (
@@ -392,22 +384,21 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
 
               {mode === 'signup' && (
                 <Text style={styles.terms}>
-                  En créant un compte, vous acceptez nos conditions d'utilisation et notre
-                  politique de confidentialité
+                  {t('auth.termsFull')}
                 </Text>
               )}
             </View>
 
             <View style={styles.footer}>
               <Text style={styles.footerText}>
-                {mode === 'signin' ? "Vous n'avez pas de compte ?" : 'Vous avez déjà un compte ?'}
+                {mode === 'signin' ? t('auth.dontHaveAccount') : t('auth.alreadyHaveAccount')}
               </Text>
               <TouchableOpacity
                 onPress={() => toggleMode(mode === 'signin' ? 'signup' : 'signin')}
                 disabled={loading}
               >
                 <Text style={styles.linkText}>
-                  {mode === 'signin' ? 'Créer un compte' : 'Se connecter'}
+                  {mode === 'signin' ? t('auth.createAccount') : t('auth.signIn')}
                 </Text>
               </TouchableOpacity>
             </View>

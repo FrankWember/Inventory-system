@@ -23,10 +23,12 @@ import { exportData } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { usePdfExport } from '../hooks/usePdfExport'
 import { PeriodType } from '../services/pdfService'
+import { useTranslation } from '../i18n'
 
 export default function SettingsScreen() {
+  const { t } = useTranslation()
   const { user, signOut, updateProfile } = useAuth()
-  const { theme, notificationsEnabled, barInfo, colors, setTheme, setNotificationsEnabled, updateBarInfo } = useSettings()
+  const { theme, language, notificationsEnabled, barInfo, colors, setTheme, setLanguage, setNotificationsEnabled, updateBarInfo } = useSettings()
 
   const [editModal, setEditModal] = useState<null | 'barName' | 'displayName'>(null)
   const [editValue, setEditValue] = useState('')
@@ -41,7 +43,7 @@ export default function SettingsScreen() {
   const { loading: pdfLoading, progress: pdfProgress, generatePdf } = usePdfExport({ barName: barInfo?.name || 'BarTrack' })
 
   const isPhoneAccount = user?.email?.includes('@phone.bartrack.app')
-  const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || 'Utilisateur'
+  const displayName = user?.user_metadata?.display_name || user?.email?.split('@')[0] || t('settings.defaultUser')
   const phoneNumber = user?.user_metadata?.phone
   const actualEmail = user?.user_metadata?.actual_email || (isPhoneAccount ? null : user?.email)
 
@@ -70,7 +72,7 @@ export default function SettingsScreen() {
       }
       setEditModal(null)
     } catch {
-      showAlert('Erreur', 'Impossible de sauvegarder')
+      showAlert(t('common.error'), t('settings.saveError'))
     } finally {
       setEditLoading(false)
     }
@@ -80,7 +82,7 @@ export default function SettingsScreen() {
     try {
       await setNotificationsEnabled(value)
     } catch {
-      showAlert('Erreur', 'Impossible de modifier les notifications')
+      showAlert(t('common.error'), t('settings.notificationsError'))
     }
   }
 
@@ -88,7 +90,15 @@ export default function SettingsScreen() {
     try {
       await setTheme(value)
     } catch {
-      showAlert('Erreur', 'Impossible de changer le thème')
+      showAlert(t('common.error'), t('settings.themeError'))
+    }
+  }
+
+  const handleLanguage = async (value: 'fr' | 'en') => {
+    try {
+      await setLanguage(value)
+    } catch {
+      showAlert(t('common.error'), t('settings.languageError'))
     }
   }
 
@@ -105,12 +115,12 @@ export default function SettingsScreen() {
           a.click()
           URL.revokeObjectURL(url)
         }
-        showAlert('Succès', 'Données exportées avec succès')
+        showAlert(t('common.success'), t('settings.exportSuccess'))
       } else {
-        await Share.share({ message: data, title: 'Export BarTrack' })
+        await Share.share({ message: data, title: t('settings.exportShareTitle') })
       }
     } catch {
-      showAlert('Erreur', 'Impossible d\'exporter les données')
+      showAlert(t('common.error'), t('settings.exportError'))
     }
   }
 
@@ -148,7 +158,7 @@ export default function SettingsScreen() {
       setDates(uniqueDates)
     } catch (error) {
       console.error('Error loading dates:', error)
-      showAlert('Erreur', 'Impossible de charger les dates')
+      showAlert(t('common.error'), t('settings.loadDatesError'))
     } finally {
       setLoadingDates(false)
     }
@@ -172,7 +182,7 @@ export default function SettingsScreen() {
       setSessions(data || [])
     } catch (error) {
       console.error('Error loading sessions:', error)
-      showAlert('Erreur', 'Impossible de charger les sessions')
+      showAlert(t('common.error'), t('settings.loadSessionsError'))
     } finally {
       setLoadingSessions(false)
     }
@@ -193,12 +203,12 @@ export default function SettingsScreen() {
       const { data: drinks, error } = await supabase.from('drinks').select('id')
       if (error) throw error
       showAlert(
-        '☁️ Sauvegarde cloud',
-        `Synchronisation active\n${drinks?.length || 0} articles synchronisés`,
-        [{ text: 'OK' }]
+        t('settings.cloudBackupTitle'),
+        t('settings.cloudBackupBody', { count: drinks?.length || 0 }),
+        [{ text: t('common.ok') }]
       )
     } catch {
-      showAlert('Erreur', 'Impossible d\'accéder à la sauvegarde cloud')
+      showAlert(t('common.error'), t('settings.cloudBackupError'))
     }
   }
 
@@ -207,23 +217,23 @@ export default function SettingsScreen() {
     if (!user) return
     const emailToReset = user.user_metadata?.actual_email || (isPhoneAccount ? null : user.email)
     if (!emailToReset) {
-      showAlert('Info', 'La réinitialisation par mot de passe nécessite une adresse email associée.')
+      showAlert(t('settings.info'), t('settings.passwordNeedsEmail'))
       return
     }
     showAlert(
-      'Changer le mot de passe',
-      `Un email de réinitialisation sera envoyé à ${emailToReset}`,
+      t('settings.changePassword'),
+      t('settings.passwordResetBody', { email: emailToReset }),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Envoyer',
+          text: t('settings.send'),
           onPress: async () => {
             try {
               const { error } = await supabase.auth.resetPasswordForEmail(emailToReset)
               if (error) throw error
-              showAlert('Succès', 'Email de réinitialisation envoyé')
+              showAlert(t('common.success'), t('settings.passwordResetSent'))
             } catch {
-              showAlert('Erreur', 'Impossible d\'envoyer l\'email')
+              showAlert(t('common.error'), t('settings.passwordResetError'))
             }
           },
         },
@@ -233,15 +243,15 @@ export default function SettingsScreen() {
 
   const handleLogout = () => {
     showAlert(
-      'Déconnexion',
-      'Êtes-vous sûr de vouloir vous déconnecter ?',
+      t('settings.logout'),
+      t('settings.logoutConfirm'),
       [
-        { text: 'Annuler', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Déconnexion',
+          text: t('settings.logout'),
           style: 'destructive',
           onPress: async () => {
-            try { await signOut() } catch { showAlert('Erreur', 'Impossible de se déconnecter') }
+            try { await signOut() } catch { showAlert(t('common.error'), t('settings.logoutError')) }
           },
         },
       ]
@@ -250,12 +260,12 @@ export default function SettingsScreen() {
 
   return (
     <View style={[styles.wrapper, { backgroundColor: colors.surface }]}>
-      <ScreenHeader title="Paramètres" />
+      <ScreenHeader title={t('settings.title')} />
 
       {/* Loading Modal for PDF generation */}
       <LoadingModal
         visible={pdfLoading}
-        message="Génération du rapport PDF..."
+        message={t('settings.pdfGenerating')}
         progress={pdfProgress}
       />
 
@@ -263,7 +273,7 @@ export default function SettingsScreen() {
       <Modal visible={dateSelectorVisible} transparent animationType="fade" onRequestClose={() => setDateSelectorVisible(false)}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { maxHeight: '80%' }]}>
-            <Text style={styles.modalTitle}>Choisir une journée</Text>
+            <Text style={styles.modalTitle}>{t('settings.chooseDay')}</Text>
             {loadingDates ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
@@ -271,7 +281,7 @@ export default function SettingsScreen() {
             ) : dates.length === 0 ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
                 <Text style={{ color: COLORS.slate, textAlign: 'center' }}>
-                  Aucune session enregistrée
+                  {t('settings.noSessions')}
                 </Text>
               </View>
             ) : (
@@ -298,7 +308,7 @@ export default function SettingsScreen() {
               style={styles.modalCancel}
               onPress={() => setDateSelectorVisible(false)}
             >
-              <Text style={styles.modalCancelText}>Annuler</Text>
+              <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -308,7 +318,7 @@ export default function SettingsScreen() {
       <Modal visible={sessionSelectorVisible} transparent animationType="fade" onRequestClose={() => setSessionSelectorVisible(false)}>
         <View style={styles.modalBackdrop}>
           <View style={[styles.modalCard, { maxHeight: '80%' }]}>
-            <Text style={styles.modalTitle}>Choisir une session</Text>
+            <Text style={styles.modalTitle}>{t('settings.chooseSession')}</Text>
             {loadingSessions ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
@@ -339,7 +349,7 @@ export default function SettingsScreen() {
               // @ts-ignore - web-only className
               className="glass-button"
             >
-              <Text style={styles.modalCancelText}>Annuler</Text>
+              <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -350,14 +360,14 @@ export default function SettingsScreen() {
         <View style={styles.modalBackdrop}>
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>
-              {editModal === 'barName' ? 'Nom de l\'établissement' : 'Nom d\'affichage'}
+              {editModal === 'barName' ? t('settings.establishmentName') : t('settings.displayName')}
             </Text>
             <TextInput
               style={styles.modalInput}
               value={editValue}
               onChangeText={setEditValue}
               autoFocus
-              placeholder={editModal === 'barName' ? 'Ex: Le BarAfrika' : 'Votre nom'}
+              placeholder={editModal === 'barName' ? t('settings.barNamePlaceholder') : t('settings.displayNamePlaceholder')}
               placeholderTextColor={COLORS.slate}
               onSubmitEditing={confirmEdit}
             />
@@ -369,7 +379,7 @@ export default function SettingsScreen() {
                 // @ts-ignore - web-only className
                 className="glass-button"
               >
-                <Text style={styles.modalCancelText}>Annuler</Text>
+                <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.modalConfirm, editLoading && { opacity: 0.6 }]}
@@ -378,7 +388,7 @@ export default function SettingsScreen() {
                 // @ts-ignore - web-only className
                 className="glass-primary"
               >
-                <Text style={styles.modalConfirmText}>{editLoading ? 'Enregistrement...' : 'Enregistrer'}</Text>
+                <Text style={styles.modalConfirmText}>{editLoading ? t('settings.saving') : t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -415,25 +425,25 @@ export default function SettingsScreen() {
         )}
 
         {/* Bar Info */}
-        <SectionTitle label="Établissement" />
+        <SectionTitle label={t('settings.sectionEstablishment')} />
         <SettingsCard>
           <RowItem
             icon="business-outline"
-            label="Nom du bar"
-            value={barInfo?.name || 'Non défini'}
+            label={t('settings.barName')}
+            value={barInfo?.name || t('settings.notSet')}
             onPress={() => openEdit('barName')}
           />
         </SettingsCard>
 
         {/* Preferences */}
-        <SectionTitle label="Préférences" />
+        <SectionTitle label={t('settings.sectionPreferences')} />
         <SettingsCard>
           <View style={styles.row}>
             <View style={styles.rowLeft}>
               <View style={styles.iconBox}>
                 <Ionicons name="notifications-outline" size={19} color={COLORS.primary} />
               </View>
-              <Text style={styles.rowLabel}>Notifications</Text>
+              <Text style={styles.rowLabel}>{t('settings.notifications')}</Text>
             </View>
             <Switch
               value={notificationsEnabled}
@@ -448,66 +458,83 @@ export default function SettingsScreen() {
           <View style={styles.row}>
             <View style={styles.rowLeft}>
               <View style={styles.iconBox}>
+                <Ionicons name="globe-outline" size={19} color={COLORS.primary} />
+              </View>
+              <Text style={styles.rowLabel}>{t('settings.language')}</Text>
+            </View>
+            {/* @ts-ignore - web-only className */}
+            <View style={styles.segmented} className="glass-toggle">
+              <SegBtn label="FR" active={language === 'fr'} onPress={() => handleLanguage('fr')} />
+              <SegBtn label="EN" active={language === 'en'} onPress={() => handleLanguage('en')} />
+            </View>
+          </View>
+
+          <View style={styles.separator} />
+
+          <View style={styles.row}>
+            <View style={styles.rowLeft}>
+              <View style={styles.iconBox}>
                 <Ionicons name="color-palette-outline" size={19} color={COLORS.primary} />
               </View>
-              <Text style={styles.rowLabel}>Thème</Text>
+              <Text style={styles.rowLabel}>{t('settings.theme')}</Text>
             </View>
-            <View style={styles.segmented}>
-              <SegBtn label="Clair" icon="sunny-outline" active={theme === 'light'} onPress={() => handleTheme('light')} />
-              <SegBtn label="Sombre" icon="moon-outline" active={theme === 'dark'} onPress={() => handleTheme('dark')} />
+            {/* @ts-ignore - web-only className */}
+            <View style={styles.segmented} className="glass-toggle">
+              <SegBtn label={t('settings.themeLight')} icon="sunny-outline" active={theme === 'light'} onPress={() => handleTheme('light')} />
+              <SegBtn label={t('settings.themeDark')} icon="moon-outline" active={theme === 'dark'} onPress={() => handleTheme('dark')} />
             </View>
           </View>
         </SettingsCard>
 
         {/* Data */}
-        <SectionTitle label="Données" />
+        <SectionTitle label={t('settings.sectionData')} />
         <SettingsCard>
-          <RowItem icon="download-outline" label="Exporter les données (JSON)" onPress={handleExportData} />
+          <RowItem icon="download-outline" label={t('settings.exportJson')} onPress={handleExportData} />
           <View style={styles.separator} />
-          <RowItem icon="cloud-upload-outline" label="Sauvegarde cloud" onPress={handleBackupData} />
+          <RowItem icon="cloud-upload-outline" label={t('settings.cloudBackup')} onPress={handleBackupData} />
         </SettingsCard>
 
         {/* PDF Reports */}
-        <SectionTitle label="Rapports PDF" />
+        <SectionTitle label={t('settings.sectionPdf')} />
         <Text style={styles.sectionDescription}>
-          Générez des rapports détaillés avec graphiques et statistiques
+          {t('settings.pdfDescription')}
         </Text>
 
         {/* Period-based reports */}
-        <Text style={styles.subSectionTitle}>Par période</Text>
+        <Text style={styles.subSectionTitle}>{t('settings.byPeriod')}</Text>
         <SettingsCard>
           <RowItem
             icon="document-text-outline"
-            label="Journée spécifique"
+            label={t('settings.specificDay')}
             onPress={() => handlePdfExport('day')}
           />
           <View style={styles.separator} />
           <RowItem
             icon="calendar-outline"
-            label="7 derniers jours"
+            label={t('settings.last7days')}
             onPress={() => handlePdfExport('7days')}
           />
           <View style={styles.separator} />
           <RowItem
             icon="calendar-outline"
-            label="30 derniers jours"
+            label={t('settings.last30days')}
             onPress={() => handlePdfExport('30days')}
           />
           <View style={styles.separator} />
           <RowItem
             icon="time-outline"
-            label="Toutes les périodes"
+            label={t('settings.allPeriods')}
             onPress={() => handlePdfExport('all')}
           />
         </SettingsCard>
 
         {/* Session-specific report */}
-        <Text style={styles.subSectionTitle}>Par session</Text>
+        <Text style={styles.subSectionTitle}>{t('settings.bySession')}</Text>
         <SettingsCard>
           <RowItem
             icon="receipt-outline"
-            label="Session spécifique"
-            value="Choisir..."
+            label={t('settings.specificSession')}
+            value={t('settings.choose')}
             onPress={handleSessionSelectorOpen}
           />
         </SettingsCard>
@@ -515,17 +542,17 @@ export default function SettingsScreen() {
         {/* Account */}
         {user && (
           <>
-            <SectionTitle label="Compte" />
+            <SectionTitle label={t('settings.sectionAccount')} />
             <SettingsCard>
-              <RowItem icon="key-outline" label="Changer le mot de passe" onPress={handleChangePassword} />
+              <RowItem icon="key-outline" label={t('settings.changePassword')} onPress={handleChangePassword} />
               <View style={styles.separator} />
-              <RowItem icon="log-out-outline" label="Déconnexion" destructive onPress={handleLogout} />
+              <RowItem icon="log-out-outline" label={t('settings.logout')} destructive onPress={handleLogout} />
             </SettingsCard>
           </>
         )}
 
         {/* About */}
-        <SectionTitle label="Application" />
+        <SectionTitle label={t('settings.sectionApp')} />
         <SettingsCard>
           <View style={styles.aboutRow}>
             <View style={styles.iconBox}>
@@ -533,7 +560,7 @@ export default function SettingsScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.rowLabel}>{barInfo?.name || 'BarTrack'}</Text>
-              <Text style={styles.aboutSub}>Version 1.0.0 · Gestion de bar</Text>
+              <Text style={styles.aboutSub}>{t('settings.versionLine')}</Text>
             </View>
           </View>
         </SettingsCard>
@@ -588,7 +615,7 @@ function SegBtn({ label, icon, active, onPress }: { label: string; icon?: keyof 
       onPress={onPress}
       activeOpacity={0.8}
       // @ts-ignore - web-only className
-      className={active ? "glass-primary" : ""}
+      className={active ? "glass-toggle-active" : ""}
     >
       {icon && (
         <Ionicons

@@ -8,11 +8,13 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
+  ImageBackground,
 } from 'react-native'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
 import { COLORS, FONT } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
+import { useTranslation } from '../i18n'
 import { Ionicons } from '@expo/vector-icons'
 
 interface ForgotPasswordScreenProps {
@@ -20,6 +22,7 @@ interface ForgotPasswordScreenProps {
 }
 
 export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScreenProps) {
+  const { t } = useTranslation()
   const { resetPassword } = useAuth()
   const [email, setEmail] = useState('')
   const [loading, setLoading] = useState(false)
@@ -36,12 +39,12 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
     setError(null)
 
     if (!email.trim()) {
-      setError('Veuillez entrer votre adresse email')
+      setError(t('auth.enterYourEmail'))
       return
     }
 
     if (!validateEmail(email.trim())) {
-      setError('Veuillez entrer une adresse email valide')
+      setError(t('auth.enterValidEmail'))
       return
     }
 
@@ -50,17 +53,23 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
     setLoading(false)
 
     if (resetError) {
-      setError(resetError.message || 'Une erreur est survenue')
+      setError(resetError.message || t('auth.genericError'))
     } else {
       setSent(true)
     }
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+    <ImageBackground
+      source={require('../assets/images/auth-background.jpg')}
+      style={styles.bg}
+      resizeMode="cover"
     >
+      <View style={styles.overlay} />
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      >
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
@@ -70,9 +79,9 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
             <View style={styles.iconContainer}>
               <Ionicons name="key" size={48} color={COLORS.primary} />
             </View>
-            <Text style={styles.title}>Mot de passe oublié</Text>
+            <Text style={styles.title}>{t('auth.forgotTitle')}</Text>
             <Text style={styles.subtitle}>
-              Entrez votre email pour recevoir un lien de réinitialisation
+              {t('auth.forgotSubtitle')}
             </Text>
           </View>
 
@@ -81,15 +90,15 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
               <View style={styles.successBox}>
                 <Ionicons name="checkmark-circle" size={20} color={COLORS.emerald} />
                 <Text style={styles.successText}>
-                  Un lien de réinitialisation a été envoyé à {email.trim()}. Vérifiez votre boîte de réception.
+                  {t('auth.resetLinkSent', { email: email.trim() })}
                 </Text>
               </View>
             ) : (
               <Input
-                label="Email"
+                label={t('auth.emailLabel')}
                 value={email}
-                onChangeText={t => { setEmail(t); setError(null) }}
-                placeholder="votre@email.com"
+                onChangeText={v => { setEmail(v); setError(null) }}
+                placeholder={t('auth.emailPlaceholder')}
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoCorrect={false}
@@ -110,7 +119,7 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
                 disabled={loading}
                 style={styles.button}
               >
-                {loading ? 'Envoi...' : 'Envoyer le lien'}
+                {loading ? t('auth.sending') : t('auth.sendLink')}
               </Button>
             )}
 
@@ -124,43 +133,43 @@ export default function ForgotPasswordScreen({ navigation }: ForgotPasswordScree
           </View>
 
           <TouchableOpacity onPress={() => navigation.goBack()} disabled={loading}>
-            <Text style={styles.backLink}>Retour à la connexion</Text>
+            <Text style={styles.backLink}>{t('auth.backToSignIn')}</Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   )
 }
 
 const styles = StyleSheet.create({
+  // Shell matches SignIn/SignUp: photo background + dark overlay + glass card
+  bg: { flex: 1, width: '100%', height: '100%' },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(10,20,40,0.45)' },
   container: {
     flex: 1,
-    backgroundColor: Platform.OS === 'web' ? COLORS.surface : COLORS.white,
   },
   scrollContent: {
     flexGrow: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
-    paddingVertical: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 32,
     alignItems: 'center',
   },
   formContainer: {
     width: '100%',
-    maxWidth: 440,
+    maxWidth: 380,
     alignSelf: 'center',
+    backgroundColor: 'rgba(255,255,255,0.96)',
+    borderRadius: 24,
+    padding: 28,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 16 },
+    shadowOpacity: 0.25,
+    shadowRadius: 32,
+    elevation: 16,
     ...Platform.select({
-      web: {
-        backgroundColor: COLORS.white,
-        borderRadius: 16,
-        padding: 32,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.08,
-        shadowRadius: 12,
-      },
-      default: {
-        paddingHorizontal: 0,
-      },
+      web: { backdropFilter: 'blur(20px)', maxWidth: 360 } as any,
     }),
   },
   header: {

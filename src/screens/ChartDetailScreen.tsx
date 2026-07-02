@@ -10,6 +10,7 @@ import { RootStackParamList } from '../../App'
 import { SimpleBarChart, BarChartItem } from '../components/SimpleBarChart'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { COLORS, fmt, fmtNum } from '../utils/helpers'
+import { useTranslation } from '../i18n'
 
 export interface ChartDetailRow {
   label: string
@@ -20,6 +21,7 @@ export interface ChartDetailRow {
 type Props = NativeStackScreenProps<RootStackParamList, 'ChartDetail'>
 
 export default function ChartDetailScreen({ route, navigation }: Props) {
+  const { t } = useTranslation()
   // This screen only makes sense with params passed in-app. On web, /chart-detail
   // is a routable URL: a page refresh or direct visit lands here with no params —
   // destructuring them blindly used to crash to a white screen. Redirect home.
@@ -60,11 +62,11 @@ export default function ChartDetailScreen({ route, navigation }: Props) {
         </View>
 
         <View style={styles.totalRow}>
-          <Text style={styles.totalLabel}>Total période</Text>
+          <Text style={styles.totalLabel}>{t('stats.totalPeriod')}</Text>
           <Text style={styles.totalValue}>{format(total)}</Text>
         </View>
 
-        <Text style={styles.tableTitle}>Détail</Text>
+        <Text style={styles.tableTitle}>{t('stats.detail')}</Text>
         <View style={styles.table}>
           {rows.map((row, i) => (
             <View key={i} style={[styles.row, i === rows.length - 1 && { borderBottomWidth: 0 }]}>

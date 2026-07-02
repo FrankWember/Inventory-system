@@ -19,6 +19,7 @@ import { applyGlobalFont } from './src/styles/applyFonts'
 import { ResponsiveLayout } from './src/components/ResponsiveLayout'
 import { AuthProvider, useAuth } from './src/contexts/AuthContext'
 import { SettingsProvider } from './src/contexts/SettingsContext'
+import { t, useTranslation } from './src/i18n'
 import { saveNavigationState, loadNavigationState } from './src/utils/navigationPersistence'
 
 applyGlobalFont()
@@ -72,16 +73,16 @@ class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { has
         <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface, padding: 24 }}>
           <Ionicons name="alert-circle-outline" size={48} color={COLORS.rose} />
           <RNText style={{ fontSize: 18, fontWeight: '700', color: COLORS.slateDark, marginTop: 16, textAlign: 'center' }}>
-            Une erreur est survenue
+            {t('common.appErrorTitle')}
           </RNText>
           <RNText style={{ fontSize: 14, color: COLORS.slate, marginTop: 8, textAlign: 'center' }}>
-            Rechargez l'application pour continuer.
+            {t('common.appErrorBody')}
           </RNText>
           <TouchableOpacity
             onPress={this.handleReload}
             style={{ marginTop: 20, backgroundColor: COLORS.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: 12 }}
           >
-            <RNText style={{ color: COLORS.white, fontWeight: '700', fontSize: 15 }}>Recharger</RNText>
+            <RNText style={{ color: COLORS.white, fontWeight: '700', fontSize: 15 }}>{t('common.reload')}</RNText>
           </TouchableOpacity>
         </View>
       )
@@ -149,6 +150,7 @@ const linking = Platform.OS === 'web' ? {
 } : undefined
 
 function MainTabs() {
+  const { t } = useTranslation()
   const insets = useSafeAreaInsets()
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
 
@@ -194,17 +196,18 @@ function MainTabs() {
           },
         })}
       >
-        <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: 'Accueil' }} />
-        <Tab.Screen name="Inventory" component={InventoryScreen} options={{ title: 'Stock' }} />
-        <Tab.Screen name="Session" component={SessionScreen} options={{ title: 'Session' }} />
-        <Tab.Screen name="Trends" component={TrendsScreen} options={{ title: 'Stats' }} />
-        <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: 'Paramètres' }} />
+        <Tab.Screen name="Dashboard" component={DashboardScreen} options={{ title: t('misc.tabHome') }} />
+        <Tab.Screen name="Inventory" component={InventoryScreen} options={{ title: t('misc.tabStock') }} />
+        <Tab.Screen name="Session" component={SessionScreen} options={{ title: t('misc.tabSession') }} />
+        <Tab.Screen name="Trends" component={TrendsScreen} options={{ title: t('misc.tabStats') }} />
+        <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: t('misc.tabSettings') }} />
       </Tab.Navigator>
     </ResponsiveLayout>
   )
 }
 
 function RootNavigator() {
+  const { t } = useTranslation()
   const { user, loading, isWelcomeLoading } = useAuth()
   // On web, linking handles navigation state — no need for manual restore
   const [isReady, setIsReady] = useState(Platform.OS === 'web')
@@ -260,7 +263,7 @@ function RootNavigator() {
           color: COLORS.slateDark,
         },
         headerShadowVisible: false,
-        headerBackTitle: 'Retour',
+        headerBackTitle: t('common.back'),
       }}
     >
       {!user ? (

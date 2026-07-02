@@ -31,6 +31,7 @@ import {
   drinkRackSize,
 } from '../utils/helpers'
 import { showAlert } from '../utils/appAlert'
+import { useTranslation } from '../i18n'
 
 LocaleConfig.locales['fr'] = {
   monthNames: ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'],
@@ -39,14 +40,25 @@ LocaleConfig.locales['fr'] = {
   dayNamesShort: ['Dim.','Lun.','Mar.','Mer.','Jeu.','Ven.','Sam.'],
   today: "Aujourd'hui",
 }
+LocaleConfig.locales['en'] = {
+  monthNames: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+  monthNamesShort: ['Jan.','Feb.','Mar.','Apr.','May','Jun.','Jul.','Aug.','Sep.','Oct.','Nov.','Dec.'],
+  dayNames: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+  dayNamesShort: ['Sun.','Mon.','Tue.','Wed.','Thu.','Fri.','Sat.'],
+  today: 'Today',
+}
 LocaleConfig.defaultLocale = 'fr'
 
-type Step = 'purchases' | 'inventory' | 'summary' | 'done'
+type Step = 'purchases' | 'expenses' | 'inventory' | 'summary' | 'done'
 
+// The wizard mirrors a bar day: record deliveries, log the day's operating
+// expenses, count the remaining stock, then review and close.
+// Labels are i18n keys, resolved with t() at render time.
 const STEPS = [
-  { key: 'purchases', label: 'Achats' },
-  { key: 'inventory', label: 'Inventaire' },
-  { key: 'summary', label: 'Récap' },
+  { key: 'purchases', label: 'session.stepPurchases' },
+  { key: 'expenses', label: 'session.stepExpenses' },
+  { key: 'inventory', label: 'session.stepInventory' },
+  { key: 'summary', label: 'session.stepSummary' },
 ]
 
 const BREAKPOINT = 768
@@ -88,6 +100,7 @@ function ModernStepIndicator({
   current: string
   onStepPress?: (key: string) => void
 }) {
+  const { t } = useTranslation()
   const currentIndex = steps.findIndex(s => s.key === current)
   const progress = useRef(new Animated.Value(currentIndex)).current
 
@@ -132,7 +145,7 @@ function ModernStepIndicator({
                   : <Text style={[si.dotNum, active && si.dotNumActive]}>{i + 1}</Text>}
               </View>
               <Text style={[si.labelText, active && si.labelTextActive, done && si.labelTextDone]}>
-                {step.label}
+                {t(step.label)}
               </Text>
             </TouchableOpacity>
           )
@@ -319,6 +332,9 @@ const sp = StyleSheet.create({
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function SessionScreen({ navigation }: any) {
+  const { t, lang } = useTranslation()
+  // Keep the calendar's locale in sync with the app language on every render.
+  LocaleConfig.defaultLocale = lang
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [step, setStep] = useState<Step>('purchases')
   const [openSession, setOpenSession] = useState<Session | null>(null)
@@ -409,7 +425,7 @@ export default function SessionScreen({ navigation }: any) {
         setLineStates(lines)
         setPurchases(purchasesMap)
         setClosingCounts(closingMap)
-        setStep(prev => (prev === 'summary' || prev === 'inventory' ? prev : 'inventory'))
+        setStep(prev => (prev === 'summary' || prev === 'inventory' || prev === 'expenses' ? prev : 'inventory'))
       } else if (!open && !closed) {
         setStep('purchases')
         setPurchases({})
@@ -515,7 +531,7 @@ export default function SessionScreen({ navigation }: any) {
         }
         throwOnError(await Promise.all(ops))
         setLineStates(nextLines)
-        setStep('inventory')
+        setStep('expenses')
         await reloadDrinks()
         return
       }
@@ -554,14 +570,14 @@ export default function SessionScreen({ navigation }: any) {
       setOpenSession(session)
       setLineStates(lines)
       setClosingCounts(closingMap)
-      setStep('inventory')
+      setStep('expenses')
       // Don't run loadData() here: it reloads *today's* state and would clobber
       // the freshly created session when it belongs to another date.
       await reloadDrinks()
       setTodayExpenses(await loadExpensesForDate(sessionDate))
     } catch (error) {
       console.error('Error saving purchases:', error)
-      showAlert('Erreur', "Impossible d'enregistrer les achats. Vérifiez votre connexion et réessayez.")
+      showAlert(t('common.error'), t('session.savePurchasesError'))
     } finally {
       setSaving(false)
     }
@@ -604,7 +620,7 @@ export default function SessionScreen({ navigation }: any) {
       if (data) openJournal(data)
     } catch (error) {
       console.error('Error closing session:', error)
-      showAlert('Erreur', 'Erreur lors de la clôture. Vérifiez votre connexion et réessayez.')
+      showAlert(t('common.error'), t('session.closeError'))
     } finally {
       setSaving(false)
     }
@@ -612,14 +628,14 @@ export default function SessionScreen({ navigation }: any) {
 
   const reopenForEdit = async (session: Session | null) => {
     if (!session) return
-    showAlert('Modifier la session', 'La session sera rouverte pour correction.', [
-      { text: 'Annuler', style: 'cancel' },
+    showAlert(t('session.editSession'), t('session.reopenMessage'), [
+      { text: t('common.cancel'), style: 'cancel' },
       {
-        text: 'Rouvrir',
+        text: t('session.reopen'),
         onPress: async () => {
           const { error } = await supabase.from('sessions').update({ closed: false }).eq('id', session.id)
           if (error) {
-            showAlert('Erreur', 'Impossible de rouvrir la session.')
+            showAlert(t('common.error'), t('session.reopenError'))
             return
           }
           // Hydrate the wizard from the reopened session's lines — loadData()
@@ -676,8 +692,8 @@ export default function SessionScreen({ navigation }: any) {
   if (loading) {
     return (
       <View style={styles.container}>
-        <ScreenHeader title="Session" subtitle={dateLabel(todayStr)} />
-        <ScreenSkeleton variant="list" />
+        <ScreenHeader title={t('session.title')} subtitle={dateLabel(todayStr)} />
+        <ScreenSkeleton variant="session" />
       </View>
     )
   }
@@ -687,7 +703,7 @@ export default function SessionScreen({ navigation }: any) {
     <StepContent stepKey="purchases">
       <View style={styles.stepHintBox}>
         <Ionicons name="cube-outline" size={16} color={COLORS.primary} />
-        <Text style={styles.stepHintText}>Enregistrez les livraisons reçues aujourd'hui. Elles s'ajouteront au stock existant.</Text>
+        <Text style={styles.stepHintText}>{t('session.purchasesHint')}</Text>
       </View>
 
       <View style={styles.toolbar}>
@@ -695,7 +711,7 @@ export default function SessionScreen({ navigation }: any) {
           <Ionicons name="search" size={16} color={COLORS.slate} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher..."
+            placeholder={t('common.search')}
             value={search}
             onChangeText={setSearch}
             placeholderTextColor={COLORS.slate}
@@ -717,7 +733,7 @@ export default function SessionScreen({ navigation }: any) {
 
       <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.listContent} keyboardShouldPersistTaps="handled">
         {purchasedDrinks.length > 0 && (
-          <Text style={styles.groupLabel}>Livraisons saisies ({purchasedDrinks.length})</Text>
+          <Text style={styles.groupLabel}>{t('session.deliveriesEntered', { count: purchasedDrinks.length })}</Text>
         )}
         {orderedDrinks.map(drink => {
           const rackSize = getRackSize(drink.id)
@@ -732,7 +748,7 @@ export default function SessionScreen({ navigation }: any) {
                   <Text style={styles.drinkCat}>{drink.category}</Text>
                 </View>
                 <View style={styles.stockTag}>
-                  <Text style={styles.stockTagLabel}>Stock actuel</Text>
+                  <Text style={styles.stockTagLabel}>{t('session.currentStock')}</Text>
                   <Text style={styles.stockTagValue}>{formatWithCassiers(drink.stock, drink.category)}</Text>
                 </View>
               </View>
@@ -742,11 +758,11 @@ export default function SessionScreen({ navigation }: any) {
               <View style={styles.purchaseInputRow}>
                 <View style={{ flex: 1 }}>
                   <Text style={styles.inputLabel}>
-                    Casiers reçus{rackSize > 1 ? ` (1 casier = ${rackSize} unités)` : ''}
+                    {t('session.racksReceived')}{rackSize > 1 ? ` ${t('session.rackSizeHint', { size: rackSize })}` : ''}
                   </Text>
                   {hasDelivery && (
                     <Text style={styles.unitConversion}>
-                      {racksVal} casier{racksVal > 1 ? 's' : ''} = {unitsVal} unités
+                      {t(racksVal > 1 ? 'session.conversionMany' : 'session.conversionOne', { racks: racksVal, units: unitsVal })}
                     </Text>
                   )}
                 </View>
@@ -760,7 +776,7 @@ export default function SessionScreen({ navigation }: any) {
                 <View style={styles.afterDelivery}>
                   <Ionicons name="trending-up" size={14} color={COLORS.emerald} />
                   <Text style={styles.afterDeliveryText}>
-                    Nouveau stock : {formatWithCassiers(drink.stock + unitsVal, drink.category)}
+                    {t('session.newStock', { value: formatWithCassiers(drink.stock + unitsVal, drink.category, getRackSize(drink.id)) })}
                   </Text>
                 </View>
               )}
@@ -770,9 +786,27 @@ export default function SessionScreen({ navigation }: any) {
         {filtered.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons name="search-outline" size={40} color={COLORS.slateLight} />
-            <Text style={styles.emptyStateText}>Aucun article trouvé</Text>
+            <Text style={styles.emptyStateText}>{t('session.noItemsFound')}</Text>
           </View>
         )}
+        <View style={{ height: 20 }} />
+      </ScrollView>
+    </StepContent>
+  )
+
+  // ─────────────────────────── STEP: EXPENSES ──────────────────────────────────
+  const renderExpensesStep = () => (
+    <StepContent stepKey="expenses">
+      <View style={styles.stepHintBox}>
+        <Ionicons name="receipt-outline" size={16} color={COLORS.primary} />
+        <Text style={styles.stepHintText}>{t('session.expensesHint')}</Text>
+      </View>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.listContent} keyboardShouldPersistTaps="handled">
+        <SessionExpensesPanel
+          date={openSession?.date ?? sessionDate}
+          expenses={todayExpenses}
+          onChange={async () => setTodayExpenses(await loadExpensesForDate(openSession?.date ?? sessionDate))}
+        />
         <View style={{ height: 20 }} />
       </ScrollView>
     </StepContent>
@@ -783,7 +817,7 @@ export default function SessionScreen({ navigation }: any) {
     <StepContent stepKey="inventory">
       <View style={styles.stepHintBox}>
         <Ionicons name="clipboard-outline" size={16} color={COLORS.primary} />
-        <Text style={styles.stepHintText}>Comptez le stock physique restant. Les ventes sont calculées automatiquement.</Text>
+        <Text style={styles.stepHintText}>{t('session.inventoryHint')}</Text>
       </View>
 
       <View style={styles.toolbar}>
@@ -791,7 +825,7 @@ export default function SessionScreen({ navigation }: any) {
           <Ionicons name="search" size={16} color={COLORS.slate} />
           <TextInput
             style={styles.searchInput}
-            placeholder="Rechercher..."
+            placeholder={t('common.search')}
             value={search}
             onChangeText={setSearch}
             placeholderTextColor={COLORS.slate}
@@ -834,12 +868,12 @@ export default function SessionScreen({ navigation }: any) {
                       {purchased > 0 ? (
                         <View style={styles.stockBreakdown}>
                           <View style={styles.stockItem}>
-                            <Text style={styles.stockItemLabel}>Départ</Text>
+                            <Text style={styles.stockItemLabel}>{t('session.opening')}</Text>
                             <Text style={styles.stockItemValue}>{fmtNum(opening)}</Text>
                           </View>
                           <Text style={styles.stockOperator}>+</Text>
                           <View style={styles.stockItem}>
-                            <Text style={styles.stockItemLabel}>Achat</Text>
+                            <Text style={styles.stockItemLabel}>{t('session.purchase')}</Text>
                             <Text style={[styles.stockItemValue, styles.stockItemValuePositive]}>{fmtNum(purchased)}</Text>
                           </View>
                           <Text style={styles.stockOperator}>=</Text>
@@ -849,7 +883,7 @@ export default function SessionScreen({ navigation }: any) {
                           </View>
                         </View>
                       ) : (
-                        <Text style={styles.inventoryStockInfo}>Stock: {fmtNum(expected)}</Text>
+                        <Text style={styles.inventoryStockInfo}>{t('session.stockValue', { value: fmtNum(expected) })}</Text>
                       )}
                     </>
                   ) : (
@@ -859,12 +893,12 @@ export default function SessionScreen({ navigation }: any) {
                         {purchased > 0 && (
                           <View style={styles.mobileBreakdown}>
                             <View style={styles.stockItem}>
-                              <Text style={styles.stockItemLabel}>Départ</Text>
+                              <Text style={styles.stockItemLabel}>{t('session.opening')}</Text>
                               <Text style={styles.mobileBreakdownValue}>{fmtNum(opening)}</Text>
                             </View>
                             <Text style={styles.mobileBreakdownOperator}>+</Text>
                             <View style={styles.stockItem}>
-                              <Text style={styles.stockItemLabel}>Achat</Text>
+                              <Text style={styles.stockItemLabel}>{t('session.purchase')}</Text>
                               <Text style={[styles.mobileBreakdownValue, styles.mobileBreakdownValuePositive]}>{fmtNum(purchased)}</Text>
                             </View>
                           </View>
@@ -883,10 +917,10 @@ export default function SessionScreen({ navigation }: any) {
 
                 {/* Right: Counting controls */}
                 <View style={styles.inventoryRight}>
-                  <Text style={styles.countingLabel}>Stock compté</Text>
+                  <Text style={styles.countingLabel}>{t('session.countedStock')}</Text>
                   <View style={styles.countingStepper}>
                     <View style={styles.stepperGroup}>
-                      <Text style={styles.stepperLabel}>Casiers</Text>
+                      <Text style={styles.stepperLabel}>{t('session.racks')}</Text>
                       <MiniStepper
                         value={racksVal}
                         onChange={v => {
@@ -897,7 +931,7 @@ export default function SessionScreen({ navigation }: any) {
                       />
                     </View>
                     <View style={styles.stepperGroup}>
-                      <Text style={styles.stepperLabel}>Unités</Text>
+                      <Text style={styles.stepperLabel}>{t('session.unitsLabel')}</Text>
                       <MiniStepper
                         value={unitsRemainder}
                         onChange={v => {
@@ -910,7 +944,7 @@ export default function SessionScreen({ navigation }: any) {
                   </View>
                   {closing !== expected && (
                     <Text style={styles.countTotal}>
-                      Total: {closing} unités {rackSize > 1 && `(1 casier = ${rackSize} u.)`}
+                      {t('session.totalUnits', { count: closing })} {rackSize > 1 && t('session.rackShortHint', { size: rackSize })}
                     </Text>
                   )}
                 </View>
@@ -920,7 +954,7 @@ export default function SessionScreen({ navigation }: any) {
               {hasSales && (
                 <View style={styles.soldResult}>
                   <View style={styles.soldResultLeft}>
-                    <Text style={styles.soldResultLabel}>Vendus</Text>
+                    <Text style={styles.soldResultLabel}>{t('session.soldLabel')}</Text>
                     <Text style={styles.soldResultQty}>{formatWithCassiers(sold, drink.category)}</Text>
                   </View>
                   <Text style={styles.soldResultRevenue} numberOfLines={1}>{fmt(sold * drink.price)}</Text>
@@ -932,7 +966,7 @@ export default function SessionScreen({ navigation }: any) {
         {filtered.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons name="search-outline" size={40} color={COLORS.slateLight} />
-            <Text style={styles.emptyStateText}>Aucun article trouvé</Text>
+            <Text style={styles.emptyStateText}>{t('session.noItemsFound')}</Text>
           </View>
         )}
         <View style={{ height: 20 }} />
@@ -963,46 +997,46 @@ export default function SessionScreen({ navigation }: any) {
               }}
             >
               <Ionicons name="print-outline" size={18} color={COLORS.primary} />
-              <Text style={styles.printRecapBtnText}>Imprimer le récapitulatif complet</Text>
+              <Text style={styles.printRecapBtnText}>{t('session.printFullRecap')}</Text>
             </TouchableOpacity>
           </View>
         )}
 
         {/* P&L Hero */}
         <View style={styles.plHero}>
-          <Text style={styles.plHeroTitle}>Résultat du jour</Text>
+          <Text style={styles.plHeroTitle}>{t('session.dayResult')}</Text>
           <Text style={[styles.plHeroNet, { color: netProfit >= 0 ? COLORS.emerald : COLORS.rose }]}>
             {fmt(netProfit)}
           </Text>
-          <Text style={styles.plHeroLabel}>Résultat net</Text>
+          <Text style={styles.plHeroLabel}>{t('session.netResult')}</Text>
 
           <View style={styles.plHeroStats}>
-            <StatPill label="Revenu" value={fmt(totalRevenue)} accent={COLORS.primary} />
-            <StatPill label="Achats" value={fmt(totalPurchaseCost)} accent={COLORS.rose} />
-            <StatPill label="Dépenses" value={fmt(totalExpenses)} accent={COLORS.amber} />
+            <StatPill label={t('session.revenue')} value={fmt(totalRevenue)} accent={COLORS.primary} />
+            <StatPill label={t('session.purchasesLabel')} value={fmt(totalPurchaseCost)} accent={COLORS.rose} />
+            <StatPill label={t('session.expensesLabel')} value={fmt(totalExpenses)} accent={COLORS.amber} />
           </View>
         </View>
 
         {/* P&L breakdown */}
         <View style={styles.plCard}>
-          <Text style={styles.sectionTitle}>Compte de résultat</Text>
-          <PLRow label="Revenu des ventes" value={fmt(totalRevenue)} />
-          <PLRow label={`Unités vendues`} value={fmtNum(totalSold)} muted />
-          <PLRow label="Coût des achats" value={`-${fmt(totalPurchaseCost)}`} negative />
+          <Text style={styles.sectionTitle}>{t('session.incomeStatement')}</Text>
+          <PLRow label={t('session.salesRevenue')} value={fmt(totalRevenue)} />
+          <PLRow label={t('session.unitsSold')} value={fmtNum(totalSold)} muted />
+          <PLRow label={t('session.purchaseCost')} value={`-${fmt(totalPurchaseCost)}`} negative />
           <View style={styles.plDivider} />
-          <PLRow label="Marge brute" value={fmt(grossProfit)} highlight accent={grossProfit >= 0 ? COLORS.primary : COLORS.rose} />
-          <PLRow label="Dépenses opérationnelles" value={`-${fmt(totalExpenses)}`} negative />
+          <PLRow label={t('session.grossMargin')} value={fmt(grossProfit)} highlight accent={grossProfit >= 0 ? COLORS.primary : COLORS.rose} />
+          <PLRow label={t('session.operatingExpenses')} value={`-${fmt(totalExpenses)}`} negative />
           <View style={styles.plDivider} />
-          <PLRow label="Résultat net" value={fmt(netProfit)} bold accent={netProfit >= 0 ? COLORS.emerald : COLORS.rose} />
+          <PLRow label={t('session.netResult')} value={fmt(netProfit)} bold accent={netProfit >= 0 ? COLORS.emerald : COLORS.rose} />
         </View>
 
         {/* Comprehensive stock movement table */}
         {activeDrinks.length > 0 && (
           <View style={styles.tableCard}>
             <View style={styles.tableCardHeader}>
-              <Text style={styles.sectionTitle}>Mouvements de stock</Text>
+              <Text style={styles.sectionTitle}>{t('session.stockMovements')}</Text>
               <View style={styles.countBadge}>
-                <Text style={styles.countBadgeText}>{activeDrinks.length} articles</Text>
+                <Text style={styles.countBadgeText}>{t('session.itemsCount', { count: activeDrinks.length })}</Text>
               </View>
             </View>
 
@@ -1016,12 +1050,12 @@ export default function SessionScreen({ navigation }: any) {
               <View style={styles.tableWrapper}>
                 {/* Table header */}
                 <View style={styles.tableHead}>
-                  <Text style={[styles.th, styles.thArticle]}>Article</Text>
-                  <Text style={[styles.th, styles.thNum]}>Début</Text>
-                  <Text style={[styles.th, styles.thNum]}>+Reçu</Text>
-                  <Text style={[styles.th, styles.thNum]}>Dispo</Text>
-                  <Text style={[styles.th, styles.thNum]}>Compté</Text>
-                  <Text style={[styles.th, styles.thNum, styles.thAccent]}>Vendus</Text>
+                  <Text style={[styles.th, styles.thArticle]}>{t('session.thArticle')}</Text>
+                  <Text style={[styles.th, styles.thNum]}>{t('session.thStart')}</Text>
+                  <Text style={[styles.th, styles.thNum]}>{t('session.thReceived')}</Text>
+                  <Text style={[styles.th, styles.thNum]}>{t('session.thAvailable')}</Text>
+                  <Text style={[styles.th, styles.thNum]}>{t('session.thCounted')}</Text>
+                  <Text style={[styles.th, styles.thNum, styles.thAccent]}>{t('session.soldLabel')}</Text>
                   <Text style={[styles.th, styles.thMoney]}>Revenu</Text>
                 </View>
 
@@ -1048,7 +1082,7 @@ export default function SessionScreen({ navigation }: any) {
 
                 {/* Total row */}
                 <View style={styles.tableTotalRow}>
-                  <Text style={[styles.tdTotal, styles.tdArticle]}>TOTAL</Text>
+                  <Text style={[styles.tdTotal, styles.tdArticle]}>{t('session.thTotal')}</Text>
                   <Text style={[styles.tdTotal, styles.tdNum]}>—</Text>
                   <Text style={[styles.tdTotal, styles.tdNum, styles.tdPositive]}>
                     {totalPurchasedUnits > 0 ? `+${fmtNum(totalPurchasedUnits)}` : '—'}
@@ -1066,7 +1100,7 @@ export default function SessionScreen({ navigation }: any) {
         {activeDrinks.length === 0 && (
           <View style={styles.emptyState}>
             <Ionicons name="bar-chart-outline" size={40} color={COLORS.slateLight} />
-            <Text style={styles.emptyStateText}>Aucune vente ni achat enregistré</Text>
+            <Text style={styles.emptyStateText}>{t('session.noActivity')}</Text>
           </View>
         )}
 
@@ -1163,7 +1197,7 @@ export default function SessionScreen({ navigation }: any) {
               <Text style={styles.dateStatusTitle}>{dateLabelLong(selectedDate)}</Text>
               {selectedDate === todayStr && (
                 <View style={styles.todayPill}>
-                  <Text style={styles.todayPillText}>Aujourd'hui</Text>
+                  <Text style={styles.todayPillText}>{t('session.todayLabel')}</Text>
                 </View>
               )}
             </View>
@@ -1175,9 +1209,9 @@ export default function SessionScreen({ navigation }: any) {
                     <Ionicons name="checkmark" size={18} color={COLORS.emerald} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.statusTitle}>Session clôturée</Text>
+                    <Text style={styles.statusTitle}>{t('session.sessionClosed')}</Text>
                     <Text style={styles.statusSub}>
-                      Revenu: {fmt(selectedDateSession.closed.total_revenue)} · Net: {fmt(selectedDateSession.closed.total_profit)}
+                      {t('session.closedStatusSub', { revenue: fmt(selectedDateSession.closed.total_revenue), net: fmt(selectedDateSession.closed.total_profit) })}
                     </Text>
                   </View>
                 </View>
@@ -1188,7 +1222,7 @@ export default function SessionScreen({ navigation }: any) {
                   className="glass-primary"
                 >
                   <Ionicons name="document-text-outline" size={18} color={COLORS.white} />
-                  <Text style={styles.primaryBtnText}>Voir le journal</Text>
+                  <Text style={styles.primaryBtnText}>{t('session.viewJournal')}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={styles.secondaryBtn}
@@ -1197,7 +1231,7 @@ export default function SessionScreen({ navigation }: any) {
                   className="glass-button"
                 >
                   <Ionicons name="create-outline" size={18} color={COLORS.primary} />
-                  <Text style={styles.secondaryBtnText}>Modifier la session</Text>
+                  <Text style={styles.secondaryBtnText}>{t('session.editSession')}</Text>
                 </TouchableOpacity>
               </View>
             ) : selectedDateSession.open ? (
@@ -1207,8 +1241,8 @@ export default function SessionScreen({ navigation }: any) {
                     <Ionicons name="time" size={18} color={COLORS.amber} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.statusTitle}>Session en cours</Text>
-                    <Text style={styles.statusSub}>Continuez l'inventaire</Text>
+                    <Text style={styles.statusTitle}>{t('session.sessionInProgress')}</Text>
+                    <Text style={styles.statusSub}>{t('session.continueInventory')}</Text>
                   </View>
                 </View>
                 <TouchableOpacity
@@ -1222,7 +1256,7 @@ export default function SessionScreen({ navigation }: any) {
                   className="glass-primary"
                 >
                   <Ionicons name="play" size={18} color={COLORS.white} />
-                  <Text style={styles.primaryBtnText}>Reprendre</Text>
+                  <Text style={styles.primaryBtnText}>{t('session.resume')}</Text>
                 </TouchableOpacity>
               </View>
             ) : (
@@ -1232,8 +1266,8 @@ export default function SessionScreen({ navigation }: any) {
                     <Ionicons name="add" size={18} color={COLORS.slate} />
                   </View>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.statusTitle}>Aucune session</Text>
-                    <Text style={styles.statusSub}>Démarrer pour cette date</Text>
+                    <Text style={styles.statusTitle}>{t('session.noSession')}</Text>
+                    <Text style={styles.statusSub}>{t('session.startForDate')}</Text>
                   </View>
                 </View>
                 <TouchableOpacity
@@ -1243,7 +1277,7 @@ export default function SessionScreen({ navigation }: any) {
                   className="glass-primary"
                 >
                   <Ionicons name="add" size={18} color={COLORS.white} />
-                  <Text style={styles.primaryBtnText}>Démarrer la session</Text>
+                  <Text style={styles.primaryBtnText}>{t('session.startSession')}</Text>
                 </TouchableOpacity>
               </View>
             )}
@@ -1258,13 +1292,13 @@ export default function SessionScreen({ navigation }: any) {
             className="glass-primary"
           >
             <Ionicons name="add" size={18} color={COLORS.white} />
-            <Text style={styles.primaryBtnText}>Démarrer la session d'aujourd'hui</Text>
+            <Text style={styles.primaryBtnText}>{t('session.startTodaySession')}</Text>
           </TouchableOpacity>
         )}
 
         {/* Past sessions list */}
         <View style={styles.historySection}>
-          <Text style={styles.historySectionTitle}>Sessions récentes</Text>
+          <Text style={styles.historySectionTitle}>{t('session.recentSessions')}</Text>
           {pastSessions.slice(0, 15).map((s, i) => (
             <TouchableOpacity key={s.id} style={[styles.historyRow, i === 0 && { borderTopWidth: 0 }]} onPress={() => openJournal(s)}>
               <View style={[styles.historyDot, { backgroundColor: s.closed ? COLORS.emeraldLight : COLORS.amberLight }]}>
@@ -1272,7 +1306,7 @@ export default function SessionScreen({ navigation }: any) {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={styles.historyDate}>{dateLabelLong(s.date)}</Text>
-                <Text style={styles.historyMeta}>{fmtNum(s.session_lines?.reduce((a, l) => a + l.sold, 0) ?? 0)} unités vendues</Text>
+                <Text style={styles.historyMeta}>{t('session.unitsSoldCount', { count: fmtNum(s.session_lines?.reduce((a, l) => a + l.sold, 0) ?? 0) })}</Text>
               </View>
               <View style={{ alignItems: 'flex-end', gap: 2 }}>
                 <Text style={styles.historyRevenue}>{fmt(s.total_revenue)}</Text>
@@ -1286,7 +1320,7 @@ export default function SessionScreen({ navigation }: any) {
           {pastSessions.length === 0 && (
             <View style={styles.emptyState}>
               <Ionicons name="calendar-outline" size={40} color={COLORS.slateLight} />
-              <Text style={styles.emptyStateText}>Aucune session clôturée</Text>
+              <Text style={styles.emptyStateText}>{t('session.noClosedSessions')}</Text>
             </View>
           )}
         </View>
@@ -1301,14 +1335,17 @@ export default function SessionScreen({ navigation }: any) {
     const btns: { label: string; secondary?: boolean; onPress: () => void; loading?: boolean }[] = []
 
     if (step === 'purchases') {
-      btns.push({ label: 'Passer', secondary: true, onPress: savePurchases })
-      btns.push({ label: saving ? '' : 'Continuer', onPress: savePurchases, loading: saving })
+      btns.push({ label: t('common.skip'), secondary: true, onPress: savePurchases })
+      btns.push({ label: saving ? '' : t('common.continue'), onPress: savePurchases, loading: saving })
+    } else if (step === 'expenses') {
+      btns.push({ label: t('session.backToPurchases'), secondary: true, onPress: () => setStep('purchases') })
+      btns.push({ label: t('session.countInventory'), onPress: () => setStep('inventory') })
     } else if (step === 'inventory') {
-      btns.push({ label: '← Achats', secondary: true, onPress: () => setStep('purchases') })
-      btns.push({ label: 'Voir le récap', onPress: goToSummary })
+      btns.push({ label: t('session.backToExpenses'), secondary: true, onPress: () => setStep('expenses') })
+      btns.push({ label: t('session.viewSummary'), onPress: goToSummary })
     } else if (step === 'summary') {
-      btns.push({ label: '← Retour', secondary: true, onPress: () => setStep('inventory') })
-      btns.push({ label: saving ? '' : 'Clôturer la journée', onPress: closeSession, loading: saving })
+      btns.push({ label: t('session.backLabel'), secondary: true, onPress: () => setStep('inventory') })
+      btns.push({ label: saving ? '' : t('session.closeDay'), onPress: closeSession, loading: saving })
     }
 
     return (
@@ -1335,7 +1372,7 @@ export default function SessionScreen({ navigation }: any) {
   const content = (
     <View style={styles.container}>
       <ScreenHeader
-        title={step === 'done' || sessionDate === todayStr ? 'Session du jour' : 'Session'}
+        title={step === 'done' || sessionDate === todayStr ? t('session.titleToday') : t('session.title')}
         subtitle={dateLabel(step === 'done' ? todayStr : (openSession?.date ?? sessionDate))}
         onBack={step !== 'done' ? () => setStep('done') : undefined}
         right={step === 'done' && !isDesktop ? (
@@ -1353,6 +1390,7 @@ export default function SessionScreen({ navigation }: any) {
       )}
 
       {step === 'purchases' && renderPurchasesStep()}
+      {step === 'expenses' && renderExpensesStep()}
       {step === 'inventory' && renderInventoryStep()}
       {step === 'summary' && renderSummaryStep()}
       {step === 'done' && renderDoneStep()}
