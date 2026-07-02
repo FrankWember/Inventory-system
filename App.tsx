@@ -44,7 +44,7 @@ import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen'
 import { WelcomeLoadingScreen } from './src/components/WelcomeLoadingScreen'
 import { BarChartItem } from './src/components/SimpleBarChart'
 import OnboardingNavigator from './src/screens/onboarding/OnboardingNavigator'
-import { getOnboardingStatus } from './src/lib/storage'
+import { hasCompletedOnboarding } from './src/services/onboardingService'
 
 const BREAKPOINT = 768
 
@@ -240,11 +240,11 @@ function RootNavigator() {
     }
   }, [loading, user])
 
-  // Check onboarding status when user changes
+  // Check onboarding status when user changes (from database)
   useEffect(() => {
     const checkOnboarding = async () => {
       if (user) {
-        const completed = await getOnboardingStatus()
+        const completed = await hasCompletedOnboarding()
         setOnboardingComplete(completed)
       } else {
         setOnboardingComplete(false)

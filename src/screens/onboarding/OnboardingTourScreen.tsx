@@ -17,8 +17,7 @@ import { TourSlide } from '../../components/onboarding/TourSlide'
 import { OnboardingFinishing, FinishStage } from '../../components/onboarding/OnboardingFinishing'
 import { Button } from '../../components/Button'
 import { showAlert } from '../../utils/appAlert'
-import { updateBarSettings, bulkInsertDrinks } from '../../services/onboardingService'
-import { setOnboardingCompleted } from '../../lib/storage'
+import { updateBarSettings, bulkInsertDrinks, markOnboardingComplete } from '../../services/onboardingService'
 import { FONT, TYPE, SPACE, RADIUS, LIGHT_COLORS } from '../../utils/helpers'
 import { useSettings } from '../../contexts/SettingsContext'
 import { useTranslation } from '../../i18n'
@@ -63,7 +62,8 @@ export default function OnboardingTourScreen({ navigation }: Props) {
       if (!drinksResult.success) throw new Error(drinksResult.error)
 
       setFinishStage('wrap')
-      await setOnboardingCompleted()
+      const onboardingResult = await markOnboardingComplete()
+      if (!onboardingResult.success) throw new Error(onboardingResult.error)
 
       setFinishStage('done')
       reset()

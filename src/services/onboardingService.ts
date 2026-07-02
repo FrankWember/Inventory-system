@@ -159,10 +159,72 @@ export async function updateBarSettings(barName: string): Promise<{ success: boo
 }
 
 /**
+ * Mark onboarding as complete in the database
+ */
+export async function markOnboardingComplete(): Promise<{ success: boolean; error?: string }> {
+  try {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return { success: false, error: 'User not authenticated' }
+    }
+
+    // Update settings table to mark onboarding as complete
+    const { error } = await supabase
+      .from('settings')
+      .update({ onboarding_completed: true })
+      .eq('user_id', user.id)
+
+    if (error) {
+      console.error('Error marking onboarding complete:', error)
+      return { success: false, error: error.message }
+    }
+
+    // Also update AsyncStorage for caching
+    await setOnboardingCompleted()
+
+    return { success: true }
+  } catch (error: any) {
+    console.error('Unexpected error marking onboarding complete:', error)
+    return { success: false, error: error.message || 'An unexpected error occurred' }
+  }
+}
+
+/**
+ * Check if user has completed onboarding (from database)
+ */
+export async function hasCompletedOnboarding(): Promise<boolean> {
+  try {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      return false
+    }
+
+    // Query settings table for onboarding status
+    const { data, error } = await supabase
+      .from('settings')
+      .select('onboarding_completed')
+      .eq('user_id', user.id)
+      .single()
+
+    if (error) {
+      console.error('Error checking onboarding status:', error)
+      return false
+    }
+
+    return data?.onboarding_completed ?? false
+  } catch (error: any) {
+    console.error('Unexpected error checking onboarding status:', error)
+    return false
+  }
+}
+
+/**
  * Complete the onboarding process
  * - Updates bar name
  * - Inserts all drinks
- * - Marks onboarding as complete
+ * - Marks onboarding as complete in database and local storage
  */
 export async function completeOnboarding(
   barName: string,
@@ -182,8 +244,11 @@ export async function completeOnboarding(
       return { success: false, error: `Failed to add drinks: ${drinksResult.error}` }
     }
 
-    // Step 3: Mark onboarding complete
-    await setOnboardingCompleted()
+    // Step 3: Mark onboarding complete (both database and AsyncStorage)
+    const onboardingResult = await markOnboardingComplete()
+    if (!onboardingResult.success) {
+      return { success: false, error: `Failed to mark onboarding complete: ${onboardingResult.error}` }
+    }
 
     return {
       success: true,
