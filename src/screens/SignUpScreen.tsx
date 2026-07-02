@@ -25,7 +25,7 @@ const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export default function SignUpScreen({ navigation }: SignUpScreenProps) {
   const { t } = useTranslation()
-  const { signUp, signInWithPhone } = useAuth()
+  const { signUp } = useAuth()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [phone, setPhone] = useState('')
@@ -81,8 +81,7 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
     setError(null)
     setLoading(true)
 
-    // Always pass both email and phone - the system stores email in metadata
-    const { error } = await signUp(
+    const { error} = await signUp(
       email.trim(),
       password,
       name.trim(),
@@ -96,13 +95,9 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
       return
     }
 
-    // Since we're using phone as primary auth, sign in automatically
-    const { error: signInError } = await signInWithPhone(phone, password)
-    if (signInError) {
-      setLoading(false)
-      setSuccessMessage(t('auth.accountCreatedSignIn'))
-    }
-    // If signIn succeeds, AuthContext will update and navigate automatically
+    // Show success message
+    setLoading(false)
+    setSuccessMessage(t('auth.accountCreatedSignIn'))
   }
 
   return (

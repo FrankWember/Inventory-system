@@ -64,6 +64,8 @@ export interface Settings {
   user_id: string
   bar_name: string
   currency: string
+  onboarding_completed: boolean
+  created_at: string
 }
 
 // Supabase Database Types
@@ -92,8 +94,8 @@ export interface Database {
       }
       settings: {
         Row: Settings
-        Insert: Omit<Settings, 'id'>
-        Update: Partial<Omit<Settings, 'id'>>
+        Insert: Omit<Settings, 'id' | 'created_at'>
+        Update: Partial<Omit<Settings, 'id' | 'created_at'>>
       }
     }
   }

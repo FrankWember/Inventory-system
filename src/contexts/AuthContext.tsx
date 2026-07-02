@@ -124,22 +124,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithPhone = async (phone: string, password: string) => {
     try {
-      const phoneEmail = `+237${phone}@phone.bartrack.app`
-      const { error } = await supabase.auth.signInWithPassword({ email: phoneEmail, password })
-      if (error) {
-        const parsed = parseAuthError(error)
-        // A phone account has no inbox — "confirm your email" is impossible
-        // advice. Surface the real problem instead.
-        if (parsed.type === 'email_not_confirmed') {
-          return {
-            error: {
-              message: t('auth.errPhonePendingActivation'),
-              type: 'email_not_confirmed' as const,
-            },
-          }
-        }
-        return { error: parsed }
+      // Look up user by phone number using database function
+      const formattedPhone = `+237${phone}`
+      const { data: email, error: lookupError } = await supabase
+        .rpc('get_email_by_phone', { phone_number: formattedPhone })
+
+      if (lookupError || !email) {
+        return { error: { message: t('auth.errUserNotFound'), type: 'user_not_found' as const } }
       }
+
+      // Sign in with the found email
+      const { error } = await supabase.auth.signInWithPassword({
+        email,
+        password
+      })
+      if (error) return { error: parseAuthError(error) }
       return { error: null }
     } catch (error) {
       return { error: parseAuthError(error) }
@@ -148,20 +147,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, name?: string, phone?: string) => {
     try {
-      const authEmail = phone ? `+237${phone}@phone.bartrack.app` : email
       const redirectUrl = getRedirectUrl()
 
       const { error } = await supabase.auth.signUp({
-        email: authEmail,
+        email,
         password,
         options: {
-          // Phone accounts use a synthetic inbox-less address — never send a
-          // confirmation link there (see supabase-auto-confirm-phone.sql).
-          emailRedirectTo: phone ? undefined : (redirectUrl || undefined),
+          emailRedirectTo: redirectUrl || undefined,
           data: {
             display_name: name,
             phone: phone ? `+237${phone}` : undefined,
-            actual_email: phone ? email : undefined,
           },
         },
       })
