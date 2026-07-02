@@ -41,6 +41,7 @@ import SignInScreen from './src/screens/SignInScreen'
 import SignUpScreen from './src/screens/SignUpScreen'
 import AuthScreen from './src/screens/AuthScreen'
 import ForgotPasswordScreen from './src/screens/ForgotPasswordScreen'
+import ResetPasswordScreen from './src/screens/ResetPasswordScreen'
 import { WelcomeLoadingScreen } from './src/components/WelcomeLoadingScreen'
 import { BarChartItem } from './src/components/SimpleBarChart'
 import OnboardingNavigator, { OnboardingStackParamList } from './src/screens/onboarding/OnboardingNavigator'
@@ -97,6 +98,7 @@ export type RootStackParamList = {
   SignIn: { mode?: 'signin' } | undefined
   SignUp: { mode?: 'signup' } | undefined
   ForgotPassword: undefined
+  ResetPassword: { token?: string } | undefined
   Onboarding: NavigatorScreenParams<OnboardingStackParamList>
   MainTabs: undefined
   EditDrink: { drinkId: string; hideHeader?: boolean }
@@ -135,6 +137,7 @@ const linking = Platform.OS === 'web' ? {
       SignIn: 'signin',
       SignUp: 'signup',
       ForgotPassword: 'forgot-password',
+      ResetPassword: 'reset-password',
       Onboarding: {
         path: 'onboarding',
         screens: {
@@ -327,6 +330,7 @@ function RootNavigator() {
             </>
           )}
           <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} options={{ headerShown: false }} />
         </>
       ) : (
         <>

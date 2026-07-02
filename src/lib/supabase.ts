@@ -1,7 +1,7 @@
 // Polyfills required for Supabase in React Native
 import 'react-native-url-polyfill/auto'
 import { createClient } from '@supabase/supabase-js'
-import AsyncStorage from '@react-native-async-storage/async-storage'
+import { getValidAccessToken } from './authTokens'
 
 const supabaseUrl = process.env.EXPO_PUBLIC_SUPABASE_URL
 const supabaseAnonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY
@@ -14,11 +14,11 @@ if (!supabaseUrl || !supabaseAnonKey) {
   )
 }
 
+// We do NOT use Supabase Auth. Instead we mint our own JWTs (Edge Functions,
+// signed with the project JWT secret) and hand them to PostgREST via the
+// `accessToken` option. This disables supabase.auth.* and makes every DB request
+// carry our token, so RLS `auth.uid()` keeps isolating each user's rows.
+// getValidAccessToken() returns the anon key when logged out.
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    storage: AsyncStorage,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
+  accessToken: async () => await getValidAccessToken(),
 })

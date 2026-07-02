@@ -1,17 +1,31 @@
 import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
-import { Session, User } from '@supabase/supabase-js'
-import { supabase } from '../lib/supabase'
-import { getRedirectUrl } from '../utils/config'
+import * as authClient from '../lib/authClient'
+import type { AppUser } from '../lib/authTokens'
 import { t } from '../i18n'
+
+// Backwards-compatible session shape (screens only ever read `user`).
+export interface AppSession {
+  user: AppUser
+}
 
 interface AuthError {
   message: string
-  type?: 'invalid_credentials' | 'user_not_found' | 'email_not_confirmed' | 'weak_password' | 'email_exists' | 'phone_exists' | 'network_error' | 'unknown'
+  type?:
+    | 'invalid_credentials'
+    | 'user_not_found'
+    | 'email_not_confirmed'
+    | 'weak_password'
+    | 'email_exists'
+    | 'phone_exists'
+    | 'invalid_email'
+    | 'invalid_token'
+    | 'network_error'
+    | 'unknown'
 }
 
 interface AuthContextType {
-  session: Session | null
-  user: User | null
+  session: AppSession | null
+  user: AppUser | null
   loading: boolean
   isWelcomeLoading: boolean
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>
@@ -19,103 +33,83 @@ interface AuthContextType {
   signUp: (email: string, password: string, name?: string, phone?: string) => Promise<{ error: AuthError | null }>
   signOut: () => Promise<void>
   resetPassword: (email: string) => Promise<{ error: AuthError | null }>
+  confirmPasswordReset: (token: string, password: string) => Promise<{ error: AuthError | null }>
   updateProfile: (displayName: string) => Promise<{ error: AuthError | null }>
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
+// Maps Edge Function error codes/messages to localized, user-facing strings.
 function parseAuthError(error: any): AuthError {
   if (!error) return { message: t('auth.errUnknown'), type: 'unknown' }
 
-  const errorMessage = error.message?.toLowerCase() || ''
+  const type = error.type as string | undefined
+  const raw = (error.message || '').toString().toLowerCase()
 
-  if (errorMessage.includes('invalid login credentials') ||
-      errorMessage.includes('invalid password') ||
-      errorMessage.includes('wrong password')) {
+  const byType: Record<string, AuthError> = {
+    invalid_credentials: { message: t('auth.errInvalidCredentials'), type: 'invalid_credentials' },
+    user_not_found: { message: t('auth.errUserNotFound'), type: 'user_not_found' },
+    weak_password: { message: t('auth.errWeakPassword'), type: 'weak_password' },
+    email_exists: { message: t('auth.errAccountExists'), type: 'email_exists' },
+    phone_exists: { message: t('auth.errAccountExists'), type: 'phone_exists' },
+    invalid_email: { message: t('auth.errGeneric'), type: 'invalid_email' },
+    invalid_refresh: { message: t('auth.errInvalidCredentials'), type: 'invalid_credentials' },
+    invalid_token: { message: t('auth.errGeneric'), type: 'invalid_token' },
+    network_error: { message: t('auth.errNetwork'), type: 'network_error' },
+  }
+  if (type && byType[type]) return byType[type]
+
+  // Fallback: string matching (network errors, thrown exceptions, etc.).
+  if (raw.includes('invalid') && raw.includes('credential')) {
     return { message: t('auth.errInvalidCredentials'), type: 'invalid_credentials' }
   }
-  if (errorMessage.includes('user not found') || errorMessage.includes('no user found')) {
-    return { message: t('auth.errUserNotFound'), type: 'user_not_found' }
-  }
-  if (errorMessage.includes('email not confirmed') || errorMessage.includes('email address not confirmed')) {
-    return { message: t('auth.errEmailNotConfirmed'), type: 'email_not_confirmed' }
-  }
-  if (errorMessage.includes('password') && errorMessage.includes('weak')) {
-    return { message: t('auth.errWeakPassword'), type: 'weak_password' }
-  }
-  if (errorMessage.includes('user already registered') ||
-      errorMessage.includes('email already registered') ||
-      errorMessage.includes('already exists')) {
-    return { message: t('auth.errAccountExists'), type: 'email_exists' }
-  }
-  if (errorMessage.includes('network') || errorMessage.includes('fetch') || errorMessage.includes('timeout')) {
+  if (raw.includes('network') || raw.includes('fetch') || raw.includes('timeout')) {
     return { message: t('auth.errNetwork'), type: 'network_error' }
   }
-
   return { message: error.message || t('auth.errGeneric'), type: 'unknown' }
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null)
-  const [user, setUser] = useState<User | null>(null)
+  const [user, setUser] = useState<AppUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [isWelcomeLoading, setIsWelcomeLoading] = useState(false)
-  // Tracks whether the app started with an existing session (page refresh vs fresh login)
-  const isRestoredSession = useRef(false)
+  const welcomeTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   useEffect(() => {
-    let welcomeTimer: ReturnType<typeof setTimeout> | null = null
-
-    // Get initial session — if one exists, this is a page refresh, not a fresh login
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      if (session) {
-        isRestoredSession.current = true
-      }
-      setSession(session)
-      setUser(session?.user ?? null)
-      setLoading(false)
-    })
-
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (_event === 'SIGNED_IN' && session && !isRestoredSession.current) {
-        // Fresh login (not a page refresh or token refresh)
-        isRestoredSession.current = true
-        setIsWelcomeLoading(true)
-        welcomeTimer = setTimeout(() => {
-          setIsWelcomeLoading(false)
-          setSession(session)
-          setUser(session?.user ?? null)
-        }, 1500)
-      } else {
-        // Page refresh, token refresh, sign-out, etc.
-        if (_event === 'SIGNED_IN') {
-          isRestoredSession.current = true
-        }
-        if (_event === 'SIGNED_OUT') {
-          isRestoredSession.current = false
-          // A pending welcome timer would re-apply the stale session after sign-out
-          if (welcomeTimer) {
-            clearTimeout(welcomeTimer)
-            welcomeTimer = null
-          }
-          setIsWelcomeLoading(false)
-        }
-        setSession(session)
-        setUser(session?.user ?? null)
-      }
-      setLoading(false)
-    })
+    let cancelled = false
+    // Restore an existing session (page refresh / app relaunch). No welcome
+    // splash here — that only shows on a fresh login.
+    authClient
+      .restoreSession()
+      .then((restored) => {
+        if (!cancelled) setUser(restored)
+      })
+      .catch(() => {
+        if (!cancelled) setUser(null)
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
 
     return () => {
-      if (welcomeTimer) clearTimeout(welcomeTimer)
-      subscription.unsubscribe()
+      cancelled = true
+      if (welcomeTimer.current) clearTimeout(welcomeTimer.current)
     }
   }, [])
 
+  // Fresh login → show the welcome splash for 1.5s while data warms up.
+  const beginFreshSession = (freshUser: AppUser) => {
+    if (welcomeTimer.current) clearTimeout(welcomeTimer.current)
+    setUser(freshUser)
+    setIsWelcomeLoading(true)
+    welcomeTimer.current = setTimeout(() => setIsWelcomeLoading(false), 1500)
+  }
+
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password })
-      if (error) return { error: parseAuthError(error) }
+      const { user: signedIn, error } = await authClient.signInWithEmail(email, password)
+      if (error || !signedIn) return { error: parseAuthError(error) }
+      beginFreshSession(signedIn)
       return { error: null }
     } catch (error) {
       return { error: parseAuthError(error) }
@@ -124,21 +118,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signInWithPhone = async (phone: string, password: string) => {
     try {
-      // Look up user by phone number using database function
-      const formattedPhone = `+237${phone}`
-      const { data: email, error: lookupError } = await supabase
-        .rpc('get_email_by_phone', { phone_number: formattedPhone })
-
-      if (lookupError || !email) {
-        return { error: { message: t('auth.errUserNotFound'), type: 'user_not_found' as const } }
-      }
-
-      // Sign in with the found email
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      })
-      if (error) return { error: parseAuthError(error) }
+      // Local phone numbers are stored/looked up with the +237 country code.
+      const { user: signedIn, error } = await authClient.signInWithPhone(`+237${phone}`, password)
+      if (error || !signedIn) return { error: parseAuthError(error) }
+      beginFreshSession(signedIn)
       return { error: null }
     } catch (error) {
       return { error: parseAuthError(error) }
@@ -147,19 +130,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signUp = async (email: string, password: string, name?: string, phone?: string) => {
     try {
-      const redirectUrl = getRedirectUrl()
-
-      const { error } = await supabase.auth.signUp({
+      const { error } = await authClient.signUp(
         email,
         password,
-        options: {
-          emailRedirectTo: redirectUrl || undefined,
-          data: {
-            display_name: name,
-            phone: phone ? `+237${phone}` : undefined,
-          },
-        },
-      })
+        name,
+        phone ? `+237${phone}` : undefined,
+      )
       if (error) return { error: parseAuthError(error) }
       return { error: null }
     } catch (error) {
@@ -168,15 +144,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }
 
   const signOut = async () => {
-    await supabase.auth.signOut()
+    if (welcomeTimer.current) clearTimeout(welcomeTimer.current)
+    setIsWelcomeLoading(false)
+    await authClient.signOut()
+    setUser(null)
   }
 
   const resetPassword = async (email: string) => {
     try {
-      const redirectUrl = getRedirectUrl()
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: redirectUrl || undefined,
-      })
+      await authClient.requestPasswordReset(email)
+      return { error: null }
+    } catch (error) {
+      return { error: parseAuthError(error) }
+    }
+  }
+
+  const confirmPasswordReset = async (token: string, password: string) => {
+    try {
+      const { error } = await authClient.confirmPasswordReset(token, password)
       if (error) return { error: parseAuthError(error) }
       return { error: null }
     } catch (error) {
@@ -186,13 +171,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateProfile = async (displayName: string) => {
     try {
-      const { error } = await supabase.auth.updateUser({
-        data: { display_name: displayName },
-      })
+      const { user: updated, error } = await authClient.updateProfile(displayName)
       if (error) return { error: parseAuthError(error) }
-      // Refresh user state
-      const { data: { user: updatedUser } } = await supabase.auth.getUser()
-      if (updatedUser) setUser(updatedUser)
+      if (updated) setUser(updated)
       return { error: null }
     } catch (error) {
       return { error: parseAuthError(error) }
@@ -202,7 +183,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider
       value={{
-        session,
+        session: user ? { user } : null,
         user,
         loading,
         isWelcomeLoading,
@@ -211,6 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         signUp,
         signOut,
         resetPassword,
+        confirmPasswordReset,
         updateProfile,
       }}
     >

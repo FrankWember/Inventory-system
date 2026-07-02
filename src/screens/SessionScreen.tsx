@@ -14,6 +14,7 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { Calendar, LocaleConfig } from 'react-native-calendars'
 import { supabase } from '../lib/supabase'
+import { getCurrentUser } from '../lib/authClient'
 import { Drink, Category, Session, Expense } from '../types'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { SessionExpensesPanel } from '../components/SessionExpensesPanel'
@@ -513,7 +514,7 @@ export default function SessionScreen({ navigation }: any) {
     setSaving(true)
     try {
       // Get current user ID
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = await getCurrentUser()
       if (!user) {
         throw new Error('User not authenticated')
       }

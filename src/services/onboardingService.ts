@@ -1,4 +1,5 @@
 import { supabase } from '../lib/supabase'
+import { getCurrentUser } from '../lib/authClient'
 import { setOnboardingCompleted, setBarInfo } from '../lib/storage'
 import { DrinkTemplate } from '../data/cameroonianDrinks'
 import { DrinkConfig } from '../contexts/OnboardingContext'
@@ -63,7 +64,7 @@ export async function bulkInsertDrinks(
 ): Promise<BulkInsertResult> {
   try {
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) {
       return { success: false, error: 'User not authenticated' }
     }
@@ -132,7 +133,7 @@ export async function bulkInsertDrinks(
 export async function updateBarSettings(barName: string): Promise<{ success: boolean; error?: string }> {
   try {
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) {
       return { success: false, error: 'User not authenticated' }
     }
@@ -164,7 +165,7 @@ export async function updateBarSettings(barName: string): Promise<{ success: boo
 export async function markOnboardingComplete(): Promise<{ success: boolean; error?: string }> {
   try {
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) {
       return { success: false, error: 'User not authenticated' }
     }
@@ -196,7 +197,7 @@ export async function markOnboardingComplete(): Promise<{ success: boolean; erro
 export async function hasCompletedOnboarding(): Promise<boolean> {
   try {
     // Get current user
-    const { data: { user } } = await supabase.auth.getUser()
+    const user = await getCurrentUser()
     if (!user) {
       return false
     }

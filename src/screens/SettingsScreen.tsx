@@ -27,7 +27,7 @@ import { useTranslation } from '../i18n'
 
 export default function SettingsScreen() {
   const { t } = useTranslation()
-  const { user, signOut, updateProfile } = useAuth()
+  const { user, signOut, updateProfile, resetPassword } = useAuth()
   const { theme, language, notificationsEnabled, barInfo, colors, setTheme, setLanguage, setNotificationsEnabled, updateBarInfo } = useSettings()
 
   const [editModal, setEditModal] = useState<null | 'barName' | 'displayName'>(null)
@@ -229,7 +229,7 @@ export default function SettingsScreen() {
           text: t('settings.send'),
           onPress: async () => {
             try {
-              const { error } = await supabase.auth.resetPasswordForEmail(emailToReset)
+              const { error } = await resetPassword(emailToReset)
               if (error) throw error
               showAlert(t('common.success'), t('settings.passwordResetSent'))
             } catch {

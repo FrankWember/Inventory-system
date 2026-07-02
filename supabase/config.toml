@@ -1,0 +1,27 @@
+# Supabase project config (used by the Supabase CLI for Edge Function deploys).
+# The auth-* functions are public entry points that do their OWN auth (password
+# check or our JWT verification), so the platform's gateway JWT check is turned
+# off for them. Do NOT expose any function here that assumes a verified caller.
+
+project_id = "bartrack"
+
+[functions.auth-signup]
+verify_jwt = false
+
+[functions.auth-login]
+verify_jwt = false
+
+[functions.auth-refresh]
+verify_jwt = false
+
+[functions.auth-logout]
+verify_jwt = false
+
+[functions.auth-update-profile]
+verify_jwt = false
+
+[functions.auth-request-reset]
+verify_jwt = false
+
+[functions.auth-confirm-reset]
+verify_jwt = false

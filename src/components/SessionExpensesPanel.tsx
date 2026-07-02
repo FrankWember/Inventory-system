@@ -8,6 +8,7 @@ import {
 } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { supabase } from '../lib/supabase'
+import { getCurrentUser } from '../lib/authClient'
 import { showAlert } from '../utils/appAlert'
 import { Expense, ExpenseCategory } from '../types'
 import { COLORS, fmt } from '../utils/helpers'
@@ -63,7 +64,7 @@ export function SessionExpensesPanel({ date, expenses, onChange, readOnly = fals
     setSaving(true)
     try {
       // Get current user ID
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = await getCurrentUser()
       if (!user) {
         throw new Error('User not authenticated')
       }

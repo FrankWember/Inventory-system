@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from 'react-native'
 import { supabase } from '../lib/supabase'
+import { getCurrentUser } from '../lib/authClient'
 import { showAlert } from '../utils/appAlert'
 import { Card } from '../components/Card'
 import { Input } from '../components/Input'
@@ -65,7 +66,7 @@ export default function AddDrinkScreen({ navigation, route }: any) {
     // Check if this drink already exists in the database
     try {
       // Get current user ID
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = await getCurrentUser()
       if (!user) return
 
       const { data: existingDrinks, error } = await supabase
@@ -140,7 +141,7 @@ export default function AddDrinkScreen({ navigation, route }: any) {
     setSaving(true)
     try {
       // Get current user ID
-      const { data: { user } } = await supabase.auth.getUser()
+      const user = await getCurrentUser()
       if (!user) {
         throw new Error('User not authenticated')
       }
