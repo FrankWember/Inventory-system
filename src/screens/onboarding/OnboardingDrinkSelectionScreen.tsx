@@ -45,7 +45,8 @@ export default function OnboardingDrinkSelectionScreen({ navigation }: Props) {
       const q = searchQuery.toLowerCase()
       drinks = drinks.filter(d => d.name.toLowerCase().includes(q))
     }
-    return drinks
+    // Sort alphabetically by name
+    return drinks.sort((a, b) => a.name.localeCompare(b.name))
   }, [selectedCategory, searchQuery])
 
   const toggleDrink = (drink: DrinkTemplate) => {
@@ -213,6 +214,7 @@ function makeStyles(c: Colors) {
     searchInput: {
       flex: 1,
       ...TYPE.bodyMedium,
+      fontSize: 16, // Prevent iOS zoom on focus (must be >= 16px)
       color: c.slateDark,
       ...({ outlineStyle: 'none' } as object),
     },

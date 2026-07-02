@@ -31,13 +31,27 @@ export default function OnboardingStockOverviewScreen({ navigation }: Props) {
 
   const categoriesWithDrinks = Object.values(drinksByCategory).filter(d => d.length > 0).length
 
-  const totalPotentialValue = useMemo(() => {
+  // Calculate total stock quantity across all drinks
+  const totalStockQuantity = useMemo(() => {
     let total = 0
     state.selectedDrinks.forEach(d => {
       const c = state.drinkConfigs.get(d.name)
-      if (c) total += c.cassierCost
+      if (c && c.initialStock) total += c.initialStock
     })
     return total
+  }, [state.selectedDrinks, state.drinkConfigs])
+
+  // Calculate total stock value (quantity * unit cost)
+  const totalStockValue = useMemo(() => {
+    let total = 0
+    state.selectedDrinks.forEach(d => {
+      const c = state.drinkConfigs.get(d.name)
+      if (c && c.initialStock && c.cassierCost && c.cassierQuantity) {
+        const costPerUnit = c.cassierCost / c.cassierQuantity
+        total += c.initialStock * costPerUnit
+      }
+    })
+    return Math.round(total)
   }, [state.selectedDrinks, state.drinkConfigs])
 
   return (
@@ -57,8 +71,8 @@ export default function OnboardingStockOverviewScreen({ navigation }: Props) {
         {/* Summary tiles */}
         <View style={styles.stats}>
           <StatTile value={String(state.selectedDrinks.length)} label={t('onboarding.reviewStatDrinks')} styles={styles} />
-          <StatTile value={String(categoriesWithDrinks)} label={t('onboarding.reviewStatCategories')} styles={styles} />
-          <StatTile value={fmt(totalPotentialValue)} label={t('onboarding.reviewStatValue')} styles={styles} />
+          <StatTile value={String(totalStockQuantity)} label={t('onboarding.reviewStatStock')} styles={styles} />
+          <StatTile value={fmt(totalStockValue)} label={t('onboarding.reviewStatValue')} styles={styles} />
         </View>
 
         <Text style={styles.sectionTitle}>{t('onboarding.reviewYourDrinks')}</Text>
@@ -132,15 +146,18 @@ function makeStyles(c: Colors) {
       alignItems: 'center',
     },
     statValue: {
-      ...TYPE.h1,
+      fontSize: 24,
+      fontFamily: FONT.bold,
       color: c.primary,
       marginBottom: SPACE.xs,
       fontVariant: ['tabular-nums'],
     },
     statLabel: {
-      ...TYPE.small,
+      fontSize: 11,
+      fontFamily: FONT.medium,
       color: c.slate,
       textAlign: 'center',
+      lineHeight: 14,
     },
     sectionTitle: {
       ...TYPE.h2,

@@ -56,7 +56,7 @@ const styles = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: 10,
     paddingHorizontal: 14,
-    fontSize: 14,
+    fontSize: 16, // Prevent iOS zoom on focus (must be >= 16px)
     fontFamily: FONT.medium,
     color: COLORS.slateDark,
     backgroundColor: COLORS.white,
