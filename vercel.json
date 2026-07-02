@@ -5,10 +5,15 @@
   "cleanUrls": true,
   "rewrites": [
     {
-      "source": "/((?!_expo/|assets/|manifest.json|metadata.json|favicon.ico).*)",
+      "source": "/",
+      "destination": "/index.html"
+    },
+    {
+      "source": "/:path((?!_expo|assets|.*\\.).*)",
       "destination": "/index.html"
     }
   ],
+  "trailingSlash": false,
   "headers": [
     {
       "source": "/_expo/(.*)",
