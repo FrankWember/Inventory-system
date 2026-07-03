@@ -19,6 +19,7 @@ import { applyGlobalFont } from './src/styles/applyFonts'
 import { ResponsiveLayout } from './src/components/ResponsiveLayout'
 import { AuthProvider, useAuth } from './src/contexts/AuthContext'
 import { SettingsProvider, useSettings } from './src/contexts/SettingsContext'
+import { AlertHost } from './src/components/AlertHost'
 import { t, useTranslation } from './src/i18n'
 import { saveNavigationState, loadNavigationState } from './src/utils/navigationPersistence'
 
@@ -404,6 +405,7 @@ export default function App() {
           >
             <RootNavigator />
           </NavigationContainer>
+          <AlertHost />
         </SettingsProvider>
       </AuthProvider>
     </SafeAreaProvider>

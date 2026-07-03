@@ -325,6 +325,7 @@ const sp = StyleSheet.create({
 // ─── Main screen ──────────────────────────────────────────────────────────────
 export default function SessionScreen({ navigation }: any) {
   const { colors } = useSettings()
+  const styles = useMemo(() => makeStyles(colors), [colors])
   const { t, lang } = useTranslation()
   // Keep the calendar's locale in sync with the app language on every render.
   LocaleConfig.defaultLocale = lang
@@ -1529,7 +1530,7 @@ const plr = StyleSheet.create({
 })
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
+const makeStyles = (colors: typeof LIGHT_COLORS) => StyleSheet.create({
   container: { flex: 1 },
 
   // step hint
@@ -1537,65 +1538,74 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-start',
     gap: 8,
+    backgroundColor: colors.primaryLight,
     paddingHorizontal: 16,
     paddingVertical: 8,
   },
-  stepHintText: { flex: 1, fontSize: 12, fontFamily: FONT.regular, lineHeight: 16 },
+  stepHintText: { flex: 1, fontSize: 12, fontFamily: FONT.regular, color: colors.primary, lineHeight: 16 },
 
   // search + filter
   toolbar: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 2 },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: colors.white,
     borderRadius: 10,
     paddingHorizontal: 10,
     paddingVertical: 6,
     gap: 8,
     borderWidth: 1,
+    borderColor: colors.border,
   },
-  searchInput: { flex: 1, fontSize: 14, fontFamily: FONT.regular},
+  searchInput: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: colors.slateDark },
   catScroll: { maxHeight: 38 },
   catScrollContent: { gap: 6, paddingHorizontal: 12, paddingVertical: 4 },
   catChip: {
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 20,
+    backgroundColor: colors.white,
     borderWidth: 1,
+    borderColor: colors.border,
   },
-  catChipActive: {},
-  catChipText: { fontSize: 12, fontFamily: FONT.semibold },
-  catChipTextActive: {},
+  catChipActive: { backgroundColor: colors.primary, borderColor: colors.primary },
+  catChipText: { fontSize: 12, fontFamily: FONT.semibold, color: colors.slate },
+  catChipTextActive: { color: colors.white },
 
   listContent: { paddingHorizontal: 12, paddingTop: 4 },
-  groupLabel: { fontSize: 12, fontFamily: FONT.bold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 4 },
+  groupLabel: { fontSize: 12, fontFamily: FONT.bold, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6, marginTop: 4 },
 
   // PURCHASE CARDS
   purchaseCard: {
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
+    borderColor: colors.border,
     ...Platform.select({ web: { boxShadow: '0 1px 4px rgba(0,0,0,0.05)' } }),
   },
   purchaseCardActive: {
+    borderColor: colors.primary,
     ...Platform.select({ web: { boxShadow: '0 2px 8px rgba(24,119,242,0.12)' } }),
   },
   purchaseCardTop: { flexDirection: 'row', alignItems: 'flex-start', gap: 10, marginBottom: 10 },
-  drinkName: { fontSize: 15, fontFamily: FONT.semibold, marginBottom: 2, flexShrink: 1 },
-  drinkCat: { fontSize: 11, fontFamily: FONT.medium, textTransform: 'uppercase', letterSpacing: 0.5 },
+  drinkName: { fontSize: 15, fontFamily: FONT.semibold, color: colors.slateDark, marginBottom: 2, flexShrink: 1 },
+  drinkCat: { fontSize: 11, fontFamily: FONT.medium, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.5 },
   stockTag: {
     alignItems: 'center',
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 8,
+    backgroundColor: colors.slateLight,
     minWidth: 70,
   },
-  stockTagLabel: { fontSize: 9, fontFamily: FONT.bold, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 },
-  stockTagValue: { fontSize: 12, fontFamily: FONT.bold},
-  dividerLight: { height: 1, marginVertical: 8 },
+  stockTagLabel: { fontSize: 9, fontFamily: FONT.bold, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 },
+  stockTagValue: { fontSize: 12, fontFamily: FONT.bold, color: colors.slateDark },
+  dividerLight: { height: 1, backgroundColor: colors.border, marginVertical: 8 },
   purchaseInputRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
-  inputLabel: { fontSize: 12, fontFamily: FONT.medium, marginBottom: 2 },
-  unitConversion: { fontSize: 11, fontFamily: FONT.regular, marginTop: 2 },
+  inputLabel: { fontSize: 12, fontFamily: FONT.medium, color: colors.slate, marginBottom: 2 },
+  unitConversion: { fontSize: 11, fontFamily: FONT.regular, color: colors.primary, marginTop: 2 },
   afterDelivery: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1603,18 +1613,22 @@ const styles = StyleSheet.create({
     marginTop: 8,
     paddingTop: 8,
     borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
-  afterDeliveryText: { fontSize: 12, fontFamily: FONT.semibold},
+  afterDeliveryText: { fontSize: 12, fontFamily: FONT.semibold, color: colors.emerald },
 
   // INVENTORY CARDS
   inventoryCard: {
+    backgroundColor: colors.white,
     borderRadius: 12,
     padding: 12,
     marginBottom: 8,
     borderWidth: 1,
+    borderColor: colors.border,
     ...Platform.select({ web: { boxShadow: '0 1px 4px rgba(0,0,0,0.05)' } }),
   },
   inventoryCardActive: {
+    borderColor: colors.primary + '60',
     ...Platform.select({ web: { boxShadow: '0 2px 8px rgba(24,119,242,0.1)' } }),
   },
   inventoryMainRow: {
@@ -1651,13 +1665,16 @@ const styles = StyleSheet.create({
   mobileBreakdownValue: {
     fontSize: 11,
     fontFamily: FONT.semibold,
+    color: colors.slateDark,
     fontVariant: ['tabular-nums'],
   },
   mobileBreakdownValuePositive: {
+    color: colors.emerald,
   },
   mobileBreakdownOperator: {
     fontSize: 10,
     fontFamily: FONT.medium,
+    color: colors.slate,
     marginHorizontal: 2,
   },
   mobileStockTotal: {
@@ -1665,11 +1682,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     paddingHorizontal: 10,
     paddingVertical: 6,
+    backgroundColor: colors.slateLight + '40',
     borderRadius: 8,
   },
   mobileStockTotalLabel: {
     fontSize: 8,
     fontFamily: FONT.bold,
+    color: colors.slate,
     textTransform: 'uppercase',
     letterSpacing: 0.3,
     marginBottom: 2,
@@ -1677,17 +1696,21 @@ const styles = StyleSheet.create({
   mobileStockTotalValue: {
     fontSize: 14,
     fontFamily: FONT.bold,
+    color: colors.slateDark,
     fontVariant: ['tabular-nums'],
   },
   inventoryDivider: {
     height: 1,
+    backgroundColor: colors.border,
     marginVertical: 4,
   },
   inventoryRight: {
     borderWidth: 1.5,
+    borderColor: colors.primary + '20',
     borderRadius: 12,
     padding: 12,
     gap: 8,
+    backgroundColor: colors.primaryLight + '15',
     minWidth: 280,
     ...Platform.select({
       web: { boxShadow: '0 1px 3px rgba(24,119,242,0.08)' },
@@ -1697,6 +1720,7 @@ const styles = StyleSheet.create({
   inventoryStockInfo: {
     fontSize: 11,
     fontFamily: FONT.medium,
+    color: colors.slate,
     marginTop: 3
   },
   stockBreakdown: {
@@ -1711,6 +1735,7 @@ const styles = StyleSheet.create({
     gap: 1,
   },
   stockItemTotal: {
+    backgroundColor: colors.slateLight + '40',
     paddingHorizontal: 6,
     paddingVertical: 2,
     borderRadius: 6,
@@ -1718,27 +1743,33 @@ const styles = StyleSheet.create({
   stockItemLabel: {
     fontSize: 8,
     fontFamily: FONT.medium,
+    color: colors.slate,
     textTransform: 'uppercase',
     letterSpacing: 0.2,
   },
   stockItemValue: {
     fontSize: 12,
     fontFamily: FONT.semibold,
+    color: colors.slateDark,
     fontVariant: ['tabular-nums'],
   },
   stockItemValuePositive: {
+    color: colors.emerald,
   },
   stockItemValueTotal: {
+    color: colors.slateDark,
     fontSize: 12,
   },
   stockOperator: {
     fontSize: 11,
     fontFamily: FONT.medium,
+    color: colors.slate,
     marginHorizontal: 1,
   },
   countingLabel: {
     fontSize: 10,
     fontFamily: FONT.bold,
+    color: colors.primary,
     textTransform: 'uppercase',
     letterSpacing: 0.5
   },
@@ -1755,10 +1786,12 @@ const styles = StyleSheet.create({
   stepperLabel: {
     fontSize: 11,
     fontFamily: FONT.semibold,
+    color: colors.slateDark
   },
   countTotal: {
     fontSize: 10,
     fontFamily: FONT.medium,
+    color: colors.primary,
     textAlign: 'center',
     marginTop: 2
   },
@@ -1770,6 +1803,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 1,
+    borderTopColor: colors.border,
   },
   soldResultHidden: {
     opacity: 0,
@@ -1779,44 +1813,50 @@ const styles = StyleSheet.create({
     borderTopWidth: 0,
   },
   soldResultLeft: { flex: 1 },
-  soldResultLabel: { fontSize: 10, fontFamily: FONT.bold, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 },
-  soldResultQty: { fontSize: 13, fontFamily: FONT.semibold},
-  soldResultRevenue: { fontSize: 15, fontFamily: FONT.bold, fontVariant: ['tabular-nums'] },
+  soldResultLabel: { fontSize: 10, fontFamily: FONT.bold, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.3, marginBottom: 2 },
+  soldResultQty: { fontSize: 13, fontFamily: FONT.semibold, color: colors.slateDark },
+  soldResultRevenue: { fontSize: 15, fontFamily: FONT.bold, color: colors.emerald, fontVariant: ['tabular-nums'] },
 
   // SUMMARY
   summaryContent: { padding: 12 },
   plHero: {
+    backgroundColor: colors.white,
     borderRadius: 16,
     padding: 20,
     alignItems: 'center',
     marginBottom: 12,
     borderWidth: 1,
+    borderColor: colors.border,
     ...Platform.select({ web: { boxShadow: '0 2px 12px rgba(0,0,0,0.06)' } }),
   },
-  plHeroTitle: { fontSize: 13, fontFamily: FONT.bold, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
+  plHeroTitle: { fontSize: 13, fontFamily: FONT.bold, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 8 },
   plHeroNet: { fontSize: 36, fontFamily: FONT.extrabold, fontVariant: ['tabular-nums'], letterSpacing: -1 },
-  plHeroLabel: { fontSize: 12, fontFamily: FONT.regular, marginTop: 2, marginBottom: 16 },
+  plHeroLabel: { fontSize: 12, fontFamily: FONT.regular, color: colors.slate, marginTop: 2, marginBottom: 16 },
   plHeroStats: { flexDirection: 'row', gap: 8, width: '100%' },
 
   plCard: {
+    backgroundColor: colors.white,
     borderRadius: 14,
     padding: 16,
     marginBottom: 12,
     borderWidth: 1,
+    borderColor: colors.border,
   },
-  sectionTitle: { fontSize: 15, fontFamily: FONT.bold, marginBottom: 12 },
-  plDivider: { height: 1, marginVertical: 6 },
+  sectionTitle: { fontSize: 15, fontFamily: FONT.bold, color: colors.slateDark, marginBottom: 12 },
+  plDivider: { height: 1, backgroundColor: colors.border, marginVertical: 6 },
 
   // comprehensive table
   tableCard: {
+    backgroundColor: colors.white,
     borderRadius: 14,
     overflow: 'hidden',
     marginBottom: 12,
     borderWidth: 1,
+    borderColor: colors.border,
   },
   tableCardHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 16, paddingBottom: 0 },
-  countBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20},
-  countBadgeText: { fontSize: 12, fontFamily: FONT.bold},
+  countBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20, backgroundColor: colors.primaryLight },
+  countBadgeText: { fontSize: 12, fontFamily: FONT.bold, color: colors.primary },
   tableScrollContainer: {
     width: '100%',
   },
@@ -1841,38 +1881,45 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     borderWidth: 1.5,
+    borderColor: colors.primary,
+    backgroundColor: colors.primaryLight,
     ...Platform.select({ web: { cursor: 'pointer', boxShadow: '0 2px 8px rgba(24,119,242,0.15)' } }),
   },
-  printRecapBtnText: { fontSize: 14, fontFamily: FONT.semibold},
+  printRecapBtnText: { fontSize: 14, fontFamily: FONT.semibold, color: colors.primary },
   tableHead: {
     flexDirection: 'row',
+    backgroundColor: colors.surface,
     paddingVertical: 10,
     paddingHorizontal: 12,
     marginTop: 12,
     borderTopWidth: 1,
+    borderTopColor: colors.border,
     borderBottomWidth: 1,
+    borderBottomColor: colors.border,
   },
-  th: { fontSize: 9, fontFamily: FONT.bold, textTransform: 'uppercase', letterSpacing: 0.3 },
+  th: { fontSize: 9, fontFamily: FONT.bold, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
   thArticle: { width: 120, minWidth: 120, paddingRight: 12 },
   thNum: { width: 50, minWidth: 50, textAlign: 'right', paddingHorizontal: 6 },
   thMoney: { width: 70, minWidth: 70, textAlign: 'right', paddingHorizontal: 6 },
-  thAccent: {},
-  tableRow: { flexDirection: 'row', paddingVertical: 8, paddingHorizontal: 10, borderBottomWidth: 1, alignItems: 'center' },
-  tableRowEven: {},
-  td: { fontSize: 11, fontFamily: FONT.medium },
+  thAccent: { color: colors.primary },
+  tableRow: { flexDirection: 'row', paddingVertical: 8, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: colors.border, alignItems: 'center' },
+  tableRowEven: { backgroundColor: colors.surface + '60' },
+  td: { fontSize: 11, fontFamily: FONT.medium, color: colors.slateDark },
   tdArticle: { width: 120, minWidth: 120, paddingRight: 12 },
   tdNum: { width: 50, minWidth: 50, textAlign: 'right', fontFamily: FONT.semibold, fontVariant: ['tabular-nums'], paddingHorizontal: 6 },
-  tdMoney: { width: 70, minWidth: 70, textAlign: 'right', fontFamily: FONT.bold, fontVariant: ['tabular-nums'], fontSize: 10, paddingHorizontal: 6 },
-  tdPositive: {},
-  tdAccent: {},
+  tdMoney: { width: 70, minWidth: 70, textAlign: 'right', fontFamily: FONT.bold, color: colors.primary, fontVariant: ['tabular-nums'], fontSize: 10, paddingHorizontal: 6 },
+  tdPositive: { color: colors.primary },
+  tdAccent: { color: colors.primary },
   tableTotalRow: {
     flexDirection: 'row',
     paddingVertical: 12,
     paddingHorizontal: 12,
+    backgroundColor: colors.primaryLight + '50',
     borderTopWidth: 1.5,
+    borderTopColor: colors.primary + '40',
     alignItems: 'center',
   },
-  tdTotal: { fontSize: 13, fontFamily: FONT.bold},
+  tdTotal: { fontSize: 13, fontFamily: FONT.bold, color: colors.slateDark },
 
   // DONE / HISTORY
   calendarWrap: {
@@ -1881,29 +1928,34 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     overflow: 'hidden',
     borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.white,
     paddingBottom: 16,
   },
   dateStatusCard: {
+    backgroundColor: colors.white,
     marginHorizontal: 12,
     marginTop: 12,
     borderRadius: 14,
     padding: 18,
     borderWidth: 1,
+    borderColor: colors.border,
   },
   dateStatusHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 },
-  dateStatusTitle: { fontSize: 16, fontFamily: FONT.bold, flex: 1, marginRight: 8 },
-  todayPill: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  todayPillText: { fontSize: 11, fontFamily: FONT.bold},
+  dateStatusTitle: { fontSize: 16, fontFamily: FONT.bold, color: colors.slateDark, flex: 1, marginRight: 8 },
+  todayPill: { paddingHorizontal: 10, paddingVertical: 4, backgroundColor: colors.primaryLight, borderRadius: 20 },
+  todayPillText: { fontSize: 11, fontFamily: FONT.bold, color: colors.primary },
   statusRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   statusIcon: { width: 36, height: 36, borderRadius: 18, alignItems: 'center', justifyContent: 'center' },
-  statusTitle: { fontSize: 15, fontFamily: FONT.semibold},
-  statusSub: { fontSize: 12, fontFamily: FONT.regular, marginTop: 2 },
+  statusTitle: { fontSize: 15, fontFamily: FONT.semibold, color: colors.slateDark },
+  statusSub: { fontSize: 12, fontFamily: FONT.regular, color: colors.slate, marginTop: 2 },
 
   primaryBtn: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    backgroundColor: colors.primary,
     paddingVertical: 13,
     paddingHorizontal: 20,
     borderRadius: 12,
@@ -1914,7 +1966,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
+    backgroundColor: colors.white,
     borderWidth: 1.5,
+    borderColor: colors.border,
     paddingVertical: 13,
     paddingHorizontal: 20,
     borderRadius: 12,
@@ -1923,29 +1977,33 @@ const styles = StyleSheet.create({
   secondaryBtnText: {
     fontSize: 15,
     fontFamily: FONT.bold,
+    color: colors.primary,
   },
-  primaryBtnText: { fontSize: 15, fontFamily: FONT.semibold},
+  primaryBtnText: { fontSize: 15, fontFamily: FONT.semibold, color: colors.white },
 
   historySection: {
+    backgroundColor: colors.white,
     marginHorizontal: 12,
     marginTop: 12,
     borderRadius: 14,
     overflow: 'hidden',
     borderWidth: 1,
+    borderColor: colors.border,
   },
-  historySectionTitle: { fontSize: 15, fontFamily: FONT.bold, padding: 16, borderBottomWidth: 1},
+  historySectionTitle: { fontSize: 15, fontFamily: FONT.bold, color: colors.slateDark, padding: 16, borderBottomWidth: 1, borderBottomColor: colors.border },
   historyRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderTopWidth: 1,
+    borderTopColor: colors.border,
     gap: 12,
   },
   historyDot: { width: 28, height: 28, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
-  historyDate: { fontSize: 13, fontFamily: FONT.semibold},
-  historyMeta: { fontSize: 11, fontFamily: FONT.regular, marginTop: 1 },
-  historyRevenue: { fontSize: 14, fontFamily: FONT.bold, fontVariant: ['tabular-nums'] },
+  historyDate: { fontSize: 13, fontFamily: FONT.semibold, color: colors.slateDark },
+  historyMeta: { fontSize: 11, fontFamily: FONT.regular, color: colors.slate, marginTop: 1 },
+  historyRevenue: { fontSize: 14, fontFamily: FONT.bold, color: colors.slateDark, fontVariant: ['tabular-nums'] },
   historyNet: { fontSize: 12, fontFamily: FONT.semibold, fontVariant: ['tabular-nums'] },
 
   // FOOTER
@@ -1954,23 +2012,27 @@ const styles = StyleSheet.create({
     gap: 8,
     paddingHorizontal: 12,
     paddingVertical: 10,
+    backgroundColor: colors.white,
     borderTopWidth: 1,
+    borderTopColor: colors.border,
     ...Platform.select({ web: { boxShadow: '0 -2px 8px rgba(0,0,0,0.04)' } }),
   },
   footerBtn: { flex: 1, paddingVertical: 13, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   footerBtnPrimary: {
+    backgroundColor: colors.primary,
     flex: 2,
     ...Platform.select({ web: { boxShadow: '0 4px 12px rgba(24,119,242,0.25)' } }),
   },
-  footerBtnSecondary: {},
-  footerBtnPrimaryText: { fontSize: 14, fontFamily: FONT.bold },
-  footerBtnSecondaryText: { fontSize: 14, fontFamily: FONT.semibold },
+  footerBtnSecondary: { backgroundColor: colors.slateLight },
+  footerBtnPrimaryText: { fontSize: 14, fontFamily: FONT.bold, color: colors.white },
+  footerBtnSecondaryText: { fontSize: 14, fontFamily: FONT.semibold, color: colors.slate },
 
   // desktop split
-  desktopSplit: { flex: 1, flexDirection: 'row'},
-  desktopLeft: { width: '42%', borderRightWidth: 1},
+  desktopSplit: { flex: 1, flexDirection: 'row', backgroundColor: colors.surface },
+  desktopLeft: { width: '42%', backgroundColor: colors.surface, borderRightWidth: 1, borderRightColor: colors.border },
   desktopRight: {
     flex: 1,
+    backgroundColor: colors.white,
     ...Platform.select({ web: { boxShadow: 'inset 0 0 0 1px rgba(0,0,0,0.06)' } }),
   },
   desktopCloseBtn: {
@@ -1981,6 +2043,7 @@ const styles = StyleSheet.create({
     width: 36,
     height: 36,
     borderRadius: 18,
+    backgroundColor: colors.slateLight,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({ web: { cursor: 'pointer' } }),
@@ -1988,5 +2051,5 @@ const styles = StyleSheet.create({
 
   // shared
   emptyState: { alignItems: 'center', paddingVertical: 40, gap: 10 },
-  emptyStateText: { fontSize: 14, fontFamily: FONT.regular},
+  emptyStateText: { fontSize: 14, fontFamily: FONT.regular, color: colors.slate },
 })

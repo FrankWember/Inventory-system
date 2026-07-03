@@ -1,9 +1,13 @@
 import { Alert, Platform } from 'react-native'
 
 // react-native-web's Alert is a no-op stub: dialogs never render and button
-// callbacks never fire. Every alert/confirm in the app must go through this
-// helper so web (the primary platform) gets working feedback via the browser's
-// native dialogs while native keeps Alert.alert.
+// callbacks never fire. Historically this helper fell back to the browser's
+// native window.alert/confirm on web, which looks nothing like the app.
+//
+// Now every alert/confirm is rendered by <AlertHost /> (mounted once at the app
+// root) as a branded BarTrack modal. This module is the imperative bridge:
+// showAlert() publishes a request that the mounted host displays. Call sites are
+// unchanged — they keep calling showAlert()/showConfirm() exactly as before.
 
 export interface AppAlertButton {
   text: string
@@ -11,32 +15,62 @@ export interface AppAlertButton {
   onPress?: () => void
 }
 
+export interface AlertRequest {
+  id: number
+  title: string
+  message?: string
+  buttons: AppAlertButton[]
+}
+
+type Listener = (req: AlertRequest) => void
+
+let listener: Listener | null = null
+let pending: AlertRequest[] = []
+let counter = 0
+
 /**
- * Drop-in replacement for Alert.alert that works on web.
- * - No buttons / one button → informational dialog, then the button's onPress.
- * - Two+ buttons → confirm dialog; OK runs the first non-cancel button,
- *   Cancel runs the cancel button.
+ * Called by <AlertHost /> on mount to receive alert requests. Any requests that
+ * fired before the host mounted are flushed immediately so nothing is lost.
+ * Pass null on unmount to detach.
+ */
+export function subscribeToAlerts(fn: Listener | null): void {
+  listener = fn
+  if (fn && pending.length) {
+    const flush = pending
+    pending = []
+    flush.forEach(fn)
+  }
+}
+
+/**
+ * Drop-in replacement for Alert.alert that renders a branded BarTrack dialog.
+ * - No buttons → a single "OK" button.
+ * - The dialog handles one/two/three button layouts and destructive/cancel styling.
  */
 export function showAlert(title: string, message?: string, buttons?: AppAlertButton[]): void {
-  if (Platform.OS !== 'web') {
-    Alert.alert(title, message, buttons)
+  const req: AlertRequest = {
+    id: ++counter,
+    title,
+    message,
+    buttons: buttons && buttons.length ? buttons : [{ text: 'OK' }],
+  }
+
+  if (listener) {
+    listener(req)
     return
   }
 
-  const win = (globalThis as any).window
-  const text = [title, message].filter(Boolean).join('\n\n')
-
-  if (!buttons || buttons.length <= 1) {
-    win?.alert?.(text)
-    buttons?.[0]?.onPress?.()
-    return
+  // Host not mounted yet — queue it. As a last resort on native (where the host
+  // is guaranteed present at root but timing could theoretically race), the OS
+  // dialog is a safe fallback; on web we simply wait for the host to flush.
+  pending.push(req)
+  if (Platform.OS !== 'web' && !listener) {
+    // Native has a real Alert; use it directly if nothing consumes the queue.
+    // The host's flush also runs, so guard against a double-render by clearing.
+    const idx = pending.indexOf(req)
+    if (idx !== -1) pending.splice(idx, 1)
+    Alert.alert(title, message, req.buttons)
   }
-
-  const cancel = buttons.find(b => b.style === 'cancel')
-  const action = buttons.find(b => b.style !== 'cancel') ?? buttons[buttons.length - 1]
-  const confirmed: boolean = !!win?.confirm?.(text)
-  if (confirmed) action?.onPress?.()
-  else cancel?.onPress?.()
 }
 
 /** Convenience yes/no confirm. Resolves true when the user confirms. */

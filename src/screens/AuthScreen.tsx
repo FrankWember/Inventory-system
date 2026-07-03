@@ -8,7 +8,6 @@ import {
   Platform,
   ScrollView,
   ActivityIndicator,
-  Alert,
   ImageBackground,
   Animated,
 } from 'react-native'
@@ -16,6 +15,7 @@ import { Input } from '../components/Input'
 import { PhoneInput } from '../components/PhoneInput'
 import { Button } from '../components/Button'
 import { COLORS, FONT } from '../utils/helpers'
+import { showAlert } from '../utils/appAlert'
 import { useAuth } from '../contexts/AuthContext'
 import { useTranslation } from '../i18n'
 import { Ionicons } from '@expo/vector-icons'
@@ -81,7 +81,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
   const handleSignIn = async () => {
     if (authMethod === 'email') {
       if (!email.trim() || !password.trim()) {
-        Alert.alert(t('common.error'), t('auth.fillAllFields'))
+        showAlert(t('common.error'), t('auth.fillAllFields'))
         return
       }
 
@@ -96,11 +96,11 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           ? t('auth.accountNotFound')
           : t('auth.signInError')
 
-        Alert.alert(title, error.message)
+        showAlert(title, error.message)
       }
     } else {
       if (phone.length !== 9 || !password.trim()) {
-        Alert.alert(t('common.error'), t('auth.enterValidPhoneAndPassword'))
+        showAlert(t('common.error'), t('auth.enterValidPhoneAndPassword'))
         return
       }
 
@@ -113,37 +113,37 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           ? t('auth.accountNotFound')
           : t('auth.signInError')
 
-        Alert.alert(title, error.message)
+        showAlert(title, error.message)
       }
     }
   }
 
   const handleSignUp = async () => {
     if (!name.trim() || !password.trim()) {
-      Alert.alert(t('common.error'), t('auth.fillAllFields'))
+      showAlert(t('common.error'), t('auth.fillAllFields'))
       return
     }
 
     if (authMethod === 'email') {
       if (!email.trim()) {
-        Alert.alert(t('common.error'), t('auth.enterYourEmail'))
+        showAlert(t('common.error'), t('auth.enterYourEmail'))
         return
       }
       if (!validateEmail(email.trim())) {
-        Alert.alert(t('common.error'), t('auth.enterValidEmail'))
+        showAlert(t('common.error'), t('auth.enterValidEmail'))
         return
       }
     }
 
     if (authMethod === 'phone') {
       if (phone.length !== 9) {
-        Alert.alert(t('common.error'), t('auth.enterValidPhone9'))
+        showAlert(t('common.error'), t('auth.enterValidPhone9'))
         return
       }
     }
 
     if (password.length < 6) {
-      Alert.alert(t('common.error'), t('auth.passwordMin6'))
+      showAlert(t('common.error'), t('auth.passwordMin6'))
       return
     }
 
@@ -165,7 +165,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
         ? t('auth.networkError')
         : t('auth.signUpError')
 
-      Alert.alert(title, error.message)
+      showAlert(title, error.message)
       return
     }
 
@@ -174,7 +174,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
       const { error: signInError } = await signInWithPhone(phone, password)
       setLoading(false)
       if (signInError) {
-        Alert.alert(t('auth.signUpSuccessEmoji'), t('auth.accountCreatedNowSignIn'), [
+        showAlert(t('auth.signUpSuccessEmoji'), t('auth.accountCreatedNowSignIn'), [
           { text: 'Se connecter', onPress: () => toggleMode('signin') },
         ])
       }
@@ -183,7 +183,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
     }
 
     setLoading(false)
-    Alert.alert(
+    showAlert(
       t('auth.signUpSuccessEmoji'),
       t('auth.checkEmailThenSignIn'),
       [{ text: 'Se connecter', onPress: () => toggleMode('signin') }]
