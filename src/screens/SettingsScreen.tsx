@@ -15,7 +15,12 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { LoadingModal } from '../components/LoadingModal'
-import { FONT, today, fmt, dateLabelLong } from '../utils/helpers'
+import { FONT, today, fmt, dateLabelLong, getStockStatus } from '../utils/helpers'
+import {
+  notificationsSupported,
+  requestNotificationPermission,
+  showNotification,
+} from '../utils/notifications'
 import { LIGHT_COLORS } from '../styles/theme'
 import { showAlert } from '../utils/appAlert'
 import { useAuth } from '../contexts/AuthContext'
@@ -40,6 +45,7 @@ export default function SettingsScreen() {
   const [dates, setDates] = useState<any[]>([])
   const [loadingSessions, setLoadingSessions] = useState(false)
   const [loadingDates, setLoadingDates] = useState(false)
+  const [sendingNotif, setSendingNotif] = useState(false)
 
   const { loading: pdfLoading, progress: pdfProgress, generatePdf } = usePdfExport({ barName: barInfo?.name || 'BarTrack' })
 
@@ -79,9 +85,93 @@ export default function SettingsScreen() {
     }
   }
 
+  // Build a well-formatted, prioritized business summary and push it as an OS
+  // notification: last session revenue/profit, out-of-stock & low-stock alerts,
+  // and current stock value. Returns false if nothing could be sent.
+  const sendBusinessUpdate = async (): Promise<boolean> => {
+    const permission = await requestNotificationPermission()
+    if (permission === 'unsupported') {
+      showAlert(t('settings.notifications'), t('settings.notifUnsupported'))
+      return false
+    }
+    if (permission !== 'granted') {
+      showAlert(t('settings.notifications'), t('settings.notifDenied'))
+      return false
+    }
+
+    setSendingNotif(true)
+    try {
+      const [drinksRes, sessionRes] = await Promise.all([
+        supabase.from('drinks').select('stock, min_stock, cost, active').eq('active', true),
+        supabase
+          .from('sessions')
+          .select('total_revenue, total_profit')
+          .eq('closed', true)
+          .order('date', { ascending: false })
+          .limit(1)
+          .maybeSingle(),
+      ])
+
+      const drinks = drinksRes.data ?? []
+      let outOfStock = 0
+      let lowStock = 0
+      let stockValue = 0
+      for (const d of drinks) {
+        const status = getStockStatus(d.stock ?? 0, d.min_stock ?? 0)
+        if (status === 'rupture') outOfStock++
+        else if (status === 'low') lowStock++
+        stockValue += (d.stock ?? 0) * (d.cost ?? 0)
+      }
+
+      const lastSession = sessionRes.data
+      const lines: string[] = []
+      lines.push(
+        lastSession
+          ? t('settings.notifRevenueLine', {
+              revenue: fmt(lastSession.total_revenue),
+              profit: fmt(lastSession.total_profit),
+            })
+          : t('settings.notifNoSession')
+      )
+      if (outOfStock > 0) lines.push(t('settings.notifOutStockLine', { count: outOfStock }))
+      if (lowStock > 0) lines.push(t('settings.notifLowStockLine', { count: lowStock }))
+      if (outOfStock === 0 && lowStock === 0) lines.push(t('settings.notifStockHealthy'))
+      lines.push(t('settings.notifStockValueLine', { value: fmt(stockValue) }))
+
+      const title = t('settings.notifTitle', { bar: barInfo?.name || 'BarTrack' })
+      const sent = showNotification(title, lines.join('\n'))
+      if (!sent) {
+        showAlert(t('common.error'), t('settings.notifSendError'))
+        return false
+      }
+      return true
+    } catch {
+      showAlert(t('common.error'), t('settings.notifSendError'))
+      return false
+    } finally {
+      setSendingNotif(false)
+    }
+  }
+
   const handleNotificationsToggle = async (value: boolean) => {
     try {
-      await setNotificationsEnabled(value)
+      // Turning ON: require browser permission first, then confirm with a real
+      // business summary so the user immediately sees what they'll receive.
+      if (value) {
+        const permission = await requestNotificationPermission()
+        if (permission === 'unsupported') {
+          showAlert(t('settings.notifications'), t('settings.notifUnsupported'))
+          return
+        }
+        if (permission !== 'granted') {
+          showAlert(t('settings.notifications'), t('settings.notifDenied'))
+          return
+        }
+        await setNotificationsEnabled(true)
+        await sendBusinessUpdate()
+      } else {
+        await setNotificationsEnabled(false)
+      }
     } catch {
       showAlert(t('common.error'), t('settings.notificationsError'))
     }
@@ -456,6 +546,24 @@ export default function SettingsScreen() {
             />
           </View>
 
+          {notificationsSupported() && (
+            <TouchableOpacity
+              style={[styles.notifButton, { backgroundColor: colors.primary + 'F0' }, sendingNotif && { opacity: 0.7 }]}
+              onPress={sendBusinessUpdate}
+              disabled={sendingNotif}
+              activeOpacity={0.85}
+            >
+              {sendingNotif ? (
+                <ActivityIndicator size="small" color={colors.white} />
+              ) : (
+                <Ionicons name="paper-plane-outline" size={16} color={colors.white} />
+              )}
+              <Text style={[styles.notifButtonText, { color: colors.white }]}>
+                {sendingNotif ? t('settings.notifSending') : t('settings.notifSendNow')}
+              </Text>
+            </TouchableOpacity>
+          )}
+
           <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
           <View style={styles.row}>
@@ -782,6 +890,37 @@ const styles = StyleSheet.create({
   },
   segBtnText: { fontSize: 12, fontFamily: FONT.semibold },
   segBtnTextActive: {},
+  notifButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    marginTop: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    // Native depth (RNW ignores shadow* on web, so the glassy look below is web-only).
+    shadowColor: '#1877F2',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 12,
+    elevation: 4,
+    // Apple "liquid glass": frosted backdrop + specular top highlight + soft coloured
+    // glow. Applied inline because RNW does not forward the .glass-* className to the DOM.
+    ...Platform.select({
+      web: {
+        cursor: 'pointer',
+        backdropFilter: 'blur(20px) saturate(180%)',
+        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+        borderWidth: 1,
+        borderColor: 'rgba(255,255,255,0.28)',
+        boxShadow:
+          '0 8px 28px rgba(24,119,242,0.36), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(0,0,0,0.14)',
+        transition: 'transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease',
+      } as any,
+    }),
+  },
+  notifButtonText: { fontSize: 14, fontFamily: FONT.semibold, letterSpacing: 0.2 },
 
   // About row
   aboutRow: {

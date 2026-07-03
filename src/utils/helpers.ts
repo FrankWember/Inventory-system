@@ -5,16 +5,19 @@ import { Category } from '../types'
 export { COLORS, FONT, TYPE, SPACE, RADIUS, shadow, MAX_CONTENT, getColors, LIGHT_COLORS, DARK_COLORS } from '../styles/theme'
 import { COLORS } from '../styles/theme'
 
-// Category colors — a single tonal indigo→slate ramp keeps charts minimal
-// and cohesive rather than rainbow.
+// Category colors — distinct hues (not a single indigo ramp) so adjacent slices
+// in the category-mix bar/legend are easy to tell apart. All are mid-tone 500-level
+// values chosen to stay legible on both the light (white) and dark surfaces. The
+// dominant category (Bière) keeps the brand indigo; the rest loosely echo the
+// product (juice→amber, water→sky, wine→rose).
 export const getCategoryColor = (cat: string): string => {
   const map: Record<string, string> = {
-    'Bière': '#3730A3',
-    'Soda': '#4F46E5',
-    'Jus': '#6366F1',
-    'Eau': '#818CF8',
-    'Vin': '#A5B4FC',
-    'Autre': '#CBD5E1',
+    'Bière': '#6366F1', // indigo
+    'Soda': '#F59E0B', // amber
+    'Jus': '#10B981', // emerald
+    'Eau': '#0EA5E9', // sky
+    'Vin': '#F43F5E', // rose
+    'Autre': '#94A3B8', // slate
   }
   return map[cat] ?? COLORS.slate
 }
