@@ -44,6 +44,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
   const [rackSize, setRackSize] = useState<string>('')
   const [stock, setStock] = useState<number>(0)
   const [minStock, setMinStock] = useState<number>(0)
+  const [minStockCassiers, setMinStockCassiers] = useState<string>('')
   const [price, setPrice] = useState<string>('')
 
   useEffect(() => {
@@ -67,6 +68,9 @@ export default function EditDrinkScreen({ route, navigation }: any) {
       setRackSize(size.toString())
       setStock(data.stock)
       setMinStock(data.min_stock)
+      // Calculate cassiers from min_stock units
+      const minCassiers = size > 0 ? Math.floor(data.min_stock / size) : 0
+      setMinStockCassiers(minCassiers.toString())
       setPrice(data.price.toString())
     } catch (error) {
       console.error('Error loading drink:', error)
@@ -75,6 +79,21 @@ export default function EditDrinkScreen({ route, navigation }: any) {
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleMinStockCassiersChange = (text: string) => {
+    setMinStockCassiers(text)
+    const cassiers = parseInt(text) || 0
+    const rackSizeNum = parseInt(rackSize) || 1
+    setMinStock(cassiers * rackSizeNum)
+  }
+
+  const handleRackSizeChange = (text: string) => {
+    setRackSize(text)
+    // Recalculate minStock when rack size changes
+    const cassiers = parseInt(minStockCassiers) || 0
+    const newRackSize = parseInt(text) || 1
+    setMinStock(cassiers * newRackSize)
   }
 
   const handleSave = async () => {
@@ -183,7 +202,7 @@ export default function EditDrinkScreen({ route, navigation }: any) {
           <Input
             label={t('inventory.unitsPerRack')}
             value={rackSize}
-            onChangeText={setRackSize}
+            onChangeText={handleRackSizeChange}
             keyboardType="number-pad"
             placeholder="12"
           />
@@ -195,11 +214,12 @@ export default function EditDrinkScreen({ route, navigation }: any) {
             onChange={setStock}
           />
 
-          <DualStockInput
-            label={t('inventory.minThreshold')}
-            totalUnits={minStock}
-            cassierQuantity={parseInt(rackSize) || 1}
-            onChange={setMinStock}
+          <Input
+            label={t('inventory.minThreshold') + ' (' + t('inventory.cratesLower') + ')'}
+            value={minStockCassiers}
+            onChangeText={handleMinStockCassiersChange}
+            keyboardType="number-pad"
+            placeholder="0"
           />
           <Input
             label={t('inventory.crateCostQuestion')}

@@ -6,7 +6,6 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  TouchableOpacity,
   useWindowDimensions,
 } from 'react-native'
 import { supabase } from '../lib/supabase'
@@ -17,6 +16,7 @@ import { Input } from '../components/Input'
 import { Button } from '../components/Button'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { DrinkSelector } from '../components/DrinkSelector'
+import { DualStockInput } from '../components/DualStockInput'
 import { DrinkTemplate } from '../data/cameroonianDrinks'
 import { COLORS, fmt } from '../utils/helpers'
 import { useTranslation } from '../i18n'
@@ -28,14 +28,13 @@ export default function AddDrinkScreen({ navigation, route }: any) {
   const { t } = useTranslation()
   const hideHeader = route?.params?.hideHeader
   const [saving, setSaving] = useState(false)
-  const [unitMode, setUnitMode] = useState<'units' | 'cassiers'>('cassiers')
   const [selectedDrink, setSelectedDrink] = useState<DrinkTemplate | null>(null)
   const [dropdownOpen, setDropdownOpen] = useState(false)
+  const [stock, setStock] = useState<number>(0)
   const [form, setForm] = useState({
     cassierQuantity: '',
     cassierCost: '',
     price: '',
-    stock: '',
     minStock: '',
     supplier: '',
   })
@@ -53,15 +52,6 @@ export default function AddDrinkScreen({ navigation, route }: any) {
   const sellingPrice = parseInt(form.price) || 0
   const profitPerUnit = sellingPrice - costPerUnit
   const marginPercent = sellingPrice > 0 ? ((profitPerUnit / sellingPrice) * 100).toFixed(1) : '0'
-
-  // Helper function to convert display value to units
-  const getUnitsValue = (displayValue: string): number => {
-    const numValue = parseInt(displayValue) || 0
-    if (unitMode === 'cassiers') {
-      return numValue * cassierQuantity
-    }
-    return numValue
-  }
 
   const handleDrinkSelect = async (drink: DrinkTemplate) => {
     // Check if this drink already exists in the database
@@ -147,14 +137,18 @@ export default function AddDrinkScreen({ navigation, route }: any) {
         throw new Error('User not authenticated')
       }
 
+      // minStock is always in cassiers, regardless of unitMode
+      const minStockCassiers = parseInt(form.minStock) || 0
+      const minStockUnits = minStockCassiers * cassierQuantity
+
       const { error } = await supabase.from('drinks').insert({
         user_id: user.id,
         name: selectedDrink.name,
         category: selectedDrink.category,
         price: sellingPrice,
         cost: Math.round(costPerUnit),
-        stock: getUnitsValue(form.stock),
-        min_stock: getUnitsValue(form.minStock),
+        stock: stock,
+        min_stock: minStockUnits,
         rack_size: cassierQuantity,
         cassier_quantity: cassierQuantity,
         cassier_cost: cassierCost,
@@ -259,36 +253,15 @@ export default function AddDrinkScreen({ navigation, route }: any) {
             <Card>
               <Text style={styles.sectionTitle}>{t('inventory.initialStockSection')}</Text>
 
-              {/* @ts-ignore - web-only className */}
-              <View style={styles.unitToggle} className="glass-toggle">
-                <TouchableOpacity
-                  style={[styles.unitToggleButton, unitMode === 'units' && styles.unitToggleButtonActive]}
-                  onPress={() => setUnitMode('units')}
-                >
-                  <Text style={[styles.unitToggleText, unitMode === 'units' && styles.unitToggleTextActive]}>
-                    {t('inventory.unitsToggle')}
-                  </Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.unitToggleButton, unitMode === 'cassiers' && styles.unitToggleButtonActive]}
-                  onPress={() => setUnitMode('cassiers')}
-                >
-                  <Text style={[styles.unitToggleText, unitMode === 'cassiers' && styles.unitToggleTextActive]}>
-                    {t('inventory.cratesToggle')}
-                  </Text>
-                </TouchableOpacity>
-              </View>
-
-              <Input
-                label={t('inventory.initialStockLabel', { unit: unitMode === 'units' ? t('inventory.unitsLower') : t('inventory.cratesLower') })}
-                value={form.stock}
-                onChangeText={(text) => setForm({ ...form, stock: text })}
-                keyboardType="number-pad"
-                placeholder="0"
+              <DualStockInput
+                label={t('inventory.initialStock')}
+                totalUnits={stock}
+                cassierQuantity={cassierQuantity}
+                onChange={setStock}
               />
 
               <Input
-                label={t('inventory.alertThresholdLabel', { unit: unitMode === 'units' ? t('inventory.unitsLower') : t('inventory.cratesLower') })}
+                label={t('inventory.alertThresholdLabel', { unit: t('inventory.cratesLower') })}
                 value={form.minStock}
                 onChangeText={(text) => setForm({ ...form, minStock: text })}
                 keyboardType="number-pad"
@@ -368,32 +341,6 @@ const styles = StyleSheet.create({
     color: COLORS.slate,
     marginBottom: 20,
     lineHeight: 18,
-  },
-  unitToggle: {
-    flexDirection: 'row',
-    backgroundColor: COLORS.slateLight,
-    borderRadius: 10,
-    padding: 4,
-    marginBottom: 20,
-  },
-  unitToggleButton: {
-    flex: 1,
-    paddingVertical: 10,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  unitToggleButtonActive: {
-    backgroundColor: COLORS.white,
-    ...createShadow('#000', { width: 0, height: 1 }, 0.05, 2, 1),
-  },
-  unitToggleText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: COLORS.slate,
-  },
-  unitToggleTextActive: {
-    color: COLORS.slateDark,
   },
   calculationCard: {
     backgroundColor: COLORS.surface,
