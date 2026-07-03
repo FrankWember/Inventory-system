@@ -142,3 +142,73 @@ export function getDailyTrends(data: PdfData) {
     cost: session.total_cost,
   })).reverse() // Oldest to newest for chart
 }
+
+/**
+ * Calculate stock movement details for a session
+ * Includes stock values and purchase information
+ */
+export interface StockMovement {
+  name: string
+  opening: number
+  purchased: number
+  available: number
+  counted: number
+  sold: number
+  revenue: number
+  unitCost: number
+  openingValue: number
+  closingValue: number
+  purchaseCost: number
+}
+
+export function getStockMovements(data: PdfData): StockMovement[] {
+  if (data.sessions.length !== 1) {
+    return [] // Only for single session exports
+  }
+
+  const session = data.sessions[0]
+  const lines = session.session_lines || []
+
+  return lines.map(line => {
+    // Calculate unit cost from purchase cost
+    // cost field is total purchase cost (purchased × unit_cost)
+    const unitCost = line.purchased > 0 ? line.cost / line.purchased : 0
+
+    const openingValue = line.opening_stock * unitCost
+    const closingValue = line.closing_stock * unitCost
+    const available = line.opening_stock + line.purchased
+
+    return {
+      name: line.drink_name,
+      opening: line.opening_stock,
+      purchased: line.purchased,
+      available,
+      counted: line.closing_stock,
+      sold: line.sold,
+      revenue: line.revenue,
+      unitCost,
+      openingValue,
+      closingValue,
+      purchaseCost: line.cost,
+    }
+  })
+}
+
+/**
+ * Calculate total stock values for a session
+ */
+export function getStockValueSummary(data: PdfData) {
+  const movements = getStockMovements(data)
+
+  const totalOpeningValue = movements.reduce((sum, m) => sum + m.openingValue, 0)
+  const totalClosingValue = movements.reduce((sum, m) => sum + m.closingValue, 0)
+  const totalPurchaseCost = movements.reduce((sum, m) => sum + m.purchaseCost, 0)
+  const stockVariance = totalClosingValue - totalOpeningValue
+
+  return {
+    totalOpeningValue,
+    totalClosingValue,
+    totalPurchaseCost,
+    stockVariance,
+  }
+}

@@ -11,6 +11,9 @@ export {
   getTopProducts,
   getCategoryBreakdown,
   getDailyTrends,
+  getStockMovements,
+  getStockValueSummary,
+  type StockMovement,
 } from './pdfCalculations'
 
 /**

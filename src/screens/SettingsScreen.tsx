@@ -15,7 +15,8 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { LoadingModal } from '../components/LoadingModal'
-import { COLORS, FONT, today, fmt, dateLabelLong } from '../utils/helpers'
+import { FONT, today, fmt, dateLabelLong } from '../utils/helpers'
+import { LIGHT_COLORS } from '../styles/theme'
 import { showAlert } from '../utils/appAlert'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
@@ -259,28 +260,29 @@ export default function SettingsScreen() {
   }
 
   return (
-    <View style={[styles.wrapper, { backgroundColor: colors.surface }]}>
-      <ScreenHeader title={t('settings.title')} />
+    <View style={[styles.wrapper, { backgroundColor: colors.background }]}>
+      <ScreenHeader title={t('settings.title')} colors={colors} />
 
       {/* Loading Modal for PDF generation */}
       <LoadingModal
         visible={pdfLoading}
         message={t('settings.pdfGenerating')}
         progress={pdfProgress}
+        colors={colors}
       />
 
       {/* Date Selector Modal */}
       <Modal visible={dateSelectorVisible} transparent animationType="fade" onRequestClose={() => setDateSelectorVisible(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { maxHeight: '80%' }]}>
-            <Text style={styles.modalTitle}>{t('settings.chooseDay')}</Text>
+          <View style={[styles.modalCard, { maxHeight: '80%', backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.slateDark }]}>{t('settings.chooseDay')}</Text>
             {loadingDates ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
+                <ActivityIndicator size="large" color={colors.primary} />
               </View>
             ) : dates.length === 0 ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <Text style={{ color: COLORS.slate, textAlign: 'center' }}>
+                <Text style={{ color: colors.slate, textAlign: 'center' }}>
                   {t('settings.noSessions')}
                 </Text>
               </View>
@@ -289,26 +291,26 @@ export default function SettingsScreen() {
                 {dates.map((item, index) => (
                   <TouchableOpacity
                     key={index}
-                    style={styles.sessionItem}
+                    style={[styles.sessionItem, { borderBottomColor: colors.border }]}
                     onPress={() => handleDateSelect(item.date)}
                   >
                     <View style={styles.sessionItemLeft}>
-                      <Ionicons name="calendar" size={20} color={COLORS.primary} />
+                      <Ionicons name="calendar" size={20} color={colors.primary} />
                       <View style={{ marginLeft: 12 }}>
-                        <Text style={styles.sessionItemDate}>{dateLabelLong(item.date)}</Text>
-                        <Text style={styles.sessionItemRevenue}>{fmt(item.revenue)}</Text>
+                        <Text style={[styles.sessionItemDate, { color: colors.slateDark }]}>{dateLabelLong(item.date)}</Text>
+                        <Text style={[styles.sessionItemRevenue, { color: colors.slate }]}>{fmt(item.revenue)}</Text>
                       </View>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color={COLORS.slate} />
+                    <Ionicons name="chevron-forward" size={20} color={colors.slate} />
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             )}
             <TouchableOpacity
-              style={styles.modalCancel}
+              style={[styles.modalCancel, { borderColor: colors.border }]}
               onPress={() => setDateSelectorVisible(false)}
             >
-              <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
+              <Text style={[styles.modalCancelText, { color: colors.slate }]}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -317,39 +319,39 @@ export default function SettingsScreen() {
       {/* Session Selector Modal */}
       <Modal visible={sessionSelectorVisible} transparent animationType="fade" onRequestClose={() => setSessionSelectorVisible(false)}>
         <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { maxHeight: '80%' }]}>
-            <Text style={styles.modalTitle}>{t('settings.chooseSession')}</Text>
+          <View style={[styles.modalCard, { maxHeight: '80%', backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.slateDark }]}>{t('settings.chooseSession')}</Text>
             {loadingSessions ? (
               <View style={{ padding: 40, alignItems: 'center' }}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
+                <ActivityIndicator size="large" color={colors.primary} />
               </View>
             ) : (
               <ScrollView style={{ maxHeight: 400 }}>
                 {sessions.map((session) => (
                   <TouchableOpacity
                     key={session.id}
-                    style={styles.sessionItem}
+                    style={[styles.sessionItem, { borderBottomColor: colors.border }]}
                     onPress={() => handleSessionSelect(session.id)}
                   >
                     <View style={styles.sessionItemLeft}>
-                      <Ionicons name="calendar" size={20} color={COLORS.primary} />
+                      <Ionicons name="calendar" size={20} color={colors.primary} />
                       <View style={{ marginLeft: 12 }}>
-                        <Text style={styles.sessionItemDate}>{session.date}</Text>
-                        <Text style={styles.sessionItemRevenue}>{fmt(session.total_revenue)}</Text>
+                        <Text style={[styles.sessionItemDate, { color: colors.slateDark }]}>{session.date}</Text>
+                        <Text style={[styles.sessionItemRevenue, { color: colors.slate }]}>{fmt(session.total_revenue)}</Text>
                       </View>
                     </View>
-                    <Ionicons name="chevron-forward" size={20} color={COLORS.slate} />
+                    <Ionicons name="chevron-forward" size={20} color={colors.slate} />
                   </TouchableOpacity>
                 ))}
               </ScrollView>
             )}
             <TouchableOpacity
-              style={styles.modalCancel}
+              style={[styles.modalCancel, { borderColor: colors.border }]}
               onPress={() => setSessionSelectorVisible(false)}
               // @ts-ignore - web-only className
               className="glass-button"
             >
-              <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
+              <Text style={[styles.modalCancelText, { color: colors.slate }]}>{t('common.cancel')}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -358,37 +360,37 @@ export default function SettingsScreen() {
       {/* Edit Modal */}
       <Modal visible={editModal !== null} transparent animationType="fade" onRequestClose={() => setEditModal(null)}>
         <View style={styles.modalBackdrop}>
-          <View style={styles.modalCard}>
-            <Text style={styles.modalTitle}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card }]}>
+            <Text style={[styles.modalTitle, { color: colors.slateDark }]}>
               {editModal === 'barName' ? t('settings.establishmentName') : t('settings.displayName')}
             </Text>
             <TextInput
-              style={styles.modalInput}
+              style={[styles.modalInput, { borderColor: colors.border, backgroundColor: colors.surface, color: colors.slateDark }]}
               value={editValue}
               onChangeText={setEditValue}
               autoFocus
               placeholder={editModal === 'barName' ? t('settings.barNamePlaceholder') : t('settings.displayNamePlaceholder')}
-              placeholderTextColor={COLORS.slate}
+              placeholderTextColor={colors.slate}
               onSubmitEditing={confirmEdit}
             />
             <View style={styles.modalActions}>
               <TouchableOpacity
-                style={styles.modalCancel}
+                style={[styles.modalCancel, { borderColor: colors.border }]}
                 onPress={() => setEditModal(null)}
                 disabled={editLoading}
                 // @ts-ignore - web-only className
                 className="glass-button"
               >
-                <Text style={styles.modalCancelText}>{t('common.cancel')}</Text>
+                <Text style={[styles.modalCancelText, { color: colors.slate }]}>{t('common.cancel')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
-                style={[styles.modalConfirm, editLoading && { opacity: 0.6 }]}
+                style={[styles.modalConfirm, { backgroundColor: colors.primary }, editLoading && { opacity: 0.6 }]}
                 onPress={confirmEdit}
                 disabled={editLoading}
                 // @ts-ignore - web-only className
                 className="glass-primary"
               >
-                <Text style={styles.modalConfirmText}>{editLoading ? t('settings.saving') : t('common.save')}</Text>
+                <Text style={[styles.modalConfirmText, { color: colors.white }]}>{editLoading ? t('settings.saving') : t('common.save')}</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -399,10 +401,10 @@ export default function SettingsScreen() {
 
         {/* Profile Card */}
         {user && (
-          <View style={styles.profileCard}>
+          <View style={[styles.profileCard, { backgroundColor: colors.card }]}>
             <View style={styles.avatarWrap}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>{initials}</Text>
+              <View style={[styles.avatar, { backgroundColor: colors.primaryLight, borderColor: colors.primary }]}>
+                <Text style={[styles.avatarText, { color: colors.primary }]}>{initials}</Text>
               </View>
             </View>
             <View style={styles.profileInfo}>
@@ -411,156 +413,162 @@ export default function SettingsScreen() {
                 onPress={() => openEdit('displayName')}
                 activeOpacity={0.7}
               >
-                <Text style={styles.profileName}>{displayName}</Text>
-                <Ionicons name="pencil" size={14} color={COLORS.slate} style={{ marginLeft: 6 }} />
+                <Text style={[styles.profileName, { color: colors.slateDark }]}>{displayName}</Text>
+                <Ionicons name="pencil" size={14} color={colors.slate} style={{ marginLeft: 6 }} />
               </TouchableOpacity>
               {phoneNumber ? (
-                <Text style={styles.profileSub}>{phoneNumber}</Text>
+                <Text style={[styles.profileSub, { color: colors.slate }]}>{phoneNumber}</Text>
               ) : null}
               {actualEmail ? (
-                <Text style={styles.profileSub}>{actualEmail}</Text>
+                <Text style={[styles.profileSub, { color: colors.slate }]}>{actualEmail}</Text>
               ) : null}
             </View>
           </View>
         )}
 
         {/* Bar Info */}
-        <SectionTitle label={t('settings.sectionEstablishment')} />
-        <SettingsCard>
+        <SectionTitle label={t('settings.sectionEstablishment')} colors={colors} />
+        <SettingsCard colors={colors}>
           <RowItem
             icon="business-outline"
             label={t('settings.barName')}
             value={barInfo?.name || t('settings.notSet')}
             onPress={() => openEdit('barName')}
+            colors={colors}
           />
         </SettingsCard>
 
         {/* Preferences */}
-        <SectionTitle label={t('settings.sectionPreferences')} />
-        <SettingsCard>
+        <SectionTitle label={t('settings.sectionPreferences')} colors={colors} />
+        <SettingsCard colors={colors}>
           <View style={styles.row}>
             <View style={styles.rowLeft}>
               <View style={styles.iconBox}>
-                <Ionicons name="notifications-outline" size={19} color={COLORS.primary} />
+                <Ionicons name="notifications-outline" size={19} color={colors.primary} />
               </View>
-              <Text style={styles.rowLabel}>{t('settings.notifications')}</Text>
+              <Text style={[styles.rowLabel, { color: colors.slateDark }]}>{t('settings.notifications')}</Text>
             </View>
             <Switch
               value={notificationsEnabled}
               onValueChange={handleNotificationsToggle}
-              trackColor={{ false: COLORS.border, true: COLORS.primary }}
-              thumbColor={COLORS.white}
+              trackColor={{ false: colors.border, true: colors.primary }}
+              thumbColor={colors.white}
             />
           </View>
 
-          <View style={styles.separator} />
+          <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
           <View style={styles.row}>
             <View style={styles.rowLeft}>
               <View style={styles.iconBox}>
-                <Ionicons name="globe-outline" size={19} color={COLORS.primary} />
+                <Ionicons name="globe-outline" size={19} color={colors.primary} />
               </View>
-              <Text style={styles.rowLabel}>{t('settings.language')}</Text>
+              <Text style={[styles.rowLabel, { color: colors.slateDark }]}>{t('settings.language')}</Text>
             </View>
             {/* @ts-ignore - web-only className */}
-            <View style={styles.segmented} className="glass-toggle">
-              <SegBtn label="FR" active={language === 'fr'} onPress={() => handleLanguage('fr')} />
-              <SegBtn label="EN" active={language === 'en'} onPress={() => handleLanguage('en')} />
+            <View style={[styles.segmented, { backgroundColor: colors.surface }]} className="glass-toggle">
+              <SegBtn label="FR" active={language === 'fr'} onPress={() => handleLanguage('fr')} colors={colors} />
+              <SegBtn label="EN" active={language === 'en'} onPress={() => handleLanguage('en')} colors={colors} />
             </View>
           </View>
 
-          <View style={styles.separator} />
+          <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
           <View style={styles.row}>
             <View style={styles.rowLeft}>
               <View style={styles.iconBox}>
-                <Ionicons name="color-palette-outline" size={19} color={COLORS.primary} />
+                <Ionicons name="color-palette-outline" size={19} color={colors.primary} />
               </View>
-              <Text style={styles.rowLabel}>{t('settings.theme')}</Text>
+              <Text style={[styles.rowLabel, { color: colors.slateDark }]}>{t('settings.theme')}</Text>
             </View>
             {/* @ts-ignore - web-only className */}
-            <View style={styles.segmented} className="glass-toggle">
-              <SegBtn label={t('settings.themeLight')} icon="sunny-outline" active={theme === 'light'} onPress={() => handleTheme('light')} />
-              <SegBtn label={t('settings.themeDark')} icon="moon-outline" active={theme === 'dark'} onPress={() => handleTheme('dark')} />
+            <View style={[styles.segmented, { backgroundColor: colors.surface }]} className="glass-toggle">
+              <SegBtn label={t('settings.themeLight')} icon="sunny-outline" active={theme === 'light'} onPress={() => handleTheme('light')} colors={colors} />
+              <SegBtn label={t('settings.themeDark')} icon="moon-outline" active={theme === 'dark'} onPress={() => handleTheme('dark')} colors={colors} />
             </View>
           </View>
         </SettingsCard>
 
         {/* Data */}
-        <SectionTitle label={t('settings.sectionData')} />
-        <SettingsCard>
-          <RowItem icon="download-outline" label={t('settings.exportJson')} onPress={handleExportData} />
-          <View style={styles.separator} />
-          <RowItem icon="cloud-upload-outline" label={t('settings.cloudBackup')} onPress={handleBackupData} />
+        <SectionTitle label={t('settings.sectionData')} colors={colors} />
+        <SettingsCard colors={colors}>
+          <RowItem icon="download-outline" label={t('settings.exportJson')} onPress={handleExportData} colors={colors} />
+          <View style={[styles.separator, { backgroundColor: colors.border }]} />
+          <RowItem icon="cloud-upload-outline" label={t('settings.cloudBackup')} onPress={handleBackupData} colors={colors} />
         </SettingsCard>
 
         {/* PDF Reports */}
-        <SectionTitle label={t('settings.sectionPdf')} />
-        <Text style={styles.sectionDescription}>
+        <SectionTitle label={t('settings.sectionPdf')} colors={colors} />
+        <Text style={[styles.sectionDescription, { color: colors.slate }]}>
           {t('settings.pdfDescription')}
         </Text>
 
         {/* Period-based reports */}
-        <Text style={styles.subSectionTitle}>{t('settings.byPeriod')}</Text>
-        <SettingsCard>
+        <Text style={[styles.subSectionTitle, { color: colors.slateDark }]}>{t('settings.byPeriod')}</Text>
+        <SettingsCard colors={colors}>
           <RowItem
             icon="document-text-outline"
             label={t('settings.specificDay')}
             onPress={() => handlePdfExport('day')}
+            colors={colors}
           />
-          <View style={styles.separator} />
+          <View style={[styles.separator, { backgroundColor: colors.border }]} />
           <RowItem
             icon="calendar-outline"
             label={t('settings.last7days')}
             onPress={() => handlePdfExport('7days')}
+            colors={colors}
           />
-          <View style={styles.separator} />
+          <View style={[styles.separator, { backgroundColor: colors.border }]} />
           <RowItem
             icon="calendar-outline"
             label={t('settings.last30days')}
             onPress={() => handlePdfExport('30days')}
+            colors={colors}
           />
-          <View style={styles.separator} />
+          <View style={[styles.separator, { backgroundColor: colors.border }]} />
           <RowItem
             icon="time-outline"
             label={t('settings.allPeriods')}
             onPress={() => handlePdfExport('all')}
+            colors={colors}
           />
         </SettingsCard>
 
         {/* Session-specific report */}
-        <Text style={styles.subSectionTitle}>{t('settings.bySession')}</Text>
-        <SettingsCard>
+        <Text style={[styles.subSectionTitle, { color: colors.slateDark }]}>{t('settings.bySession')}</Text>
+        <SettingsCard colors={colors}>
           <RowItem
             icon="receipt-outline"
             label={t('settings.specificSession')}
             value={t('settings.choose')}
             onPress={handleSessionSelectorOpen}
+            colors={colors}
           />
         </SettingsCard>
 
         {/* Account */}
         {user && (
           <>
-            <SectionTitle label={t('settings.sectionAccount')} />
-            <SettingsCard>
-              <RowItem icon="key-outline" label={t('settings.changePassword')} onPress={handleChangePassword} />
-              <View style={styles.separator} />
-              <RowItem icon="log-out-outline" label={t('settings.logout')} destructive onPress={handleLogout} />
+            <SectionTitle label={t('settings.sectionAccount')} colors={colors} />
+            <SettingsCard colors={colors}>
+              <RowItem icon="key-outline" label={t('settings.changePassword')} onPress={handleChangePassword} colors={colors} />
+              <View style={[styles.separator, { backgroundColor: colors.border }]} />
+              <RowItem icon="log-out-outline" label={t('settings.logout')} destructive onPress={handleLogout} colors={colors} />
             </SettingsCard>
           </>
         )}
 
         {/* About */}
-        <SectionTitle label={t('settings.sectionApp')} />
-        <SettingsCard>
+        <SectionTitle label={t('settings.sectionApp')} colors={colors} />
+        <SettingsCard colors={colors}>
           <View style={styles.aboutRow}>
             <View style={styles.iconBox}>
-              <Ionicons name="information-circle-outline" size={19} color={COLORS.primary} />
+              <Ionicons name="information-circle-outline" size={19} color={colors.primary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.rowLabel}>{barInfo?.name || 'BarTrack'}</Text>
-              <Text style={styles.aboutSub}>{t('settings.versionLine')}</Text>
+              <Text style={[styles.rowLabel, { color: colors.slateDark }]}>{barInfo?.name || 'BarTrack'}</Text>
+              <Text style={[styles.aboutSub, { color: colors.slate }]}>{t('settings.versionLine')}</Text>
             </View>
           </View>
         </SettingsCard>
@@ -571,12 +579,12 @@ export default function SettingsScreen() {
   )
 }
 
-function SectionTitle({ label }: { label: string }) {
-  return <Text style={styles.sectionTitle}>{label}</Text>
+function SectionTitle({ label, colors }: { label: string; colors: typeof LIGHT_COLORS }) {
+  return <Text style={[styles.sectionTitle, { color: colors.slate }]}>{label}</Text>
 }
 
-function SettingsCard({ children }: { children: React.ReactNode }) {
-  return <View style={styles.card}>{children}</View>
+function SettingsCard({ children, colors }: { children: React.ReactNode; colors: typeof LIGHT_COLORS }) {
+  return <View style={[styles.card, { backgroundColor: colors.card }]}>{children}</View>
 }
 
 function RowItem({
@@ -585,33 +593,35 @@ function RowItem({
   value,
   onPress,
   destructive,
+  colors,
 }: {
   icon: keyof typeof Ionicons.glyphMap
   label: string
   value?: string
   onPress: () => void
   destructive?: boolean
+  colors: typeof LIGHT_COLORS
 }) {
   return (
     <TouchableOpacity style={styles.row} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.rowLeft}>
         <View style={[styles.iconBox, destructive && styles.iconBoxDestructive]}>
-          <Ionicons name={icon} size={19} color={destructive ? COLORS.rose : COLORS.primary} />
+          <Ionicons name={icon} size={19} color={destructive ? colors.rose : colors.primary} />
         </View>
-        <Text style={[styles.rowLabel, destructive && { color: COLORS.rose }]}>{label}</Text>
+        <Text style={[styles.rowLabel, { color: destructive ? colors.rose : colors.slateDark }]}>{label}</Text>
       </View>
       <View style={styles.rowRight}>
-        {value ? <Text style={styles.rowValue} numberOfLines={1}>{value}</Text> : null}
-        <Ionicons name="chevron-forward" size={16} color={COLORS.slate} />
+        {value ? <Text style={[styles.rowValue, { color: colors.slate }]} numberOfLines={1}>{value}</Text> : null}
+        <Ionicons name="chevron-forward" size={16} color={colors.slate} />
       </View>
     </TouchableOpacity>
   )
 }
 
-function SegBtn({ label, icon, active, onPress }: { label: string; icon?: keyof typeof Ionicons.glyphMap; active: boolean; onPress: () => void }) {
+function SegBtn({ label, icon, active, onPress, colors }: { label: string; icon?: keyof typeof Ionicons.glyphMap; active: boolean; onPress: () => void; colors: typeof LIGHT_COLORS }) {
   return (
     <TouchableOpacity
-      style={[styles.segBtn, active && styles.segBtnActive]}
+      style={[styles.segBtn, active && [styles.segBtnActive, { backgroundColor: colors.primary }]]}
       onPress={onPress}
       activeOpacity={0.8}
       // @ts-ignore - web-only className
@@ -621,17 +631,17 @@ function SegBtn({ label, icon, active, onPress }: { label: string; icon?: keyof 
         <Ionicons
           name={icon}
           size={14}
-          color={active ? COLORS.white : COLORS.slate}
+          color={active ? colors.white : colors.slate}
           style={{ marginRight: 4 }}
         />
       )}
-      <Text style={[styles.segBtnText, active && styles.segBtnTextActive]}>{label}</Text>
+      <Text style={[styles.segBtnText, { color: active ? colors.white : colors.slate }]}>{label}</Text>
     </TouchableOpacity>
   )
 }
 
 const styles = StyleSheet.create({
-  wrapper: { flex: 1, backgroundColor: COLORS.surface },
+  wrapper: { flex: 1 },
   container: { flex: 1 },
   content: { padding: 16, paddingBottom: 40 },
 
@@ -639,7 +649,6 @@ const styles = StyleSheet.create({
   profileCard: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: 16,
     padding: 16,
     marginBottom: 20,
@@ -660,23 +669,20 @@ const styles = StyleSheet.create({
     width: 56,
     height: 56,
     borderRadius: 28,
-    backgroundColor: COLORS.primaryLight,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: COLORS.primary,
   },
-  avatarText: { fontSize: 20, fontFamily: FONT.bold, color: COLORS.primary },
+  avatarText: { fontSize: 20, fontFamily: FONT.bold },
   profileInfo: { flex: 1 },
   profileNameRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
-  profileName: { fontSize: 16, fontFamily: FONT.semibold, color: COLORS.slateDark },
-  profileSub: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 1 },
+  profileName: { fontSize: 16, fontFamily: FONT.semibold },
+  profileSub: { fontSize: 13, fontFamily: FONT.regular, marginTop: 1 },
 
   // Section
   sectionTitle: {
     fontSize: 11,
     fontFamily: FONT.semibold,
-    color: COLORS.slate,
     textTransform: 'uppercase',
     letterSpacing: 0.8,
     marginBottom: 8,
@@ -686,7 +692,6 @@ const styles = StyleSheet.create({
   sectionDescription: {
     fontSize: 13,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
     marginBottom: 12,
     marginLeft: 2,
     lineHeight: 18,
@@ -694,13 +699,11 @@ const styles = StyleSheet.create({
   subSectionTitle: {
     fontSize: 13,
     fontFamily: FONT.semibold,
-    color: COLORS.slateDark,
     marginBottom: 8,
     marginTop: 12,
     marginLeft: 2,
   },
   card: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: 16,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -737,26 +740,18 @@ const styles = StyleSheet.create({
       web: {
         backdropFilter: 'blur(10px)',
       },
-      default: {
-        shadowColor: COLORS.primary,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
-        elevation: 2,
-      },
     }),
   },
   iconBoxDestructive: {
     backgroundColor: '#FFF1F2',
   },
-  rowLabel: { fontSize: 15, fontFamily: FONT.medium, color: COLORS.slateDark, flex: 1 },
-  rowValue: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.slate, maxWidth: 120 },
-  separator: { height: 1, backgroundColor: COLORS.border, marginLeft: 62 },
+  rowLabel: { fontSize: 15, fontFamily: FONT.medium, flex: 1 },
+  rowValue: { fontSize: 13, fontFamily: FONT.regular, maxWidth: 120 },
+  separator: { height: 1, marginLeft: 62 },
 
   // Segmented control
   segmented: {
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
     borderRadius: 8,
     padding: 2,
     gap: 2,
@@ -775,8 +770,6 @@ const styles = StyleSheet.create({
     }),
   },
   segBtnActive: {
-    backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
     shadowRadius: 4,
@@ -787,8 +780,8 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  segBtnText: { fontSize: 12, fontFamily: FONT.semibold, color: COLORS.slate },
-  segBtnTextActive: { color: COLORS.white },
+  segBtnText: { fontSize: 12, fontFamily: FONT.semibold },
+  segBtnTextActive: {},
 
   // About row
   aboutRow: {
@@ -798,7 +791,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 12,
   },
-  aboutSub: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 1 },
+  aboutSub: { fontSize: 12, fontFamily: FONT.regular, marginTop: 1 },
 
   // Modal
   modalBackdrop: {
@@ -811,7 +804,6 @@ const styles = StyleSheet.create({
   modalCard: {
     width: '100%',
     maxWidth: 360,
-    backgroundColor: COLORS.white,
     borderRadius: 20,
     padding: 24,
     shadowColor: '#000',
@@ -820,17 +812,14 @@ const styles = StyleSheet.create({
     shadowRadius: 32,
     elevation: 12,
   },
-  modalTitle: { fontSize: 17, fontFamily: FONT.semibold, color: COLORS.slateDark, marginBottom: 16 },
+  modalTitle: { fontSize: 17, fontFamily: FONT.semibold, marginBottom: 16 },
   modalInput: {
     borderWidth: 1.5,
-    borderColor: COLORS.border,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
     fontSize: 15,
     fontFamily: FONT.regular,
-    color: COLORS.slateDark,
-    backgroundColor: COLORS.surface,
     marginBottom: 20,
     ...Platform.select({ web: { outlineStyle: 'none' } as any }),
   },
@@ -838,7 +827,6 @@ const styles = StyleSheet.create({
   modalCancel: {
     flex: 1,
     borderWidth: 1.5,
-    borderColor: COLORS.border,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
@@ -849,14 +837,12 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  modalCancelText: { fontSize: 15, fontFamily: FONT.medium, color: COLORS.slate },
+  modalCancelText: { fontSize: 15, fontFamily: FONT.medium },
   modalConfirm: {
     flex: 1,
-    backgroundColor: COLORS.primary,
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: 'center',
-    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
     shadowRadius: 4,
@@ -868,7 +854,7 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  modalConfirmText: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.white },
+  modalConfirmText: { fontSize: 15, fontFamily: FONT.semibold },
   sessionItem: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -876,7 +862,6 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   sessionItemLeft: {
     flexDirection: 'row',
@@ -885,12 +870,10 @@ const styles = StyleSheet.create({
   sessionItemDate: {
     fontSize: 14,
     fontFamily: FONT.semibold,
-    color: COLORS.slateDark,
   },
   sessionItemRevenue: {
     fontSize: 12,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
     marginTop: 2,
   },
 })

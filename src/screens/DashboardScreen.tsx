@@ -17,13 +17,16 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { Badge } from '../components/Badge'
 import { ScreenSkeleton } from '../components/Skeleton'
 import { ProfessionalBarChart } from '../components/ProfessionalBarChart'
-import { COLORS, FONT, fmt, fmtShort, fmtNum, today, dateLabel, formatWithCassiers, drinkRackSize } from '../utils/helpers'
+import { FONT, fmt, fmtShort, fmtNum, today, dateLabel, formatWithCassiers, drinkRackSize } from '../utils/helpers'
+import { useSettings } from '../contexts/SettingsContext'
+import { LIGHT_COLORS } from '../styles/theme'
 import { isWithinLastDays, isoDaysAgo } from '../utils/calculations'
 import { useTranslation } from '../i18n'
 
 const BREAKPOINT = 768
 
 export default function DashboardScreen({ navigation }: any) {
+  const { colors } = useSettings()
   const { t } = useTranslation()
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
@@ -87,8 +90,8 @@ export default function DashboardScreen({ navigation }: any) {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ScreenHeader title={t('dashboard.title')} subtitle={dateLabel(today())} />
+      <View style={[styles.container, { backgroundColor: colors.surface }]}>
+        <ScreenHeader title={t('dashboard.title')} subtitle={dateLabel(today())} colors={colors} />
         <ScreenSkeleton variant="dashboard" />
       </View>
     )
@@ -135,8 +138,8 @@ export default function DashboardScreen({ navigation }: any) {
   const topMax = top5[0]?.revenue || 1
 
   return (
-    <View style={styles.container}>
-      <ScreenHeader title={t('dashboard.title')} subtitle={dateLabel(todayStr)} />
+    <View style={[styles.container, { backgroundColor: colors.surface }]}>
+      <ScreenHeader title={t('dashboard.title')} subtitle={dateLabel(todayStr)} colors={colors} />
 
       <ScrollView
         style={styles.scroll}
@@ -146,15 +149,15 @@ export default function DashboardScreen({ navigation }: any) {
         {/* ── 7-day pulse ── */}
         <View style={styles.statsRow}>
           {/* @ts-ignore - web-only className */}
-          <View style={styles.statBox} className="glass-card">
-            <Text style={styles.statLabel}>{t('dashboard.revenue7d')}</Text>
-            <Text style={styles.statValue} adjustsFontSizeToFit numberOfLines={1}>{fmt(last7Revenue)}</Text>
+          <View style={[styles.statBox, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: 'rgba(255, 255, 255, 0.5)' }]} className="glass-card">
+            <Text style={[styles.statLabel, { color: colors.slate }]}>{t('dashboard.revenue7d')}</Text>
+            <Text style={[styles.statValue, { color: colors.slateDark }]} adjustsFontSizeToFit numberOfLines={1}>{fmt(last7Revenue)}</Text>
           </View>
           {/* @ts-ignore - web-only className */}
-          <View style={styles.statBox} className="glass-card">
-            <Text style={styles.statLabel}>{t('dashboard.profit7d')}</Text>
+          <View style={[styles.statBox, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: 'rgba(255, 255, 255, 0.5)' }]} className="glass-card">
+            <Text style={[styles.statLabel, { color: colors.slate }]}>{t('dashboard.profit7d')}</Text>
             <Text
-              style={[styles.statValue, { color: last7Profit >= 0 ? COLORS.primary : COLORS.rose }]}
+              style={[styles.statValue, { color: last7Profit >= 0 ? colors.primary : colors.rose }]}
               adjustsFontSizeToFit
               numberOfLines={1}
             >
@@ -166,9 +169,9 @@ export default function DashboardScreen({ navigation }: any) {
         {/* ── 2. What needs my attention? ── */}
         {attention.length > 0 ? (
           // @ts-ignore - web-only className
-          <View style={styles.section} className="glass-card">
+          <View style={[styles.section, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: 'rgba(255, 255, 255, 0.5)' }]} className="glass-card">
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>{t('dashboard.watchlist')}</Text>
+              <Text style={[styles.sectionTitle, { color: colors.slateDark }]}>{t('dashboard.watchlist')}</Text>
               <View style={styles.badgeRow}>
                 {outOfStock.length > 0 && <Badge variant="danger">{t('dashboard.outOfStockCount', { count: outOfStock.length })}</Badge>}
                 {lowStock.length > 0 && <Badge variant="warning">{t('dashboard.lowStockCount', { count: lowStock.length })}</Badge>}
@@ -177,36 +180,36 @@ export default function DashboardScreen({ navigation }: any) {
             {attention.slice(0, 5).map(d => {
               const isOut = d.stock === 0
               const isCritical = !isOut && d.stock <= d.min_stock / 2
-              const stockColor = isOut ? COLORS.rose : (isCritical ? COLORS.amber : COLORS.primary)
+              const stockColor = isOut ? colors.rose : (isCritical ? colors.amber : colors.primary)
               const stockText = isOut ? t('dashboard.outOfStock') : formatWithCassiers(d.stock, d.category, drinkRackSize(d))
               return (
-                <TouchableOpacity key={d.id} style={styles.alertRow} onPress={() => navigation.navigate('Inventory')} activeOpacity={0.7}>
+                <TouchableOpacity key={d.id} style={[styles.alertRow, { borderTopColor: colors.border }]} onPress={() => navigation.navigate('Inventory')} activeOpacity={0.7}>
                   <View style={[styles.alertBar, { backgroundColor: stockColor }]} />
                   <View style={styles.alertMain}>
-                    <Text style={styles.alertName} numberOfLines={1}>{d.name}</Text>
-                    <Text style={styles.alertSub}>{t('dashboard.threshold', { value: d.min_stock })} · {d.category}</Text>
+                    <Text style={[styles.alertName, { color: colors.slateDark }]} numberOfLines={1}>{d.name}</Text>
+                    <Text style={[styles.alertSub, { color: colors.slate }]}>{t('dashboard.threshold', { value: d.min_stock })} · {d.category}</Text>
                   </View>
                   <View style={styles.alertRight}>
                     <Text style={[styles.alertStock, { color: stockColor }]}>
                       {stockText}
                     </Text>
                   </View>
-                  <Ionicons name="chevron-forward" size={16} color={COLORS.slate400} />
+                  <Ionicons name="chevron-forward" size={16} color={colors.slate400} />
                 </TouchableOpacity>
               )
             })}
             {attention.length > 5 && (
               <TouchableOpacity onPress={() => navigation.navigate('Inventory')}>
-                <Text style={styles.moreLink}>{t('dashboard.seeOthers', { count: attention.length - 5 })}</Text>
+                <Text style={[styles.moreLink, { color: colors.primary }]}>{t('dashboard.seeOthers', { count: attention.length - 5 })}</Text>
               </TouchableOpacity>
             )}
           </View>
         ) : (
-          <View style={styles.healthyCard}>
-            <View style={styles.healthyIcon}>
-              <Ionicons name="checkmark-circle" size={20} color={COLORS.primary} />
+          <View style={[styles.healthyCard, { backgroundColor: `rgba(74, 144, 226, 0.12)`, borderColor: `rgba(74, 144, 226, 0.3)`, shadowColor: colors.primary }]}>
+            <View style={[styles.healthyIcon, { backgroundColor: 'rgba(255, 255, 255, 0.9)' }]}>
+              <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
             </View>
-            <Text style={styles.healthyText}>{t('dashboard.allHealthy')}</Text>
+            <Text style={[styles.healthyText, { color: '#065F46' }]}>{t('dashboard.allHealthy')}</Text>
           </View>
         )}
 
@@ -215,10 +218,10 @@ export default function DashboardScreen({ navigation }: any) {
           {/* ── Profit trend chart ── */}
           {last7Sessions.length > 0 && (
             // @ts-ignore - web-only className
-            <View style={[styles.section, isDesktop && styles.dashboardHalf]} className="glass-card">
+            <View style={[styles.section, isDesktop && styles.dashboardHalf, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: 'rgba(255, 255, 255, 0.5)' }]} className="glass-card">
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{t('dashboard.profitPerDay')}</Text>
-                <Text style={styles.sectionHint}>{t('dashboard.last7days')}</Text>
+                <Text style={[styles.sectionTitle, { color: colors.slateDark }]}>{t('dashboard.profitPerDay')}</Text>
+                <Text style={[styles.sectionHint, { color: colors.slate }]}>{t('dashboard.last7days')}</Text>
               </View>
               <View style={styles.profitChartContainer}>
                 <ProfessionalBarChart
@@ -227,7 +230,7 @@ export default function DashboardScreen({ navigation }: any) {
                     return {
                       label: s.date.slice(-5),
                       value: s.total_profit,
-                      color: s.total_profit >= 0 ? COLORS.primary : COLORS.rose,
+                      color: s.total_profit >= 0 ? colors.primary : colors.rose,
                       revenue: s.total_revenue,
                       unitsSold: unitsSold,
                       cost: s.total_cost,
@@ -247,23 +250,23 @@ export default function DashboardScreen({ navigation }: any) {
           {/* ── 3. What's selling? ── */}
           {top5.length > 0 && (
             // @ts-ignore - web-only className
-            <View style={[styles.section, isDesktop && styles.dashboardHalf]} className="glass-card">
+            <View style={[styles.section, isDesktop && styles.dashboardHalf, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: 'rgba(255, 255, 255, 0.5)' }]} className="glass-card">
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>{t('dashboard.bestSellers')}</Text>
-                <Text style={styles.sectionHint}>{t('dashboard.last7days')}</Text>
+                <Text style={[styles.sectionTitle, { color: colors.slateDark }]}>{t('dashboard.bestSellers')}</Text>
+                <Text style={[styles.sectionHint, { color: colors.slate }]}>{t('dashboard.last7days')}</Text>
               </View>
               {top5.map((item, i) => (
-                <View key={item.drink.id} style={styles.topRow}>
-                  <Text style={styles.topRank}>{i + 1}</Text>
+                <View key={item.drink.id} style={[styles.topRow, { borderTopColor: colors.border }]}>
+                  <Text style={[styles.topRank, { backgroundColor: 'rgba(74, 144, 226, 0.15)', color: colors.primary }]}>{i + 1}</Text>
                   <View style={styles.topMain}>
-                    <Text style={styles.topName} numberOfLines={1}>{item.drink.name}</Text>
-                    <View style={styles.topBarTrack}>
-                      <View style={[styles.topBarFill, { width: `${Math.max(6, (item.revenue / topMax) * 100)}%` }]} />
+                    <Text style={[styles.topName, { color: colors.slateDark }]} numberOfLines={1}>{item.drink.name}</Text>
+                    <View style={[styles.topBarTrack, { backgroundColor: colors.slateLight }]}>
+                      <View style={[styles.topBarFill, { width: `${Math.max(6, (item.revenue / topMax) * 100)}%`, backgroundColor: colors.primary }]} />
                     </View>
                   </View>
                   <View style={styles.topRight}>
-                    <Text style={styles.topRevenue} numberOfLines={1}>{fmtShort(item.revenue)}</Text>
-                    <Text style={styles.topSold}>{t('dashboard.soldCount', { count: item.sold })}</Text>
+                    <Text style={[styles.topRevenue, { color: colors.slateDark }]} numberOfLines={1}>{fmtShort(item.revenue)}</Text>
+                    <Text style={[styles.topSold, { color: colors.slate }]}>{t('dashboard.soldCount', { count: item.sold })}</Text>
                   </View>
                 </View>
               ))}
@@ -272,9 +275,9 @@ export default function DashboardScreen({ navigation }: any) {
         </View>
 
         {attention.length === 0 && top5.length === 0 && (
-          <View style={styles.emptyHint}>
-            <Ionicons name="information-circle-outline" size={20} color={COLORS.slate} />
-            <Text style={styles.emptyHintText}>
+          <View style={[styles.emptyHint, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: 'rgba(255, 255, 255, 0.5)' }]}>
+            <Ionicons name="information-circle-outline" size={20} color={colors.slate} />
+            <Text style={[styles.emptyHintText, { color: colors.slate }]}>
               {t('dashboard.emptyHint')}
             </Text>
           </View>
@@ -287,13 +290,11 @@ export default function DashboardScreen({ navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.surface,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.surface,
   },
   scroll: {
     flex: 1,
@@ -314,12 +315,10 @@ const styles = StyleSheet.create({
   statsRow: { flexDirection: 'row', gap: 16, marginBottom: 20 },
   statBox: {
     flex: 1,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: 16,
     paddingVertical: 20,
     paddingHorizontal: 18,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
     ...Platform.select({
       web: {
         backdropFilter: 'blur(12px)',
@@ -334,15 +333,13 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  statLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.slate, letterSpacing: 0.3, textTransform: 'uppercase' },
-  statValue: { fontSize: 20, fontFamily: FONT.extrabold, color: COLORS.slateDark, marginTop: 8, fontVariant: ['tabular-nums'], letterSpacing: -0.5, minHeight: 28 },
+  statLabel: { fontSize: 11, fontFamily: FONT.semibold, letterSpacing: 0.3, textTransform: 'uppercase' },
+  statValue: { fontSize: 20, fontFamily: FONT.extrabold, marginTop: 8, fontVariant: ['tabular-nums'], letterSpacing: -0.5, minHeight: 28 },
   section: {
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: 18,
     padding: 20,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
     ...Platform.select({
       web: {
         backdropFilter: 'blur(12px)',
@@ -363,8 +360,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  sectionTitle: { fontSize: 17, fontFamily: FONT.bold, color: COLORS.slateDark, letterSpacing: -0.3 },
-  sectionHint: { fontSize: 13, fontFamily: FONT.medium, color: COLORS.slate },
+  sectionTitle: { fontSize: 17, fontFamily: FONT.bold, letterSpacing: -0.3 },
+  sectionHint: { fontSize: 13, fontFamily: FONT.medium },
   badgeRow: { flexDirection: 'row', gap: 6 },
   alertRow: {
     flexDirection: 'row',
@@ -372,31 +369,27 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
   },
   alertBar: { width: 4, height: 36, borderRadius: 2 },
   alertMain: { flex: 1, minWidth: 0 },
-  alertName: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.slateDark },
-  alertSub: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 3 },
+  alertName: { fontSize: 15, fontFamily: FONT.semibold },
+  alertSub: { fontSize: 12, fontFamily: FONT.regular, marginTop: 3 },
   alertRight: { alignItems: 'flex-end' },
   alertStock: { fontSize: 14, fontFamily: FONT.bold, fontVariant: ['tabular-nums'] },
-  moreLink: { fontSize: 14, fontFamily: FONT.bold, color: COLORS.primary, marginTop: 12 },
+  moreLink: { fontSize: 14, fontFamily: FONT.bold, marginTop: 12 },
   healthyCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 16,
     padding: 18,
     marginBottom: 16,
-    backgroundColor: 'rgba(74, 144, 226, 0.12)',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(74, 144, 226, 0.3)',
     ...Platform.select({
       web: {
         backdropFilter: 'blur(10px)',
       },
       default: {
-        shadowColor: COLORS.primary,
         shadowOffset: { width: 0, height: 3 },
         shadowOpacity: 0.15,
         shadowRadius: 8,
@@ -406,25 +399,23 @@ const styles = StyleSheet.create({
   },
   healthyIcon: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(255, 255, 255, 0.9)', alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center', justifyContent: 'center',
     ...Platform.select({
       web: {
         backdropFilter: 'blur(8px)',
       },
     }),
   },
-  healthyText: { flex: 1, fontSize: 14, fontFamily: FONT.semibold, color: '#065F46' },
+  healthyText: { flex: 1, fontSize: 14, fontFamily: FONT.semibold },
   topRow: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
     gap: 14,
   },
   topRank: {
     width: 28, height: 28, borderRadius: 8,
-    backgroundColor: 'rgba(74, 144, 226, 0.15)', color: COLORS.primary,
     fontSize: 14, fontFamily: FONT.bold, textAlign: 'center', lineHeight: 28,
     ...Platform.select({
       web: {
@@ -433,21 +424,19 @@ const styles = StyleSheet.create({
     }),
   },
   topMain: { flex: 1, minWidth: 0, gap: 7 },
-  topName: { fontSize: 15, fontFamily: FONT.semibold, color: COLORS.slateDark },
-  topBarTrack: { height: 6, borderRadius: 3, backgroundColor: COLORS.slateLight, overflow: 'hidden' },
-  topBarFill: { height: '100%', borderRadius: 3, backgroundColor: COLORS.primary },
+  topName: { fontSize: 15, fontFamily: FONT.semibold },
+  topBarTrack: { height: 6, borderRadius: 3, overflow: 'hidden' },
+  topBarFill: { height: '100%', borderRadius: 3 },
   topRight: { alignItems: 'flex-end' },
-  topRevenue: { fontSize: 16, fontFamily: FONT.bold, color: COLORS.slateDark, fontVariant: ['tabular-nums'] },
-  topSold: { fontSize: 12, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 2 },
+  topRevenue: { fontSize: 16, fontFamily: FONT.bold, fontVariant: ['tabular-nums'] },
+  topSold: { fontSize: 12, fontFamily: FONT.regular, marginTop: 2 },
   emptyHint: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
     padding: 18,
-    backgroundColor: 'rgba(255, 255, 255, 0.85)',
     borderRadius: 16,
     borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.5)',
     ...Platform.select({
       web: {
         backdropFilter: 'blur(12px)',
@@ -461,7 +450,7 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  emptyHintText: { flex: 1, fontSize: 14, fontFamily: FONT.regular, color: COLORS.slate, lineHeight: 20 },
+  emptyHintText: { flex: 1, fontSize: 14, fontFamily: FONT.regular, lineHeight: 20 },
   profitChartContainer: {
     paddingTop: 8,
     width: '100%',

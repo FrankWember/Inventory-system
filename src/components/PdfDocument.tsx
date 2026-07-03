@@ -1,6 +1,6 @@
 import React from 'react'
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
-import { PdfData, calculateSummary, getTopProducts, getCategoryBreakdown, getDailyTrends } from '../services/pdfService'
+import { PdfData, calculateSummary, getTopProducts, getCategoryBreakdown, getDailyTrends, getStockMovements, getStockValueSummary } from '../services/pdfService'
 import { fmt, fmtNum, dateLabelLong, fmtShortBare } from '../utils/helpers'
 import { t } from '../i18n'
 
@@ -180,6 +180,11 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
   const now = new Date()
   const timestamp = `${now.toLocaleDateString('fr-FR')} ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}`
 
+  // Session-specific data
+  const isSessionReport = data.periodType === 'session' || data.sessions.length === 1
+  const stockMovements = getStockMovements(data)
+  const stockValues = getStockValueSummary(data)
+
   // Calculate max values for charts
   const maxRevenue = Math.max(...topProducts.map(p => p.revenue), 1)
   const maxCategoryRevenue = Math.max(...categories.map(c => c.revenue), 1)
@@ -256,6 +261,125 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
             <Text style={styles.value}>{summary.netMarginPercent.toFixed(1)}%</Text>
           </View>
         </View>
+
+        {/* Stock Value Summary - Session Reports Only */}
+        {isSessionReport && stockMovements.length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Valeur du Stock</Text>
+
+            <View style={styles.row}>
+              <Text style={styles.label}>Stock d'ouverture (valeur)</Text>
+              <Text style={styles.value}>{fmt(stockValues.totalOpeningValue)}</Text>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.label}>Achats (valeur)</Text>
+              <Text style={styles.value}>{fmt(stockValues.totalPurchaseCost)}</Text>
+            </View>
+
+            <View style={styles.row}>
+              <Text style={styles.label}>Stock de clôture (valeur)</Text>
+              <Text style={styles.value}>{fmt(stockValues.totalClosingValue)}</Text>
+            </View>
+
+            <View style={styles.divider} />
+
+            <View style={[styles.row, styles.rowHighlight]}>
+              <Text style={styles.label}>Variation de stock</Text>
+              <Text style={[styles.value, stockValues.stockVariance >= 0 ? styles.positive : styles.negative]}>
+                {fmt(stockValues.stockVariance)}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Stock Movement Table - Session Reports Only */}
+        {isSessionReport && stockMovements.length > 0 && (
+          <View style={styles.section} break>
+            <Text style={styles.sectionTitle}>Mouvement de Stock</Text>
+
+            <View style={styles.table}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.th, { width: '20%' }]}>Article</Text>
+                <Text style={[styles.th, { width: '10%', textAlign: 'right' }]}>Ouv.</Text>
+                <Text style={[styles.th, { width: '10%', textAlign: 'right' }]}>Reçu</Text>
+                <Text style={[styles.th, { width: '10%', textAlign: 'right' }]}>Disp.</Text>
+                <Text style={[styles.th, { width: '10%', textAlign: 'right' }]}>Compté</Text>
+                <Text style={[styles.th, { width: '10%', textAlign: 'right' }]}>Vendu</Text>
+                <Text style={[styles.th, { width: '15%', textAlign: 'right' }]}>Val. Ouv.</Text>
+                <Text style={[styles.th, { width: '15%', textAlign: 'right' }]}>Val. Clô.</Text>
+              </View>
+
+              {stockMovements.map((movement, index) => (
+                <View key={index} style={index % 2 === 0 ? [styles.tableRow, styles.tableRowEven] : styles.tableRow}>
+                  <Text style={[styles.td, { width: '20%' }]}>{movement.name}</Text>
+                  <Text style={[styles.td, { width: '10%', textAlign: 'right' }]}>{fmtNum(movement.opening)}</Text>
+                  <Text style={[styles.td, { width: '10%', textAlign: 'right' }]}>{fmtNum(movement.purchased)}</Text>
+                  <Text style={[styles.td, { width: '10%', textAlign: 'right' }]}>{fmtNum(movement.available)}</Text>
+                  <Text style={[styles.td, { width: '10%', textAlign: 'right' }]}>{fmtNum(movement.counted)}</Text>
+                  <Text style={[styles.td, { width: '10%', textAlign: 'right' }]}>{fmtNum(movement.sold)}</Text>
+                  <Text style={[styles.td, { width: '15%', textAlign: 'right' }]}>{fmt(movement.openingValue)}</Text>
+                  <Text style={[styles.td, { width: '15%', textAlign: 'right' }]}>{fmt(movement.closingValue)}</Text>
+                </View>
+              ))}
+
+              {/* Totals Row */}
+              <View style={[styles.tableRow, styles.rowHighlight]}>
+                <Text style={[styles.td, { width: '20%', fontWeight: 'bold' }]}>TOTAL</Text>
+                <Text style={[styles.td, { width: '10%', textAlign: 'right' }]}></Text>
+                <Text style={[styles.td, { width: '10%', textAlign: 'right' }]}></Text>
+                <Text style={[styles.td, { width: '10%', textAlign: 'right' }]}></Text>
+                <Text style={[styles.td, { width: '10%', textAlign: 'right' }]}></Text>
+                <Text style={[styles.td, { width: '10%', textAlign: 'right', fontWeight: 'bold' }]}>
+                  {fmtNum(stockMovements.reduce((sum, m) => sum + m.sold, 0))}
+                </Text>
+                <Text style={[styles.td, { width: '15%', textAlign: 'right', fontWeight: 'bold' }]}>
+                  {fmt(stockValues.totalOpeningValue)}
+                </Text>
+                <Text style={[styles.td, { width: '15%', textAlign: 'right', fontWeight: 'bold' }]}>
+                  {fmt(stockValues.totalClosingValue)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* Purchase Details Table - Session Reports Only */}
+        {isSessionReport && stockMovements.filter(m => m.purchased > 0).length > 0 && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Détails des Achats</Text>
+
+            <View style={styles.table}>
+              <View style={styles.tableHeader}>
+                <Text style={[styles.th, { width: '40%' }]}>Article</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>Quantité</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>Coût Unit.</Text>
+                <Text style={[styles.th, { width: '20%', textAlign: 'right' }]}>Coût Total</Text>
+              </View>
+
+              {stockMovements.filter(m => m.purchased > 0).map((movement, index) => (
+                <View key={index} style={index % 2 === 0 ? [styles.tableRow, styles.tableRowEven] : styles.tableRow}>
+                  <Text style={[styles.td, { width: '40%' }]}>{movement.name}</Text>
+                  <Text style={[styles.td, { width: '20%', textAlign: 'right' }]}>{fmtNum(movement.purchased)}</Text>
+                  <Text style={[styles.td, { width: '20%', textAlign: 'right' }]}>{fmt(movement.unitCost)}</Text>
+                  <Text style={[styles.td, { width: '20%', textAlign: 'right' }]}>{fmt(movement.purchaseCost)}</Text>
+                </View>
+              ))}
+
+              {/* Totals Row */}
+              <View style={[styles.tableRow, styles.rowHighlight]}>
+                <Text style={[styles.td, { width: '40%', fontWeight: 'bold' }]}>TOTAL</Text>
+                <Text style={[styles.td, { width: '20%', textAlign: 'right', fontWeight: 'bold' }]}>
+                  {fmtNum(stockMovements.reduce((sum, m) => sum + m.purchased, 0))}
+                </Text>
+                <Text style={[styles.td, { width: '20%', textAlign: 'right' }]}></Text>
+                <Text style={[styles.td, { width: '20%', textAlign: 'right', fontWeight: 'bold' }]}>
+                  {fmt(stockValues.totalPurchaseCost)}
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
 
         {/* Top Selling Products Chart */}
         {topProducts.length > 0 && (

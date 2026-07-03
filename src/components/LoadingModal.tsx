@@ -7,15 +7,17 @@ import {
   StyleSheet,
   Platform,
 } from 'react-native'
-import { COLORS, FONT } from '../utils/helpers'
+import { FONT } from '../utils/helpers'
+import { LIGHT_COLORS } from '../styles/theme'
 
 interface LoadingModalProps {
   visible: boolean
   message?: string
   progress?: number
+  colors?: typeof LIGHT_COLORS
 }
 
-export function LoadingModal({ visible, message = 'Chargement...', progress }: LoadingModalProps) {
+export function LoadingModal({ visible, message = 'Chargement...', progress, colors = LIGHT_COLORS }: LoadingModalProps) {
   return (
     <Modal
       visible={visible}
@@ -24,15 +26,15 @@ export function LoadingModal({ visible, message = 'Chargement...', progress }: L
       statusBarTranslucent
     >
       <View style={styles.backdrop}>
-        <View style={styles.card}>
-          <ActivityIndicator size="large" color={COLORS.primary} />
-          <Text style={styles.message}>{message}</Text>
+        <View style={[styles.card, { backgroundColor: colors.card }]}>
+          <ActivityIndicator size="large" color={colors.primary} />
+          <Text style={[styles.message, { color: colors.slateDark }]}>{message}</Text>
           {progress !== undefined && (
             <View style={styles.progressContainer}>
-              <View style={styles.progressBar}>
-                <View style={[styles.progressFill, { width: `${progress}%` }]} />
+              <View style={[styles.progressBar, { backgroundColor: colors.surface }]}>
+                <View style={[styles.progressFill, { width: `${progress}%`, backgroundColor: colors.primary }]} />
               </View>
-              <Text style={styles.progressText}>{Math.round(progress)}%</Text>
+              <Text style={[styles.progressText, { color: colors.slate }]}>{Math.round(progress)}%</Text>
             </View>
           )}
         </View>
@@ -55,7 +57,6 @@ const styles = StyleSheet.create({
     }),
   },
   card: {
-    backgroundColor: COLORS.white,
     borderRadius: 20,
     padding: 32,
     alignItems: 'center',
@@ -76,7 +77,6 @@ const styles = StyleSheet.create({
   message: {
     fontSize: 16,
     fontFamily: FONT.semibold,
-    color: COLORS.slateDark,
     marginTop: 20,
     textAlign: 'center',
   },
@@ -88,13 +88,11 @@ const styles = StyleSheet.create({
   progressBar: {
     width: '100%',
     height: 6,
-    backgroundColor: COLORS.surface,
     borderRadius: 3,
     overflow: 'hidden',
   },
   progressFill: {
     height: '100%',
-    backgroundColor: COLORS.primary,
     borderRadius: 3,
     ...Platform.select({
       web: {
@@ -105,7 +103,6 @@ const styles = StyleSheet.create({
   progressText: {
     fontSize: 12,
     fontFamily: FONT.medium,
-    color: COLORS.slate,
     textAlign: 'center',
   },
 })

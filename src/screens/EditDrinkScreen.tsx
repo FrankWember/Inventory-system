@@ -17,12 +17,16 @@ import { Card } from '../components/Card'
 import { Input } from '../components/Input'
 import { Button } from '../components/Button'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { COLORS, fmt, fmtNum } from '../utils/helpers'
+import { DualStockInput } from '../components/DualStockInput'
+import { fmt, fmtNum } from '../utils/helpers'
+import { LIGHT_COLORS } from '../styles/theme'
+import { useSettings } from '../contexts/SettingsContext'
 
 const BREAKPOINT = 768
 
 export default function EditDrinkScreen({ route, navigation }: any) {
   const { t } = useTranslation()
+  const { colors } = useSettings()
   const { drinkId, hideHeader } = route.params
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
 
@@ -38,8 +42,8 @@ export default function EditDrinkScreen({ route, navigation }: any) {
   const [deleteConfirm, setDeleteConfirm] = useState('')
   const [cassierCost, setCassierCost] = useState<string>('')
   const [rackSize, setRackSize] = useState<string>('')
-  const [stock, setStock] = useState<string>('')
-  const [minStock, setMinStock] = useState<string>('')
+  const [stock, setStock] = useState<number>(0)
+  const [minStock, setMinStock] = useState<number>(0)
   const [price, setPrice] = useState<string>('')
 
   useEffect(() => {
@@ -61,8 +65,8 @@ export default function EditDrinkScreen({ route, navigation }: any) {
       const calculatedCassierCost = data.cassier_cost ?? data.cost * size
       setCassierCost(calculatedCassierCost.toString())
       setRackSize(size.toString())
-      setStock(data.stock.toString())
-      setMinStock(data.min_stock.toString())
+      setStock(data.stock)
+      setMinStock(data.min_stock)
       setPrice(data.price.toString())
     } catch (error) {
       console.error('Error loading drink:', error)
@@ -79,8 +83,6 @@ export default function EditDrinkScreen({ route, navigation }: any) {
     // Parse all values
     const cassierCostNum = parseInt(cassierCost) || 0
     const rackSizeNum = parseInt(rackSize) || 1
-    const stockNum = parseInt(stock) || 0
-    const minStockNum = parseInt(minStock) || 0
     const priceNum = parseInt(price) || 0
 
     // Calculate unit cost from cassier cost
@@ -91,8 +93,8 @@ export default function EditDrinkScreen({ route, navigation }: any) {
       const { error } = await supabase
         .from('drinks')
         .update({
-          stock: stockNum,
-          min_stock: minStockNum,
+          stock: stock,
+          min_stock: minStock,
           rack_size: rackSizeNum,
           cassier_quantity: rackSizeNum,
           price: priceNum,
@@ -141,8 +143,8 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={[styles.loadingContainer, { backgroundColor: colors.surface }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     )
   }
@@ -170,12 +172,13 @@ export default function EditDrinkScreen({ route, navigation }: any) {
           title={t('common.edit')}
           subtitle={drink?.name}
           onBack={() => navigation.goBack()}
+          colors={colors}
         />
       )}
-      <ScrollView style={styles.container} contentContainerStyle={styles.scrollContent}>
+      <ScrollView style={[styles.container, { backgroundColor: colors.surface }]} contentContainerStyle={styles.scrollContent}>
         <Card>
-          <Text style={styles.drinkName}>{drink.name}</Text>
-          <Text style={styles.categoryBadge}>{drink.category}</Text>
+          <Text style={[styles.drinkName, { color: colors.slateDark }]}>{drink.name}</Text>
+          <Text style={[styles.categoryBadge, { color: colors.slate, backgroundColor: colors.slateLight }]}>{drink.category}</Text>
 
           <Input
             label={t('inventory.unitsPerRack')}
@@ -185,18 +188,18 @@ export default function EditDrinkScreen({ route, navigation }: any) {
             placeholder="12"
           />
 
-          <Input
+          <DualStockInput
             label={t('inventory.currentStock')}
-            value={stock}
-            onChangeText={setStock}
-            keyboardType="number-pad"
+            totalUnits={stock}
+            cassierQuantity={parseInt(rackSize) || 1}
+            onChange={setStock}
           />
 
-          <Input
+          <DualStockInput
             label={t('inventory.minThreshold')}
-            value={minStock}
-            onChangeText={setMinStock}
-            keyboardType="number-pad"
+            totalUnits={minStock}
+            cassierQuantity={parseInt(rackSize) || 1}
+            onChange={setMinStock}
           />
           <Input
             label={t('inventory.crateCostQuestion')}
@@ -215,20 +218,20 @@ export default function EditDrinkScreen({ route, navigation }: any) {
           />
 
           {cassierCostNum > 0 && priceNum > 0 && rackSizeNum > 0 && (
-            <View style={styles.calculationCard}>
+            <View style={[styles.calculationCard, { backgroundColor: colors.surface }]}>
               <View style={styles.calculationRow}>
-                <Text style={styles.calculationLabel}>{t('inventory.costPerUnit')}</Text>
-                <Text style={styles.calculationValue}>{fmt(costPerUnit)}</Text>
+                <Text style={[styles.calculationLabel, { color: colors.slate }]}>{t('inventory.costPerUnit')}</Text>
+                <Text style={[styles.calculationValue, { color: colors.slateDark }]}>{fmt(costPerUnit)}</Text>
               </View>
               <View style={styles.calculationRow}>
-                <Text style={styles.calculationLabel}>{t('inventory.profitPerUnit')}</Text>
-                <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
+                <Text style={[styles.calculationLabel, { color: colors.slate }]}>{t('inventory.profitPerUnit')}</Text>
+                <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? colors.emerald : colors.rose }]}>
                   {fmt(profitPerUnit)}
                 </Text>
               </View>
               <View style={styles.calculationRow}>
-                <Text style={styles.calculationLabel}>{t('inventory.margin')}</Text>
-                <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? COLORS.emerald : COLORS.rose }]}>
+                <Text style={[styles.calculationLabel, { color: colors.slate }]}>{t('inventory.margin')}</Text>
+                <Text style={[styles.calculationValue, { color: profitPerUnit > 0 ? colors.emerald : colors.rose }]}>
                   {margin}%
                 </Text>
               </View>
@@ -245,11 +248,12 @@ export default function EditDrinkScreen({ route, navigation }: any) {
           </Button>
         </View>
 
-        <Card style={styles.dangerCard}>
-          <Text style={styles.dangerTitle}>{t('inventory.dangerZone')}</Text>
-          <Text style={styles.dangerText}>
-            {t('inventory.deleteConfirmHint')}
-          </Text>
+        <View style={[styles.dangerCard, { borderColor: colors.rose }]}>
+          <Card>
+            <Text style={[styles.dangerTitle, { color: colors.rose }]}>{t('inventory.dangerZone')}</Text>
+            <Text style={[styles.dangerText, { color: colors.slate }]}>
+              {t('inventory.deleteConfirmHint')}
+            </Text>
           <Input
             placeholder={drink.name}
             value={deleteConfirm}
@@ -257,14 +261,15 @@ export default function EditDrinkScreen({ route, navigation }: any) {
             autoCapitalize="none"
             autoCorrect={false}
           />
-          <Button
-            onPress={handleDelete}
-            variant="danger"
-            disabled={!deleteConfirmMatches}
-          >
-            {t('inventory.deleteThisDrink')}
-          </Button>
-        </Card>
+            <Button
+              onPress={handleDelete}
+              variant="danger"
+              disabled={!deleteConfirmMatches}
+            >
+              {t('inventory.deleteThisDrink')}
+            </Button>
+          </Card>
+        </View>
 
         <View style={{ height: 40 }} />
       </ScrollView>
@@ -275,7 +280,6 @@ export default function EditDrinkScreen({ route, navigation }: any) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: COLORS.white,
   },
   scrollContent: {
     padding: 16,
@@ -284,19 +288,15 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
   },
   drinkName: {
     fontSize: 22,
     fontWeight: '700',
-    color: COLORS.slateDark,
     marginBottom: 6,
   },
   categoryBadge: {
     fontSize: 11,
     fontWeight: '600',
-    color: COLORS.slate,
-    backgroundColor: COLORS.slateLight,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 6,
@@ -312,17 +312,14 @@ const styles = StyleSheet.create({
     paddingTop: 16,
     marginTop: 16,
     borderTopWidth: 1,
-    borderTopColor: COLORS.border,
   },
   summaryText: {
     fontSize: 13,
     fontWeight: '500',
-    color: COLORS.slate,
   },
   summaryValue: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.slateDark,
   },
   buttons: {
     flexDirection: 'row',
@@ -330,22 +327,18 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
   },
   dangerCard: {
-    borderColor: COLORS.rose,
     borderWidth: 1.5,
   },
   dangerTitle: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.rose,
     marginBottom: 6,
   },
   dangerText: {
     fontSize: 13,
-    color: COLORS.slate,
     marginBottom: 16,
   },
   calculationCard: {
-    backgroundColor: COLORS.surface,
     borderRadius: 12,
     padding: 16,
     marginTop: 16,
@@ -359,11 +352,9 @@ const styles = StyleSheet.create({
   calculationLabel: {
     fontSize: 14,
     fontWeight: '500',
-    color: COLORS.slate,
   },
   calculationValue: {
     fontSize: 16,
     fontWeight: '700',
-    color: COLORS.slateDark,
   },
 })

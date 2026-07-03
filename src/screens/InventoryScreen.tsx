@@ -24,8 +24,9 @@ import EditDrinkScreen from './EditDrinkScreen'
 import AddDrinkScreen from './AddDrinkScreen'
 import { FloatingModal } from '../components/FloatingModal'
 import { useTranslation } from '../i18n'
+import { useSettings } from '../contexts/SettingsContext'
+import { LIGHT_COLORS } from '../styles/theme'
 import {
-  COLORS,
   FONT,
   fmtShort,
   getStockStatus,
@@ -39,6 +40,7 @@ const GRID_PADDING = 16
 const BREAKPOINT = 768
 
 export default function InventoryScreen({ navigation }: any) {
+  const { colors } = useSettings()
   const { t } = useTranslation()
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [loading, setLoading] = useState(true)
@@ -126,8 +128,8 @@ export default function InventoryScreen({ navigation }: any) {
 
   if (loading) {
     return (
-      <View style={styles.container}>
-        <ScreenHeader title={t('common.stock')} subtitle={t('common.loading')} />
+      <View style={[styles.container, { backgroundColor: colors.surface }]}>
+        <ScreenHeader title={t('common.stock')} subtitle={t('common.loading')} colors={colors} />
         <ScreenSkeleton variant="grid" />
       </View>
     )
@@ -162,22 +164,27 @@ export default function InventoryScreen({ navigation }: any) {
 
     return (
       <TouchableOpacity
-        style={[styles.gridCard, isSelected && styles.gridCardSelected]}
+        style={[
+          styles.gridCard,
+          { backgroundColor: colors.white },
+          isSelected && styles.gridCardSelected,
+          isSelected && { borderColor: colors.primary, shadowColor: colors.primary }
+        ]}
         onPress={() => handleDrinkPress(drink.id)}
         activeOpacity={0.7}
       >
         <View style={styles.gridBody}>
           <View style={styles.gridTop}>
             <View style={[styles.statusDot, { backgroundColor: getStockColor(status) }]} />
-            <Text style={styles.gridCategory}>{drink.category}</Text>
+            <Text style={[styles.gridCategory, { color: colors.slate }]}>{drink.category}</Text>
           </View>
-          <Text style={styles.gridName} numberOfLines={2}>{drink.name}</Text>
-          <Text style={styles.gridStock}>
+          <Text style={[styles.gridName, { color: colors.slateDark }]} numberOfLines={2}>{drink.name}</Text>
+          <Text style={[styles.gridStock, { color: colors.primary }]}>
             {formatWithCassiersShort(drink.stock, drink.category, drinkRackSize(drink))}
           </Text>
           <StockProgressBar stock={drink.stock} minStock={drink.min_stock} />
           {(status === 'rupture' || status === 'low') && (
-            <Text style={styles.gridAlert}>
+            <Text style={[styles.gridAlert, { color: colors.rose }]}>
               {status === 'rupture' ? t('inventory.outOfStock') : t('inventory.lowStock')}
             </Text>
           )}
@@ -191,31 +198,32 @@ export default function InventoryScreen({ navigation }: any) {
       <ScreenHeader
         title={t('common.stock')}
         subtitle={t('inventory.refCount', { count: drinks.length })}
+        colors={colors}
       />
 
-      <View style={styles.summaryRow}>
+      <View style={[styles.summaryRow, { backgroundColor: colors.white, borderColor: colors.border }]}>
         <View style={styles.summaryTile}>
-          <Text style={styles.summaryValue}>{fmtShort(stockValue)}</Text>
-          <Text style={styles.summaryLabel}>{t('inventory.stockValue')}</Text>
+          <Text style={[styles.summaryValue, { color: colors.slateDark }]}>{fmtShort(stockValue)}</Text>
+          <Text style={[styles.summaryLabel, { color: colors.slate }]}>{t('inventory.stockValue')}</Text>
         </View>
-        <View style={[styles.summaryTile, styles.summaryTileBordered]}>
-          <Text style={[styles.summaryValue, ruptureCount > 0 && { color: COLORS.rose }]}>{ruptureCount}</Text>
-          <Text style={styles.summaryLabel}>{t('inventory.outages')}</Text>
+        <View style={[styles.summaryTile, styles.summaryTileBordered, { borderColor: colors.border }]}>
+          <Text style={[styles.summaryValue, { color: ruptureCount > 0 ? colors.rose : colors.slateDark }]}>{ruptureCount}</Text>
+          <Text style={[styles.summaryLabel, { color: colors.slate }]}>{t('inventory.outages')}</Text>
         </View>
         <View style={styles.summaryTile}>
-          <Text style={[styles.summaryValue, lowCount > 0 && { color: COLORS.primary }]}>{lowCount}</Text>
-          <Text style={styles.summaryLabel}>{t('inventory.lowStock')}</Text>
+          <Text style={[styles.summaryValue, { color: lowCount > 0 ? colors.primary : colors.slateDark }]}>{lowCount}</Text>
+          <Text style={[styles.summaryLabel, { color: colors.slate }]}>{t('inventory.lowStock')}</Text>
         </View>
       </View>
 
-      <View style={styles.searchBox}>
-        <Ionicons name="search" size={18} color={COLORS.slate} />
+      <View style={[styles.searchBox, { backgroundColor: colors.white }]}>
+        <Ionicons name="search" size={18} color={colors.slate} />
         <TextInput
-          style={styles.searchInput}
+          style={[styles.searchInput, { color: colors.slateDark }]}
           placeholder={t('common.search')}
           value={search}
           onChangeText={setSearch}
-          placeholderTextColor={COLORS.slate}
+          placeholderTextColor={colors.slate}
         />
       </View>
 
@@ -232,11 +240,21 @@ export default function InventoryScreen({ navigation }: any) {
             <TouchableOpacity
               key={cat}
               onPress={() => setCategoryFilter(cat)}
-              style={[styles.categoryTab, isActive && styles.categoryTabActive]}
+              style={[
+                styles.categoryTab,
+                { backgroundColor: colors.white },
+                isActive && styles.categoryTabActive,
+                isActive && { backgroundColor: colors.primary, shadowColor: colors.primary }
+              ]}
               // @ts-ignore - className is web-only
               className={isActive ? "glass-primary" : "glass-button"}
             >
-              <Text style={[styles.categoryTabText, isActive && styles.categoryTabTextActive]}>
+              <Text style={[
+                styles.categoryTabText,
+                { color: colors.slate },
+                isActive && styles.categoryTabTextActive,
+                isActive && { color: colors.white }
+              ]}>
                 {cat === 'Tout' ? t('common.all') : cat} ({count})
               </Text>
             </TouchableOpacity>
@@ -256,13 +274,13 @@ export default function InventoryScreen({ navigation }: any) {
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadDrinks(true) }} />}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>{t('inventory.noDrinksFound')}</Text>
+            <Text style={[styles.emptyText, { color: colors.slate }]}>{t('inventory.noDrinksFound')}</Text>
           </View>
         }
       />
 
       <TouchableOpacity
-        style={styles.fab}
+        style={[styles.fab, { backgroundColor: colors.primary }]}
         onPress={() => {
           setSelectedDrinkId(null)
           setShowAddDrink(true)
@@ -270,28 +288,32 @@ export default function InventoryScreen({ navigation }: any) {
         // @ts-ignore - className is web-only
         className="glass-primary"
       >
-        <Ionicons name="add" size={28} color={COLORS.white} style={styles.fabIcon} />
+        <Ionicons name="add" size={28} color={colors.white} style={styles.fabIcon} />
       </TouchableOpacity>
     </>
   )
 
   if (isDesktop) {
     return (
-      <FadeIn style={styles.desktopContainer}>
-        <View style={[styles.desktopLeft, !selectedDrinkId && !showAddDrink && styles.desktopLeftFull]}>
+      <FadeIn style={[styles.desktopContainer, { backgroundColor: colors.surface }]}>
+        <View style={[
+          styles.desktopLeft,
+          { backgroundColor: colors.surface },
+          !selectedDrinkId && !showAddDrink && styles.desktopLeftFull
+        ]}>
           {drinkListContent}
         </View>
         {selectedDrinkId && (
-          <SlideIn style={styles.desktopRight} duration={250}>
-            <View style={styles.editHeader}>
-              <Text style={styles.editHeaderTitle}>{t('inventory.editStock')}</Text>
+          <SlideIn style={[styles.desktopRight, { backgroundColor: colors.white, borderLeftColor: colors.border }]} duration={250}>
+            <View style={[styles.editHeader, { borderBottomColor: colors.border, backgroundColor: colors.white }]}>
+              <Text style={[styles.editHeaderTitle, { color: colors.slateDark }]}>{t('inventory.editStock')}</Text>
               <TouchableOpacity
                 onPress={() => setSelectedDrinkId(null)}
-                style={styles.closeButton}
+                style={[styles.closeButton, { backgroundColor: colors.surface }]}
                 // @ts-ignore - className is web-only
                 className="glass-button"
               >
-                <Ionicons name="close" size={20} color={COLORS.slate} />
+                <Ionicons name="close" size={20} color={colors.slate} />
               </TouchableOpacity>
             </View>
             <EditDrinkScreen
@@ -307,16 +329,16 @@ export default function InventoryScreen({ navigation }: any) {
           </SlideIn>
         )}
         {showAddDrink && (
-          <SlideIn style={styles.desktopRight} duration={250}>
-            <View style={styles.editHeader}>
-              <Text style={styles.editHeaderTitle}>{t('inventory.addDrink')}</Text>
+          <SlideIn style={[styles.desktopRight, { backgroundColor: colors.white, borderLeftColor: colors.border }]} duration={250}>
+            <View style={[styles.editHeader, { borderBottomColor: colors.border, backgroundColor: colors.white }]}>
+              <Text style={[styles.editHeaderTitle, { color: colors.slateDark }]}>{t('inventory.addDrink')}</Text>
               <TouchableOpacity
                 onPress={() => setShowAddDrink(false)}
-                style={styles.closeButton}
+                style={[styles.closeButton, { backgroundColor: colors.surface }]}
                 // @ts-ignore - className is web-only
                 className="glass-button"
               >
-                <Ionicons name="close" size={20} color={COLORS.slate} />
+                <Ionicons name="close" size={20} color={colors.slate} />
               </TouchableOpacity>
             </View>
             <AddDrinkScreen
@@ -340,7 +362,7 @@ export default function InventoryScreen({ navigation }: any) {
   }
 
   return (
-    <FadeIn style={styles.container}>
+    <FadeIn style={[styles.container, { backgroundColor: colors.surface }]}>
       {drinkListContent}
       <FloatingModal
         visible={showAddDrink}
@@ -367,16 +389,14 @@ export default function InventoryScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surface },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.surface },
+  container: { flex: 1 },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   desktopContainer: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
   },
   desktopLeft: {
     width: '50%',
-    backgroundColor: COLORS.surface,
     ...Platform.select({
       web: {
         transition: 'width 0.3s ease',
@@ -388,9 +408,7 @@ const styles = StyleSheet.create({
   },
   desktopRight: {
     width: '50%',
-    backgroundColor: COLORS.white,
     borderLeftWidth: 1,
-    borderLeftColor: COLORS.border,
     ...Platform.select({
       web: {
         boxShadow: '-4px 0 12px rgba(0, 0, 0, 0.04)',
@@ -411,20 +429,16 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
-    backgroundColor: COLORS.white,
   },
   editHeaderTitle: {
     fontSize: 18,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
     letterSpacing: -0.3,
   },
   closeButton: {
     width: 36,
     height: 36,
     borderRadius: 18,
-    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
@@ -436,34 +450,28 @@ const styles = StyleSheet.create({
   },
   gridCardSelected: {
     borderWidth: 2,
-    borderColor: COLORS.primary,
-    shadowColor: COLORS.primary,
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
   },
   summaryRow: {
     flexDirection: 'row',
-    backgroundColor: COLORS.white,
     marginHorizontal: GRID_PADDING,
     marginTop: 12,
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: COLORS.border,
     paddingVertical: 14,
   },
   summaryTile: { flex: 1, alignItems: 'center' },
   summaryTileBordered: {
     borderLeftWidth: 1,
     borderRightWidth: 1,
-    borderColor: COLORS.border,
   },
-  summaryValue: { fontSize: 18, fontFamily: FONT.extrabold, color: COLORS.slateDark, fontVariant: ['tabular-nums'], letterSpacing: -0.3 },
-  summaryLabel: { fontSize: 11, fontFamily: FONT.semibold, color: COLORS.slate, marginTop: 3 },
+  summaryValue: { fontSize: 18, fontFamily: FONT.extrabold, fontVariant: ['tabular-nums'], letterSpacing: -0.3 },
+  summaryLabel: { fontSize: 11, fontFamily: FONT.semibold, marginTop: 3 },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: COLORS.white,
     marginHorizontal: GRID_PADDING,
     marginTop: 12,
     marginBottom: 12,
@@ -477,14 +485,13 @@ const styles = StyleSheet.create({
     elevation: 2,
     gap: 8,
   },
-  searchInput: { flex: 1, paddingVertical: 10, fontSize: 15, fontFamily: FONT.regular, color: COLORS.slateDark },
+  searchInput: { flex: 1, paddingVertical: 10, fontSize: 15, fontFamily: FONT.regular },
   categoryScroll: { maxHeight: 44, marginBottom: 12 },
   categoryScrollContent: { gap: 6, paddingBottom: 4, paddingHorizontal: GRID_PADDING },
   categoryTab: {
     paddingHorizontal: 16,
     paddingVertical: 9,
     borderRadius: 20,
-    backgroundColor: COLORS.white,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.04,
@@ -492,20 +499,17 @@ const styles = StyleSheet.create({
     elevation: 1,
   },
   categoryTabActive: {
-    backgroundColor: COLORS.primary,
-    shadowColor: COLORS.primary,
     shadowOpacity: 0.3,
     shadowRadius: 6,
     elevation: 3,
   },
-  categoryTabText: { fontSize: 12, fontFamily: FONT.semibold, color: COLORS.slate },
-  categoryTabTextActive: { color: COLORS.white },
+  categoryTabText: { fontSize: 12, fontFamily: FONT.semibold },
+  categoryTabTextActive: {},
   gridRow: { gap: GRID_GAP, marginBottom: GRID_GAP },
   gridCard: {
     flex: 1,
     minWidth: 150,
     maxWidth: 250,
-    backgroundColor: COLORS.white,
     borderRadius: 14,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -525,12 +529,12 @@ const styles = StyleSheet.create({
   gridBody: { padding: 12 },
   gridTop: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
   statusDot: { width: 8, height: 8, borderRadius: 4 },
-  gridCategory: { fontSize: 10, fontFamily: FONT.semibold, color: COLORS.slate, textTransform: 'uppercase' },
-  gridName: { fontSize: 13, fontFamily: FONT.semibold, color: COLORS.slateDark, marginBottom: 6, lineHeight: 17 },
-  gridStock: { fontSize: 16, fontFamily: FONT.bold, color: COLORS.primary, marginBottom: 6, fontVariant: ['tabular-nums'] },
-  gridAlert: { fontSize: 10, fontFamily: FONT.semibold, color: COLORS.rose, marginTop: 2 },
+  gridCategory: { fontSize: 10, fontFamily: FONT.semibold, textTransform: 'uppercase' },
+  gridName: { fontSize: 13, fontFamily: FONT.semibold, marginBottom: 6, lineHeight: 17 },
+  gridStock: { fontSize: 16, fontFamily: FONT.bold, marginBottom: 6, fontVariant: ['tabular-nums'] },
+  gridAlert: { fontSize: 10, fontFamily: FONT.semibold, marginTop: 2 },
   emptyState: { alignItems: 'center', paddingVertical: 40, width: '100%' },
-  emptyText: { fontSize: 15, fontFamily: FONT.regular, color: COLORS.slate },
+  emptyText: { fontSize: 15, fontFamily: FONT.regular },
   fab: {
     position: 'absolute',
     right: 16,
@@ -538,7 +542,6 @@ const styles = StyleSheet.create({
     width: 52,
     height: 52,
     borderRadius: 26,
-    backgroundColor: COLORS.primary,
     justifyContent: 'center',
     alignItems: 'center',
     elevation: 6,

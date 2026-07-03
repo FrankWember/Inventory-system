@@ -2,7 +2,8 @@ import React from 'react'
 import { View, Text, StyleSheet, ViewStyle, TouchableOpacity, Platform } from 'react-native'
 import { useSafeAreaInsets } from 'react-native-safe-area-context'
 import { Ionicons } from '@expo/vector-icons'
-import { COLORS, FONT } from '../utils/helpers'
+import { FONT } from '../utils/helpers'
+import { LIGHT_COLORS } from '../styles/theme'
 
 interface ScreenHeaderProps {
   title: string
@@ -11,18 +12,27 @@ interface ScreenHeaderProps {
   right?: React.ReactNode
   onBack?: () => void
   style?: ViewStyle
+  colors?: typeof LIGHT_COLORS
 }
 
-export function ScreenHeader({ title, subtitle, left, right, onBack, style }: ScreenHeaderProps) {
+export function ScreenHeader({ title, subtitle, left, right, onBack, style, colors = LIGHT_COLORS }: ScreenHeaderProps) {
   const insets = useSafeAreaInsets()
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + 8 }, style]}>
+    <View style={[
+      styles.container,
+      {
+        paddingTop: insets.top + 8,
+        backgroundColor: colors.card,
+        borderBottomColor: colors.border,
+      },
+      style
+    ]}>
       {(left || onBack) && (
         <View style={styles.left}>
           {onBack ? (
-            <TouchableOpacity onPress={onBack} style={styles.backButton}>
-              <Ionicons name="arrow-back" size={24} color={COLORS.slateDark} />
+            <TouchableOpacity onPress={onBack} style={[styles.backButton, { backgroundColor: colors.surface }]}>
+              <Ionicons name="arrow-back" size={24} color={colors.slateDark} />
             </TouchableOpacity>
           ) : (
             left
@@ -30,8 +40,8 @@ export function ScreenHeader({ title, subtitle, left, right, onBack, style }: Sc
         </View>
       )}
       <View style={styles.textBlock}>
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        <Text style={[styles.title, { color: colors.slateDark }]}>{title}</Text>
+        {subtitle ? <Text style={[styles.subtitle, { color: colors.slate }]}>{subtitle}</Text> : null}
       </View>
       {right ? <View style={styles.right}>{right}</View> : null}
     </View>
@@ -45,9 +55,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingBottom: 12,
-    backgroundColor: COLORS.white,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   left: {
     marginRight: 12,
@@ -56,7 +64,6 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: COLORS.surface,
     alignItems: 'center',
     justifyContent: 'center',
     ...Platform.select({
@@ -72,13 +79,11 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontFamily: FONT.bold,
-    color: COLORS.slateDark,
     letterSpacing: -0.3,
   },
   subtitle: {
     fontSize: 13,
     fontFamily: FONT.regular,
-    color: COLORS.slate,
     marginTop: 2,
   },
   right: {

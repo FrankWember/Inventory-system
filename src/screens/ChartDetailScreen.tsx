@@ -9,7 +9,9 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { RootStackParamList } from '../../App'
 import { SimpleBarChart, BarChartItem } from '../components/SimpleBarChart'
 import { ScreenHeader } from '../components/ScreenHeader'
-import { COLORS, fmt, fmtNum } from '../utils/helpers'
+import { fmt, fmtNum } from '../utils/helpers'
+import { LIGHT_COLORS } from '../styles/theme'
+import { useSettings } from '../contexts/SettingsContext'
 import { useTranslation } from '../i18n'
 
 export interface ChartDetailRow {
@@ -22,6 +24,7 @@ type Props = NativeStackScreenProps<RootStackParamList, 'ChartDetail'>
 
 export default function ChartDetailScreen({ route, navigation }: Props) {
   const { t } = useTranslation()
+  const { colors } = useSettings()
   // This screen only makes sense with params passed in-app. On web, /chart-detail
   // is a routable URL: a page refresh or direct visit lands here with no params —
   // destructuring them blindly used to crash to a white screen. Redirect home.
@@ -44,15 +47,16 @@ export default function ChartDetailScreen({ route, navigation }: Props) {
   const total = rows.reduce((s, r) => s + r.value, 0)
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.surface }]}>
       <ScreenHeader
         title={title}
         subtitle={subtitle}
         onBack={() => navigation.goBack()}
+        colors={colors}
       />
       <ScrollView style={styles.body} contentContainerStyle={styles.bodyContent}>
 
-        <View style={styles.chartBox}>
+        <View style={[styles.chartBox, { backgroundColor: colors.white, borderColor: colors.border }]}>
           <SimpleBarChart
             data={chartData}
             height={horizontal ? undefined : 220}
@@ -61,20 +65,20 @@ export default function ChartDetailScreen({ route, navigation }: Props) {
           />
         </View>
 
-        <View style={styles.totalRow}>
+        <View style={[styles.totalRow, { backgroundColor: colors.primary }]}>
           <Text style={styles.totalLabel}>{t('stats.totalPeriod')}</Text>
-          <Text style={styles.totalValue}>{format(total)}</Text>
+          <Text style={[styles.totalValue, { color: colors.white }]}>{format(total)}</Text>
         </View>
 
-        <Text style={styles.tableTitle}>{t('stats.detail')}</Text>
-        <View style={styles.table}>
+        <Text style={[styles.tableTitle, { color: colors.slateDark }]}>{t('stats.detail')}</Text>
+        <View style={[styles.table, { backgroundColor: colors.white, borderColor: colors.border }]}>
           {rows.map((row, i) => (
-            <View key={i} style={[styles.row, i === rows.length - 1 && { borderBottomWidth: 0 }]}>
+            <View key={i} style={[styles.row, { borderBottomColor: colors.border }, i === rows.length - 1 && { borderBottomWidth: 0 }]}>
               <View style={styles.rowLeft}>
-                <Text style={styles.rowLabel}>{row.label}</Text>
-                {row.sublabel ? <Text style={styles.rowSub}>{row.sublabel}</Text> : null}
+                <Text style={[styles.rowLabel, { color: colors.slateDark }]}>{row.label}</Text>
+                {row.sublabel ? <Text style={[styles.rowSub, { color: colors.slate }]}>{row.sublabel}</Text> : null}
               </View>
-              <Text style={styles.rowValue}>{format(row.value)}</Text>
+              <Text style={[styles.rowValue, { color: colors.primary }]}>{format(row.value)}</Text>
             </View>
           ))}
         </View>
@@ -84,44 +88,38 @@ export default function ChartDetailScreen({ route, navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.surface },
+  container: { flex: 1 },
   body: { flex: 1 },
   bodyContent: { padding: 16, paddingBottom: 32 },
   header: {
     marginBottom: 16,
   },
-  title: { fontSize: 22, fontWeight: '700', color: COLORS.slateDark, letterSpacing: -0.3 },
-  subtitle: { fontSize: 14, color: COLORS.slate, marginTop: 4 },
+  title: { fontSize: 22, fontWeight: '700', letterSpacing: -0.3 },
+  subtitle: { fontSize: 14, marginTop: 4 },
   chartBox: {
-    backgroundColor: COLORS.white,
     borderRadius: 14,
     padding: 16,
     borderWidth: 1,
-    borderColor: COLORS.border,
     marginBottom: 16,
   },
   totalRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    backgroundColor: COLORS.primary,
     borderRadius: 12,
     padding: 16,
     marginBottom: 16,
   },
   totalLabel: { fontSize: 14, color: 'rgba(255,255,255,0.9)', fontWeight: '600' },
-  totalValue: { fontSize: 18, fontWeight: '700', color: COLORS.white },
+  totalValue: { fontSize: 18, fontWeight: '700' },
   tableTitle: {
     fontSize: 15,
     fontWeight: '700',
-    color: COLORS.slateDark,
     marginBottom: 10,
   },
   table: {
-    backgroundColor: COLORS.white,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: COLORS.border,
     overflow: 'hidden',
   },
   row: {
@@ -131,10 +129,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
-    borderBottomColor: COLORS.border,
   },
   rowLeft: { flex: 1, marginRight: 12 },
-  rowLabel: { fontSize: 14, fontWeight: '600', color: COLORS.slateDark },
-  rowSub: { fontSize: 12, color: COLORS.slate, marginTop: 2 },
-  rowValue: { fontSize: 14, fontWeight: '700', color: COLORS.primary },
+  rowLabel: { fontSize: 14, fontWeight: '600' },
+  rowSub: { fontSize: 12, marginTop: 2 },
+  rowValue: { fontSize: 14, fontWeight: '700' },
 })

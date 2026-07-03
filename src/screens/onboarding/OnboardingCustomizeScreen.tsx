@@ -19,6 +19,7 @@ import { OnboardingLayout } from '../../components/onboarding/OnboardingLayout'
 import { DrinkConfigCard } from '../../components/onboarding/DrinkConfigCard'
 import { Button } from '../../components/Button'
 import { Input } from '../../components/Input'
+import { DualStockInput } from '../../components/DualStockInput'
 import { DrinkTemplate } from '../../data/cameroonianDrinks'
 import { FONT, TYPE, SPACE, RADIUS, LIGHT_COLORS, fmt } from '../../utils/helpers'
 import { useSettings } from '../../contexts/SettingsContext'
@@ -47,7 +48,7 @@ export default function OnboardingCustomizeScreen({ navigation }: Props) {
   const openEditor = (drink: DrinkTemplate) => {
     const existing = state.drinkConfigs.get(drink.name)
     setEditingDrink(drink)
-    setModalConfig(existing || { cassierQuantity: drink.defaultRackSize, cassierCost: 0, price: 0, supplier: '' })
+    setModalConfig(existing || { cassierQuantity: drink.defaultRackSize, cassierCost: 0, price: 0, supplier: '', initialStock: 0 })
     setErrors({})
   }
 
@@ -71,7 +72,7 @@ export default function OnboardingCustomizeScreen({ navigation }: Props) {
       price: modalConfig.price!,
       supplier: modalConfig.supplier || '',
       minStock: editingDrink.defaultRackSize,
-      initialStock: 0,
+      initialStock: modalConfig.initialStock || 0,
     })
     closeEditor()
   }
@@ -181,6 +182,12 @@ export default function OnboardingCustomizeScreen({ navigation }: Props) {
                     onChangeText={text => setModalConfig({ ...modalConfig, supplier: text })}
                     placeholder={t('onboarding.editorSupplierPlaceholder')}
                     autoCapitalize="characters"
+                  />
+                  <DualStockInput
+                    label={t('onboarding.editorInitialStockLabel')}
+                    totalUnits={modalConfig.initialStock || 0}
+                    cassierQuantity={modalConfig.cassierQuantity || 1}
+                    onChange={(totalUnits) => setModalConfig({ ...modalConfig, initialStock: totalUnits })}
                   />
 
                   {showCalc && (
