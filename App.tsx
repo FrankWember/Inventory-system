@@ -271,17 +271,6 @@ function RootNavigator() {
     }
   }, [user, loading])
 
-  // Auto-navigate to onboarding modal when user is logged in but hasn't completed onboarding
-  useEffect(() => {
-    if (!loading && !checkingOnboarding && user && !onboardingComplete && !isWelcomeLoading) {
-      // Small delay to ensure navigation is ready
-      const timer = setTimeout(() => {
-        navigationRef.current?.navigate('Onboarding')
-      }, 100)
-      return () => clearTimeout(timer)
-    }
-  }, [user, onboardingComplete, loading, checkingOnboarding, isWelcomeLoading])
-
   if (loading || !isReady || checkingOnboarding) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface }}>
@@ -300,10 +289,14 @@ function RootNavigator() {
   // but works at runtime for native state restoration
   const navigatorProps = Platform.OS !== 'web' && initialState ? { initialState } : {}
 
+  // Determine initial route based on onboarding status
+  const initialRouteName = !onboardingComplete ? 'Onboarding' : 'MainTabs'
+
   return (
     <Stack.Navigator
       ref={navigationRef}
       {...(navigatorProps as any)}
+      initialRouteName={user && !onboardingComplete ? initialRouteName : undefined}
       screenOptions={{
         headerStyle: { backgroundColor: COLORS.white },
         headerTintColor: COLORS.primary,
@@ -334,10 +327,6 @@ function RootNavigator() {
         </>
       ) : (
         <>
-          <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
-          <Stack.Screen name="EditDrink" component={EditDrinkScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="SessionDetail" component={SessionDetailScreen} options={{ headerShown: false }} />
-          <Stack.Screen name="ChartDetail" component={ChartDetailScreen} options={{ headerShown: false }} />
           {!onboardingComplete && (
             <Stack.Screen
               name="Onboarding"
@@ -349,6 +338,10 @@ function RootNavigator() {
               }}
             />
           )}
+          <Stack.Screen name="MainTabs" component={MainTabs} options={{ headerShown: false }} />
+          <Stack.Screen name="EditDrink" component={EditDrinkScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="SessionDetail" component={SessionDetailScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="ChartDetail" component={ChartDetailScreen} options={{ headerShown: false }} />
         </>
       )}
     </Stack.Navigator>
