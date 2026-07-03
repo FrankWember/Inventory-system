@@ -15,12 +15,8 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { LoadingModal } from '../components/LoadingModal'
-import { FONT, today, fmt, dateLabelLong, getStockStatus } from '../utils/helpers'
-import {
-  notificationsSupported,
-  requestNotificationPermission,
-  showNotification,
-} from '../utils/notifications'
+import { FONT, today, fmt, dateLabelLong } from '../utils/helpers'
+import { requestNotificationPermission } from '../utils/notifications'
 import { LIGHT_COLORS } from '../styles/theme'
 import { showAlert } from '../utils/appAlert'
 import { useAuth } from '../contexts/AuthContext'
@@ -45,7 +41,6 @@ export default function SettingsScreen() {
   const [dates, setDates] = useState<any[]>([])
   const [loadingSessions, setLoadingSessions] = useState(false)
   const [loadingDates, setLoadingDates] = useState(false)
-  const [sendingNotif, setSendingNotif] = useState(false)
 
   const { loading: pdfLoading, progress: pdfProgress, generatePdf } = usePdfExport({ barName: barInfo?.name || 'BarTrack' })
 
@@ -85,78 +80,10 @@ export default function SettingsScreen() {
     }
   }
 
-  // Build a well-formatted, prioritized business summary and push it as an OS
-  // notification: last session revenue/profit, out-of-stock & low-stock alerts,
-  // and current stock value. Returns false if nothing could be sent.
-  const sendBusinessUpdate = async (): Promise<boolean> => {
-    const permission = await requestNotificationPermission()
-    if (permission === 'unsupported') {
-      showAlert(t('settings.notifications'), t('settings.notifUnsupported'))
-      return false
-    }
-    if (permission !== 'granted') {
-      showAlert(t('settings.notifications'), t('settings.notifDenied'))
-      return false
-    }
-
-    setSendingNotif(true)
-    try {
-      const [drinksRes, sessionRes] = await Promise.all([
-        supabase.from('drinks').select('stock, min_stock, cost, active').eq('active', true),
-        supabase
-          .from('sessions')
-          .select('total_revenue, total_profit')
-          .eq('closed', true)
-          .order('date', { ascending: false })
-          .limit(1)
-          .maybeSingle(),
-      ])
-
-      const drinks = drinksRes.data ?? []
-      let outOfStock = 0
-      let lowStock = 0
-      let stockValue = 0
-      for (const d of drinks) {
-        const status = getStockStatus(d.stock ?? 0, d.min_stock ?? 0)
-        if (status === 'rupture') outOfStock++
-        else if (status === 'low') lowStock++
-        stockValue += (d.stock ?? 0) * (d.cost ?? 0)
-      }
-
-      const lastSession = sessionRes.data
-      const lines: string[] = []
-      lines.push(
-        lastSession
-          ? t('settings.notifRevenueLine', {
-              revenue: fmt(lastSession.total_revenue),
-              profit: fmt(lastSession.total_profit),
-            })
-          : t('settings.notifNoSession')
-      )
-      if (outOfStock > 0) lines.push(t('settings.notifOutStockLine', { count: outOfStock }))
-      if (lowStock > 0) lines.push(t('settings.notifLowStockLine', { count: lowStock }))
-      if (outOfStock === 0 && lowStock === 0) lines.push(t('settings.notifStockHealthy'))
-      lines.push(t('settings.notifStockValueLine', { value: fmt(stockValue) }))
-
-      const title = t('settings.notifTitle', { bar: barInfo?.name || 'BarTrack' })
-      const sent = showNotification(title, lines.join('\n'))
-      if (!sent) {
-        showAlert(t('common.error'), t('settings.notifSendError'))
-        return false
-      }
-      return true
-    } catch {
-      showAlert(t('common.error'), t('settings.notifSendError'))
-      return false
-    } finally {
-      setSendingNotif(false)
-    }
-  }
-
   const handleNotificationsToggle = async (value: boolean) => {
     try {
-      // Turning ON: require browser permission first, then confirm with a real
-      // business summary so the user immediately sees what they'll receive.
+      // Turning ON: secure browser permission (a user gesture backs this request).
+      // The periodic engine (useBusinessNotifications) then sends the updates.
       if (value) {
         const permission = await requestNotificationPermission()
         if (permission === 'unsupported') {
@@ -168,7 +95,6 @@ export default function SettingsScreen() {
           return
         }
         await setNotificationsEnabled(true)
-        await sendBusinessUpdate()
       } else {
         await setNotificationsEnabled(false)
       }

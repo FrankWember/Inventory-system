@@ -33,7 +33,7 @@ const SettingsContext = createContext<SettingsContextType | undefined>(undefined
 export function SettingsProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>('light')
   const [language, setLanguageState] = useState<Language>('fr')
-  const [notificationsEnabled, setNotificationsState] = useState(false)
+  const [notificationsEnabled, setNotificationsState] = useState(true)
   const [barInfo, setBarInfoState] = useState<BarInfo | null>(null)
   const [loading, setLoading] = useState(true)
 

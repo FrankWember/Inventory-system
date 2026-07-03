@@ -5,6 +5,8 @@ const KEYS = {
   THEME: '@bartrack:theme',
   LANGUAGE: '@bartrack:language',
   NOTIFICATIONS: '@bartrack:notifications',
+  NOTIF_LAST_AT: '@bartrack:notif_last_at',
+  NOTIF_ROTATION: '@bartrack:notif_rotation',
   BAR_INFO: '@bartrack:bar_info',
   ONBOARDING_COMPLETED: '@bartrack:onboarding_completed',
 } as const
@@ -58,14 +60,14 @@ export const setLanguage = async (language: Language): Promise<void> => {
   }
 }
 
-// Notifications
+// Notifications — ON by default (engagement): only an explicit 'false' disables them.
 export const getNotificationsEnabled = async (): Promise<boolean> => {
   try {
     const value = await AsyncStorage.getItem(KEYS.NOTIFICATIONS)
-    return value === 'true'
+    return value === null ? true : value === 'true'
   } catch (error) {
     console.error('Error reading notifications setting:', error)
-    return false
+    return true
   }
 }
 
@@ -75,6 +77,44 @@ export const setNotificationsEnabled = async (enabled: boolean): Promise<void> =
   } catch (error) {
     console.error('Error saving notifications setting:', error)
     throw error
+  }
+}
+
+// Timestamp (ms) of the last engagement notification sent — drives the cooldown.
+export const getNotificationLastAt = async (): Promise<number> => {
+  try {
+    const value = await AsyncStorage.getItem(KEYS.NOTIF_LAST_AT)
+    const n = value ? Number(value) : 0
+    return Number.isFinite(n) ? n : 0
+  } catch {
+    return 0
+  }
+}
+
+export const setNotificationLastAt = async (ms: number): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(KEYS.NOTIF_LAST_AT, String(ms))
+  } catch (error) {
+    console.error('Error saving notification timestamp:', error)
+  }
+}
+
+// Round-robin index so each notification rotates to a different insight.
+export const getNotificationRotation = async (): Promise<number> => {
+  try {
+    const value = await AsyncStorage.getItem(KEYS.NOTIF_ROTATION)
+    const n = value ? Number(value) : 0
+    return Number.isFinite(n) && n >= 0 ? Math.floor(n) : 0
+  } catch {
+    return 0
+  }
+}
+
+export const setNotificationRotation = async (index: number): Promise<void> => {
+  try {
+    await AsyncStorage.setItem(KEYS.NOTIF_ROTATION, String(index))
+  } catch (error) {
+    console.error('Error saving notification rotation:', error)
   }
 }
 

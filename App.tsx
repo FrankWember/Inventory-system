@@ -20,6 +20,7 @@ import { ResponsiveLayout } from './src/components/ResponsiveLayout'
 import { AuthProvider, useAuth } from './src/contexts/AuthContext'
 import { SettingsProvider, useSettings } from './src/contexts/SettingsContext'
 import { AlertHost } from './src/components/AlertHost'
+import { useBusinessNotifications } from './src/hooks/useBusinessNotifications'
 import { t, useTranslation } from './src/i18n'
 import { saveNavigationState, loadNavigationState } from './src/utils/navigationPersistence'
 
@@ -229,6 +230,9 @@ function RootNavigator() {
   const { t } = useTranslation()
   const { colors } = useSettings()
   const { user, loading, isWelcomeLoading } = useAuth()
+  // Periodic business-update notifications (engagement) — dormant until the user
+  // is signed in and has notifications enabled + granted.
+  useBusinessNotifications()
   // On web, linking handles navigation state — no need for manual restore
   const [isReady, setIsReady] = useState(Platform.OS === 'web')
   const [initialState, setInitialState] = useState<NavigationState | PartialState<NavigationState> | undefined>()
