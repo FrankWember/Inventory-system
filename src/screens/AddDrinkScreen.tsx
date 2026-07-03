@@ -254,7 +254,7 @@ export default function AddDrinkScreen({ navigation, route }: any) {
               <Text style={styles.sectionTitle}>{t('inventory.initialStockSection')}</Text>
 
               <DualStockInput
-                label={t('inventory.initialStock')}
+                label={t('inventory.currentStock')}
                 totalUnits={stock}
                 cassierQuantity={cassierQuantity}
                 onChange={setStock}

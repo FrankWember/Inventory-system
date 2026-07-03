@@ -81,9 +81,6 @@ export function DualStockInput({
             containerStyle={{ marginBottom: 0 }}
           />
         </View>
-        <View style={styles.separator}>
-          <Text style={styles.separatorText}>+</Text>
-        </View>
         <View style={styles.inputWrapper}>
           <Input
             label={t('session.unitsLabel')}
@@ -122,18 +119,6 @@ const styles = StyleSheet.create({
   },
   inputWrapper: {
     flex: 1,
-  },
-  separator: {
-    height: 44,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 4,
-    marginBottom: 12,
-  },
-  separatorText: {
-    fontSize: 18,
-    fontFamily: FONT.bold,
-    color: COLORS.slate,
   },
   totalText: {
     fontSize: 12,
