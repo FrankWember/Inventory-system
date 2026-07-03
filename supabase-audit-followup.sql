@@ -25,9 +25,10 @@ DELETE FROM password_reset_tokens WHERE used = true OR expires_at < NOW();
 --   DELETE FROM password_reset_tokens WHERE used = true OR expires_at < NOW();
 -- $$);
 
--- 4. (Optional) Remove the QA account created during the 2026-07-03 audit.
---    Cascades clean up its settings/auth_sessions/data rows automatically.
--- DELETE FROM users WHERE email = 'qa-claude-audit@example.com';
+-- 4. (Optional) Remove the QA accounts created during the 2026-07-03 audit and
+--    chart-upgrade verification (incl. seeded drinks/sessions on account 1).
+--    Cascades clean up their settings/auth_sessions/data rows automatically.
+-- DELETE FROM users WHERE email IN ('qa-claude-audit@example.com', 'qa-claude-audit2@example.com');
 
 DO $$
 BEGIN

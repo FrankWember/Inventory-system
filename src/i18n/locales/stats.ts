@@ -24,6 +24,7 @@ export default {
     emptyStats: 'Clôturez des sessions pour voir les stats',
     totalPeriod: 'Total période',
     detail: 'Détail',
+    costLabel: 'Coûts',
   },
   en: {
     title: 'Stats',
@@ -49,5 +50,6 @@ export default {
     emptyStats: 'Close sessions to see stats',
     totalPeriod: 'Period total',
     detail: 'Details',
+    costLabel: 'Costs',
   },
 } as { fr: Record<string, string>; en: Record<string, string> }

@@ -17,9 +17,9 @@ interface ProfessionalBarChartProps {
   formatValue?: (n: number) => string
 }
 
-// Thin wrapper over the in-house View-based chart. The previous version pulled
-// in recharts on web (~225 KB gzip) and react-native-gifted-charts on native
-// (blank/crashing with RN 0.81) — SimpleBarChart renders identically on both.
+// Thin wrapper over the in-house SVG chart (react-native-svg, one code path
+// web + native). The rich fields (revenue/unitsSold/cost/date) surface in the
+// chart's tap/hover tooltip.
 export function ProfessionalBarChart({ data, height = 260, formatValue }: ProfessionalBarChartProps) {
   return <SimpleBarChart data={data} height={height} formatValue={formatValue} />
 }

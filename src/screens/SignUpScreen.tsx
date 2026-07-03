@@ -175,12 +175,13 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
                 />
 
                 <PhoneInput
-                  label={t('auth.phoneLabel')}
+                  label={`${t('auth.phoneLabel')} *`}
                   value={phone}
                   onChangeText={v => { setPhone(v); setError(null) }}
                   placeholder={t('auth.phonePlaceholder')}
                   editable={!loading}
                 />
+                <Text style={styles.fieldHint}>{t('auth.phoneRequiredHint')}</Text>
 
                 <View style={styles.passwordWrap}>
                   <Input
@@ -319,6 +320,7 @@ const styles = StyleSheet.create({
   appName: { fontSize: 24, fontFamily: FONT.bold, color: COLORS.slateDark, letterSpacing: -0.5 },
   tagline: { fontSize: 13, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 2 },
   divider: { height: 1, backgroundColor: COLORS.border, marginBottom: 20 },
+  fieldHint: { fontSize: 11, fontFamily: FONT.regular, color: COLORS.slate, marginTop: -8, marginBottom: 12, marginLeft: 4 },
   passwordWrap: { position: 'relative' },
   eyeBtn: { position: 'absolute', right: 12, top: 34, padding: 4 },
   errorBox: {

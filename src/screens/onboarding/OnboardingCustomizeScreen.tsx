@@ -40,6 +40,11 @@ export default function OnboardingCustomizeScreen({ navigation }: Props) {
   const [modalConfig, setModalConfig] = useState<Partial<DrinkConfig>>({})
   const [errors, setErrors] = useState<Record<string, string>>({})
 
+  const sortedDrinks = useMemo(
+    () => [...state.selectedDrinks].sort((a, b) => a.name.localeCompare(b.name)),
+    [state.selectedDrinks]
+  )
+
   const configuredCount = state.selectedDrinks.filter(d => {
     const c = state.drinkConfigs.get(d.name)
     return c && c.price > 0 && c.cassierCost > 0 && c.cassierQuantity > 0
@@ -111,7 +116,7 @@ export default function OnboardingCustomizeScreen({ navigation }: Props) {
       </View>
 
       <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-        {state.selectedDrinks.map(drink => (
+        {sortedDrinks.map(drink => (
           <DrinkConfigCard
             key={drink.name}
             drink={drink}

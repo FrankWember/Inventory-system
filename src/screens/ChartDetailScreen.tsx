@@ -62,6 +62,7 @@ export default function ChartDetailScreen({ route, navigation }: Props) {
             height={horizontal ? undefined : 220}
             horizontal={horizontal}
             formatValue={chartFormat}
+            money={!!valueIsMoney}
           />
         </View>
 

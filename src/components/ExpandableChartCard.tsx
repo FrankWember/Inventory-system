@@ -3,7 +3,9 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
 import { Card, CardHeader, CardContent } from './Card'
 import { SimpleBarChart, BarChartItem } from './SimpleBarChart'
-import { COLORS } from '../utils/helpers'
+import { FONT } from '../utils/helpers'
+import { useSettings } from '../contexts/SettingsContext'
+import { useTranslation } from '../i18n'
 
 interface ExpandableChartCardProps {
   title: string
@@ -24,6 +26,8 @@ export function ExpandableChartCard({
   formatValue,
   onExpand,
 }: ExpandableChartCardProps) {
+  const { colors } = useSettings()
+  const { t } = useTranslation()
   if (data.length === 0) return null
 
   const headerContent = (
@@ -33,8 +37,8 @@ export function ExpandableChartCard({
       </View>
       {onExpand && (
         <View style={styles.expandBtn}>
-          <Ionicons name="expand" size={18} color={COLORS.primary} />
-          <Text style={styles.expandText}>Agrandir</Text>
+          <Ionicons name="expand" size={18} color={colors.primary} />
+          <Text style={[styles.expandText, { color: colors.primary }]}>{t('common.expand')}</Text>
         </View>
       )}
     </View>
@@ -59,5 +63,5 @@ export function ExpandableChartCard({
 const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'flex-start' },
   expandBtn: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: 4 },
-  expandText: { fontSize: 12, fontWeight: '600', color: COLORS.primary },
+  expandText: { fontSize: 12, fontFamily: FONT.semibold },
 })

@@ -37,7 +37,7 @@ export default {
     // Drink selection
     drinksStepTitle: 'Sélection des boissons',
     drinksTitle: 'Quelles boissons vendez-vous ?',
-    drinksDescription: 'Sélectionnez toutes les boissons de votre inventaire. Les plus populaires sont déjà cochées.',
+    drinksDescription: 'Sélectionnez toutes les boissons de votre inventaire.',
     drinksSearchPlaceholder: 'Rechercher une boisson…',
     drinksSelectedOne: '{count} boisson sélectionnée',
     drinksSelectedMany: '{count} boissons sélectionnées',
@@ -154,7 +154,7 @@ export default {
     // Drink selection
     drinksStepTitle: 'Drink selection',
     drinksTitle: 'Which drinks do you sell?',
-    drinksDescription: 'Select every drink in your inventory. The most popular ones are already checked.',
+    drinksDescription: 'Select every drink in your inventory.',
     drinksSearchPlaceholder: 'Search a drink…',
     drinksSelectedOne: '{count} drink selected',
     drinksSelectedMany: '{count} drinks selected',

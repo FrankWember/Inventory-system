@@ -28,9 +28,9 @@ export default function OnboardingDrinkSelectionScreen({ navigation }: Props) {
   const [selectedCategory, setSelectedCategory] = useState<Category | 'Tous'>('Tous')
   const [searchQuery, setSearchQuery] = useState('')
   const [ready, setReady] = useState(false)
-  const [selectedDrinks, setSelectedDrinks] = useState<DrinkTemplate[]>(
-    state.selectedDrinks.length > 0 ? state.selectedDrinks : CAMEROONIAN_DRINKS.filter(d => d.popular)
-  )
+  // Start with nothing selected — the user picks their own catalog. Coming
+  // back from a later step restores the previous selection.
+  const [selectedDrinks, setSelectedDrinks] = useState<DrinkTemplate[]>(state.selectedDrinks)
 
   // Brief skeleton so the catalog reveals smoothly after the slide-in animation.
   useEffect(() => {
@@ -45,8 +45,8 @@ export default function OnboardingDrinkSelectionScreen({ navigation }: Props) {
       const q = searchQuery.toLowerCase()
       drinks = drinks.filter(d => d.name.toLowerCase().includes(q))
     }
-    // Sort alphabetically by name
-    return drinks.sort((a, b) => a.name.localeCompare(b.name))
+    // Sort alphabetically by name (copy first: `drinks` may alias the catalog)
+    return [...drinks].sort((a, b) => a.name.localeCompare(b.name))
   }, [selectedCategory, searchQuery])
 
   const toggleDrink = (drink: DrinkTemplate) => {
