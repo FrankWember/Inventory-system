@@ -4,6 +4,7 @@ import {
   computeSold,
   lineRevenue,
   linePurchaseCost,
+  purchaseCost,
   sessionTotals,
   marginPct,
   markupPct,
@@ -41,6 +42,26 @@ test('lineRevenue uses sold * price', () => {
 })
 test('linePurchaseCost is independent of sales', () => {
   assert.equal(linePurchaseCost(line(0, 12, 12, 500, 300)), 12 * 300) // bought 12, sold 0
+})
+
+// ─── purchaseCost (crate-aware) ─────────────────────────────────────────────
+test('purchaseCost: full crates billed at crate price, not rounded unit cost', () => {
+  // Beaufort: crate of 12 at 6800 → unit cost rounds to 567; 36 units must be 20400, not 20412
+  assert.equal(purchaseCost(36, 567, 12, 6800), 3 * 6800)
+})
+test('purchaseCost: loose units outside full crates use unit cost', () => {
+  assert.equal(purchaseCost(38, 567, 12, 6800), 3 * 6800 + 2 * 567)
+})
+test('purchaseCost: falls back to units × unit cost without a crate price', () => {
+  assert.equal(purchaseCost(36, 567, 12), 36 * 567)
+  assert.equal(purchaseCost(36, 567, 12, 0), 36 * 567)
+})
+test('purchaseCost: rack size 1 ignores crate price', () => {
+  assert.equal(purchaseCost(5, 500, 1, 9999), 5 * 500)
+})
+test('purchaseCost: negative or zero units cost nothing', () => {
+  assert.equal(purchaseCost(0, 567, 12, 6800), 0)
+  assert.equal(purchaseCost(-3, 567, 12, 6800), 0)
 })
 
 // ─── sessionTotals ──────────────────────────────────────────────────────────

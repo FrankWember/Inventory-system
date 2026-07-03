@@ -20,7 +20,7 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { LoadingModal } from '../components/LoadingModal'
 import { useSettings } from '../contexts/SettingsContext'
 import { useTranslation } from '../i18n'
-import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers, formatWithCassiersShort, drinkRackSize, today } from '../utils/helpers'
+import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers, formatWithCassiersShort, drinkRackSize, drinkCrateCost, today } from '../utils/helpers'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SessionDetail'>
 
@@ -58,6 +58,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
   const [printLoading, setPrintLoading] = useState(false)
   const [drinksCategoryMap, setDrinksCategoryMap] = useState<Record<string, string>>({})
   const [drinksRackMap, setDrinksRackMap] = useState<Record<string, number>>({})
+  const [drinksCrateCostMap, setDrinksCrateCostMap] = useState<Record<string, number>>({})
 
   const fadeAnim = useRef(new Animated.Value(0)).current
   usePrintStyles()
@@ -94,7 +95,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
       // entire expenses table on every journal open.
       const [expensesRes, drinksRes] = await Promise.all([
         supabase.from('expenses').select('*').eq('date', sessionData.date).order('created_at'),
-        supabase.from('drinks').select('id, category, cassier_quantity, rack_size'),
+        supabase.from('drinks').select('id, category, cassier_quantity, rack_size, cassier_cost, cost'),
       ])
       if (expensesRes.error) throw expensesRes.error
 
@@ -102,15 +103,18 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
 
       const categoryMap: Record<string, string> = {}
       const rackMap: Record<string, number> = {}
+      const crateCostMap: Record<string, number> = {}
       drinksRes.data?.forEach(d => {
         categoryMap[d.id] = d.category
         rackMap[d.id] = drinkRackSize(d)
+        crateCostMap[d.id] = drinkCrateCost(d)
       })
 
       setSession(sessionData)
       setExpenses(filteredExpenses)
       setDrinksCategoryMap(categoryMap)
       setDrinksRackMap(rackMap)
+      setDrinksCrateCostMap(crateCostMap)
 
       Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start()
     } catch (error) {
@@ -146,6 +150,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
   const totalExpenses = expenses.reduce((s, e) => s + e.amount, 0)
   const totalUnits = saleLines.reduce((s, l) => s + l.sold, 0)
   const totalPurchased = purchaseLines.reduce((s, l) => s + l.purchased, 0)
+  const totalPurchaseCost = purchaseLines.reduce((s, l) => s + l.cost, 0)
   const grossProfit = session.total_revenue - session.total_cost
   const netProfit = session.total_revenue - session.total_cost - totalExpenses
 
@@ -287,22 +292,40 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
         {/* ── Purchases detail ── */}
         {purchaseLines.length > 0 && (
           <Section title={t('settings.receiptsPurchases')} icon="cube-outline" count={purchaseLines.length}>
-            <View style={s.simpleTableWrapper}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={true}
+              style={s.tableScrollContainer}
+              contentContainerStyle={s.tableScrollContent}
+            >
               <View style={st.table}>
                 <View style={st.head}>
-                  {[t('settings.colArticle'), t('settings.colQuantity'), t('settings.colCost')].map((h, i) => (
-                    <Text key={i} style={[st.th, i === 0 ? st.thFirst : st.thRight]}>{h}</Text>
-                  ))}
+                  <Text style={[st.th, st.thFirst]}>{t('settings.colArticle')}</Text>
+                  <Text style={[st.th, st.thQty]}>{t('settings.colQty')}</Text>
+                  <Text style={[st.th, st.thRight]}>{t('settings.colCratePrice')}</Text>
+                  <Text style={[st.th, st.thRight]}>{t('settings.colCostFcfa')}</Text>
                 </View>
-                {purchaseLines.map((l, ri) => (
-                  <View key={ri} style={[st.row, ri % 2 === 0 && st.rowEven]}>
-                    <Text style={[st.td, st.tdFirst]} numberOfLines={1}>{l.drink_name}</Text>
-                    <Text style={[st.td, st.tdRight]} numberOfLines={1}>{fmtNum(l.purchased)}</Text>
-                    <Text style={[st.td, st.tdRight]} numberOfLines={1}>{fmt(l.cost)}</Text>
-                  </View>
-                ))}
+                {purchaseLines.map((l, ri) => {
+                  const cat = drinksCategoryMap[l.drink_id] ?? 'Autre'
+                  const rack = drinksRackMap[l.drink_id] ?? 1
+                  const crateCost = drinksCrateCostMap[l.drink_id]
+                  return (
+                    <View key={ri} style={[st.row, ri % 2 === 0 && st.rowEven]}>
+                      <Text style={[st.td, st.tdFirst]} numberOfLines={1}>{l.drink_name}</Text>
+                      <Text style={[st.td, st.tdQty]} numberOfLines={1}>{formatWithCassiersShort(l.purchased, cat, rack)}</Text>
+                      <Text style={[st.td, st.tdRight]} numberOfLines={1}>{crateCost ? fmtNum(crateCost) : '—'}</Text>
+                      <Text style={[st.td, st.tdRight]} numberOfLines={1}>{fmtNum(l.cost)}</Text>
+                    </View>
+                  )
+                })}
+                <View style={st.totalRow}>
+                  <Text style={[st.tdTotal, st.tdFirst]} numberOfLines={1}>{t('settings.total')}</Text>
+                  <Text style={[st.tdTotal, st.tdQty]} numberOfLines={1}>—</Text>
+                  <Text style={[st.tdTotal, st.tdRight]} numberOfLines={1}>—</Text>
+                  <Text style={[st.tdTotal, st.tdRight, { color: COLORS.primary }]} numberOfLines={1}>{fmtNum(totalPurchaseCost)}</Text>
+                </View>
               </View>
-            </View>
+            </ScrollView>
           </Section>
         )}
 
@@ -556,40 +579,67 @@ const st = StyleSheet.create({
     borderColor: COLORS.border,
     borderRadius: 10,
     overflow: 'hidden',
-    width: '100%',
+    minWidth: '100%',
   },
-  head: { flexDirection: 'row', backgroundColor: COLORS.surface, paddingVertical: 10, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border },
+  head: { flexDirection: 'row', backgroundColor: COLORS.surface, paddingVertical: 10, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border },
   th: { fontSize: 10, fontFamily: FONT.bold, color: COLORS.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
   thFirst: {
-    flex: 2,
-    minWidth: 140,
-    paddingRight: 12,
-    ...Platform.select({ web: { flex: 2 } }),
+    flexGrow: 2,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 72,
+    paddingRight: 8,
+  },
+  thQty: {
+    flex: 0.7,
+    minWidth: 40,
+    textAlign: 'right',
+    paddingHorizontal: 5,
   },
   thRight: {
     flex: 1,
-    minWidth: 100,
+    minWidth: 64,
     textAlign: 'right',
-    paddingHorizontal: 8,
-    ...Platform.select({ web: { flex: 1 } }),
+    paddingHorizontal: 5,
   },
-  row: { flexDirection: 'row', paddingVertical: 11, paddingHorizontal: 12, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center' },
+  row: { flexDirection: 'row', paddingVertical: 11, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center' },
   rowEven: { backgroundColor: COLORS.surface + '60' },
   td: { fontSize: 13, fontFamily: FONT.medium, color: COLORS.slateDark },
   tdFirst: {
-    flex: 2,
-    minWidth: 140,
-    paddingRight: 12,
-    ...Platform.select({ web: { flex: 2 } }),
+    flexGrow: 2,
+    flexShrink: 1,
+    flexBasis: 0,
+    minWidth: 72,
+    paddingRight: 8,
+  },
+  tdQty: {
+    flex: 0.7,
+    minWidth: 40,
+    textAlign: 'right',
+    fontFamily: FONT.bold,
+    fontSize: 12,
+    fontVariant: ['tabular-nums'],
+    paddingHorizontal: 5,
   },
   tdRight: {
     flex: 1,
-    minWidth: 100,
+    minWidth: 64,
     textAlign: 'right',
     fontFamily: FONT.bold,
-    paddingHorizontal: 8,
-    ...Platform.select({ web: { flex: 1 } }),
+    fontSize: 12,
+    fontVariant: ['tabular-nums'],
+    paddingHorizontal: 5,
   },
+  totalRow: {
+    flexDirection: 'row',
+    paddingVertical: 11,
+    paddingHorizontal: 12,
+    backgroundColor: COLORS.primaryLight + '50',
+    borderTopWidth: 1.5,
+    borderTopColor: COLORS.primary + '40',
+    alignItems: 'center',
+  },
+  tdTotal: { fontSize: 12, fontFamily: FONT.bold, color: COLORS.slateDark },
 })
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -695,10 +745,11 @@ const s = StyleSheet.create({
       } as any,
     }),
   },
-  // Let the scroll content fill the container on web so the flex columns stretch to
-  // the full width instead of forcing a fixed 900px width that overflows narrow panels.
+  // Let the scroll content stretch to the container on wide screens but GROW past it
+  // on narrow ones — a hard width:100% pinned the content to the viewport, so the
+  // min-width columns overflowed invisibly instead of becoming scrollable.
   tableScrollContent: {
-    ...Platform.select({ web: { flexGrow: 1, width: '100%' } }),
+    ...Platform.select({ web: { flexGrow: 1, minWidth: '100%' } }),
   },
 
   simpleTableWrapper: {
@@ -706,15 +757,14 @@ const s = StyleSheet.create({
     overflow: 'hidden',
   },
 
-  // stock movement table
+  // stock movement table — minWidth 100% stretches it on wide screens while letting
+  // the min-width columns push it wider (→ horizontal scroll) on phones.
   stockTable: {
     borderWidth: 1,
     borderColor: COLORS.border,
     borderRadius: 10,
     overflow: 'hidden',
     minWidth: '100%',
-    // On web fill the container (flex columns compress to fit) rather than a fixed 900px.
-    ...Platform.select({ web: { width: '100%', minWidth: 0 } }),
   },
   stockHead: {
     flexDirection: 'row',

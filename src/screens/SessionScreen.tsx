@@ -31,6 +31,7 @@ import {
   dateLabelLong,
   formatWithCassiers,
   drinkRackSize,
+  drinkPurchaseCost,
 } from '../utils/helpers'
 import { LIGHT_COLORS } from '../styles/theme'
 import { showAlert } from '../utils/appAlert'
@@ -513,13 +514,13 @@ export default function SessionScreen({ navigation }: any) {
 
   /**
    * Total Purchase Cost (COGS - Cost of Goods Sold)
-   * Formula: Purchase Cost = Σ(Purchased Units × Cost per Unit)
+   * Formula: Purchase Cost = Σ(full crates × crate price + loose units × unit cost)
    *
-   * Example: If bought 24 Coca @ 500 FCFA = 12,000 FCFA cost
+   * Example: If bought 3 crates of Beaufort @ 6,800 FCFA = 20,400 FCFA cost
    */
   const totalPurchaseCost = drinks.reduce((s, d) => {
     const p = lineStates[d.id]?.purchased ?? purchases[d.id] ?? 0
-    return s + p * d.cost
+    return s + drinkPurchaseCost(p, d)
   }, 0)
 
   /**
@@ -593,7 +594,7 @@ export default function SessionScreen({ navigation }: any) {
           const delta = newPurchased - oldPurchased
           const expected = opening + newPurchased
           ops.push(
-            supabase.from('session_lines').update({ purchased: newPurchased, closing_stock: expected, cost: newPurchased * drink.cost })
+            supabase.from('session_lines').update({ purchased: newPurchased, closing_stock: expected, cost: drinkPurchaseCost(newPurchased, drink) })
               .eq('session_id', openSession.id).eq('drink_id', drink.id)
           )
           if (delta !== 0) ops.push(supabase.from('drinks').update({ stock: drink.stock + delta }).eq('id', drink.id))
@@ -625,7 +626,7 @@ export default function SessionScreen({ navigation }: any) {
         lines[drink.id] = { openingStock: opening, purchased, closingStock: expected }
         sessionLines.push({
           user_id: user.id, session_id: session.id, drink_id: drink.id, drink_name: drink.name,
-          opening_stock: opening, purchased, sold: 0, closing_stock: expected, revenue: 0, cost: purchased * drink.cost,
+          opening_stock: opening, purchased, sold: 0, closing_stock: expected, revenue: 0, cost: drinkPurchaseCost(purchased, drink),
         })
         if (purchased > 0) stockUpdates.push(supabase.from('drinks').update({ stock: expected }).eq('id', drink.id))
       }
@@ -674,7 +675,7 @@ export default function SessionScreen({ navigation }: any) {
         const closing = closingCounts[drink.id] ?? drink.stock
         const sold = Math.max(0, opening + purchased - closing)
         ops.push(
-          supabase.from('session_lines').update({ sold, closing_stock: closing, revenue: sold * drink.price, cost: purchased * drink.cost })
+          supabase.from('session_lines').update({ sold, closing_stock: closing, revenue: sold * drink.price, cost: drinkPurchaseCost(purchased, drink) })
             .eq('session_id', openSession.id).eq('drink_id', drink.id)
         )
         ops.push(supabase.from('drinks').update({ stock: closing }).eq('id', drink.id))

@@ -119,7 +119,7 @@ export const dateLabelLong = (iso: string): string => {
 // Rack size is per-drink (drink.cassier_quantity, falling back to rack_size);
 // pass it explicitly — the old version hardcoded 12 and misformatted drinks
 // sold in 24- or 6-unit cassiers.
-import { cassierLabel, stockStatus } from './calculations'
+import { cassierLabel, stockStatus, purchaseCost } from './calculations'
 import { getLocale, getLang } from '../i18n'
 
 /** Rack size for a drink, preferring cassier_quantity over legacy rack_size. */
@@ -127,6 +127,16 @@ export const drinkRackSize = (drink: { cassier_quantity?: number | null; rack_si
   const size = drink.cassier_quantity ?? drink.rack_size ?? 1
   return size >= 1 ? Math.floor(size) : 1
 }
+
+/** Crate price for a drink, falling back to unit cost × rack size when unset. */
+export const drinkCrateCost = (drink: { cost: number; cassier_cost?: number | null; cassier_quantity?: number | null; rack_size?: number | null }): number => {
+  const crateCost = drink.cassier_cost ?? 0
+  return crateCost > 0 ? crateCost : drink.cost * drinkRackSize(drink)
+}
+
+/** Purchase cost for `units` of a drink, billing full crates at the crate price. */
+export const drinkPurchaseCost = (units: number, drink: { cost: number; cassier_cost?: number | null; cassier_quantity?: number | null; rack_size?: number | null }): number =>
+  purchaseCost(units, drink.cost, drinkRackSize(drink), drink.cassier_cost)
 
 // Whether to show a crate (cassier) breakdown is decided by the drink's rack size,
 // NOT its category: any drink sold in crates (rackSize > 1) — beer, soda, etc. —

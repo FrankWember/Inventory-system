@@ -27,6 +27,23 @@ export function linePurchaseCost(line: PricedLine): number {
   return Math.max(0, line.purchased) * Math.max(0, line.cost)
 }
 
+/**
+ * Cost of a stock purchase. Full crates are billed at the crate price so the
+ * total matches what the supplier actually charged — the rounded per-unit cost
+ * (e.g. 6800/12 → 567) only applies to loose units outside a full crate.
+ * Without this, 3 crates of Beaufort at 6 800 came out as 36 × 567 = 20 412
+ * instead of 20 400.
+ */
+export function purchaseCost(units: number, unitCost: number, rackSize = 1, crateCost?: number | null): number {
+  const u = Math.max(0, Math.floor(units))
+  const safeUnitCost = Math.max(0, unitCost)
+  const size = Math.max(1, Math.floor(rackSize))
+  if (!crateCost || crateCost <= 0 || size <= 1) return u * safeUnitCost
+  const crates = Math.floor(u / size)
+  const remainder = u % size
+  return crates * crateCost + remainder * safeUnitCost
+}
+
 export interface SessionTotals {
   revenue: number
   purchaseCost: number
