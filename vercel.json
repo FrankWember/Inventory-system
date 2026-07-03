@@ -2,7 +2,6 @@
   "buildCommand": "npm run build:prod",
   "outputDirectory": "dist",
   "devCommand": "npx expo start --web",
-  "cleanUrls": true,
   "rewrites": [
     {
       "source": "/(.*)",
