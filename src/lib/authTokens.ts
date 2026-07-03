@@ -100,7 +100,12 @@ async function refreshSession(): Promise<string | null> {
       body: JSON.stringify({ refresh_token: refreshToken }),
     })
     if (!res.ok) {
-      await clearSession()
+      // Only a definitive rejection (invalid/rotated refresh token) ends the
+      // session. Transient server errors (5xx, cold starts) must not log the
+      // user out — keep the tokens and retry on the next request.
+      if (res.status === 400 || res.status === 401 || res.status === 403) {
+        await clearSession()
+      }
       return null
     }
     const session = (await res.json()) as SessionResponse

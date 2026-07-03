@@ -1,8 +1,8 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
-import { COLORS } from '../utils/helpers'
 import { useSettings } from '../contexts/SettingsContext'
+import { useTranslation } from '../i18n'
 import type { TabParamList } from '../../App'
 
 interface SidebarProps {
@@ -12,30 +12,31 @@ interface SidebarProps {
 
 interface NavItem {
   name: keyof TabParamList
-  label: string
+  labelKey: string
   icon: keyof typeof Ionicons.glyphMap
   iconOutline: keyof typeof Ionicons.glyphMap
 }
 
 const navItems: NavItem[] = [
-  { name: 'Dashboard', label: 'Accueil', icon: 'home', iconOutline: 'home-outline' },
-  { name: 'Inventory', label: 'Stock', icon: 'cube', iconOutline: 'cube-outline' },
-  { name: 'Session', label: 'Session', icon: 'clipboard', iconOutline: 'clipboard-outline' },
-  { name: 'Trends', label: 'Stats', icon: 'stats-chart', iconOutline: 'stats-chart-outline' },
-  { name: 'Settings', label: 'Paramètres', icon: 'settings', iconOutline: 'settings-outline' },
+  { name: 'Dashboard', labelKey: 'misc.tabHome', icon: 'home', iconOutline: 'home-outline' },
+  { name: 'Inventory', labelKey: 'misc.tabStock', icon: 'cube', iconOutline: 'cube-outline' },
+  { name: 'Session', labelKey: 'misc.tabSession', icon: 'clipboard', iconOutline: 'clipboard-outline' },
+  { name: 'Trends', labelKey: 'misc.tabStats', icon: 'stats-chart', iconOutline: 'stats-chart-outline' },
+  { name: 'Settings', labelKey: 'misc.tabSettings', icon: 'settings', iconOutline: 'settings-outline' },
 ]
 
 export function Sidebar({ currentRoute, onNavigate }: SidebarProps) {
-  const { barInfo } = useSettings()
+  const { barInfo, colors } = useSettings()
+  const { t } = useTranslation()
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.card }]}>
       <View style={styles.header}>
-        <View style={styles.logo}>
-          <Ionicons name="bar-chart" size={28} color={COLORS.primary} />
+        <View style={[styles.logo, { backgroundColor: colors.primaryLight }]}>
+          <Ionicons name="bar-chart" size={28} color={colors.primary} />
         </View>
-        <Text style={styles.appName}>{barInfo?.name || 'BarTrack'}</Text>
-        <Text style={styles.appSubtitle}>Gestion d'inventaire</Text>
+        <Text style={[styles.appName, { color: colors.slateDark }]}>{barInfo?.name || 'BarTrack'}</Text>
+        <Text style={[styles.appSubtitle, { color: colors.slate }]}>{t('misc.sidebarSubtitle')}</Text>
       </View>
 
       <View style={styles.nav}>
@@ -44,18 +45,18 @@ export function Sidebar({ currentRoute, onNavigate }: SidebarProps) {
           return (
             <TouchableOpacity
               key={item.name}
-              style={[styles.navItem, isActive && styles.navItemActive]}
+              style={[styles.navItem, isActive && { backgroundColor: colors.primaryLight }]}
               onPress={() => onNavigate(item.name)}
               activeOpacity={0.7}
             >
               <Ionicons
                 name={isActive ? item.icon : item.iconOutline}
                 size={22}
-                color={isActive ? COLORS.primary : COLORS.slate}
+                color={isActive ? colors.primary : colors.slate}
                 style={styles.navIcon}
               />
-              <Text style={[styles.navLabel, isActive && styles.navLabelActive]}>
-                {item.label}
+              <Text style={[styles.navLabel, { color: colors.slate }, isActive && [styles.navLabelActive, { color: colors.primary }]]}>
+                {t(item.labelKey)}
               </Text>
             </TouchableOpacity>
           )
@@ -63,7 +64,7 @@ export function Sidebar({ currentRoute, onNavigate }: SidebarProps) {
       </View>
 
       <View style={styles.footer}>
-        <Text style={styles.version}>v1.0.0</Text>
+        <Text style={[styles.version, { color: colors.slate }]}>v1.0.0</Text>
       </View>
     </View>
   )
@@ -72,7 +73,6 @@ export function Sidebar({ currentRoute, onNavigate }: SidebarProps) {
 const styles = StyleSheet.create({
   container: {
     width: 280,
-    backgroundColor: COLORS.white,
     height: '100%',
     flexDirection: 'column',
     borderTopRightRadius: 20,
@@ -102,7 +102,6 @@ const styles = StyleSheet.create({
     width: 64,
     height: 64,
     borderRadius: 18,
-    backgroundColor: COLORS.primaryLight,
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 16,
@@ -110,12 +109,10 @@ const styles = StyleSheet.create({
   appName: {
     fontSize: 22,
     fontWeight: '700',
-    color: COLORS.slateDark,
     marginBottom: 6,
   },
   appSubtitle: {
     fontSize: 13,
-    color: COLORS.slate,
     textAlign: 'center',
   },
   nav: {
@@ -137,9 +134,6 @@ const styles = StyleSheet.create({
       },
     }),
   },
-  navItemActive: {
-    backgroundColor: COLORS.primaryLight,
-  },
   navIcon: {
     marginRight: 14,
     width: 24,
@@ -147,11 +141,9 @@ const styles = StyleSheet.create({
   navLabel: {
     fontSize: 16,
     fontWeight: '500',
-    color: COLORS.slate,
   },
   navLabelActive: {
     fontWeight: '700',
-    color: COLORS.primary,
   },
   footer: {
     padding: 20,
@@ -159,7 +151,6 @@ const styles = StyleSheet.create({
   },
   version: {
     fontSize: 11,
-    color: COLORS.slate,
     fontWeight: '500',
     opacity: 0.7,
   },

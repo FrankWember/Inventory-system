@@ -7,7 +7,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   TouchableOpacity,
-  Dimensions,
+  useWindowDimensions,
 } from 'react-native'
 import { supabase } from '../lib/supabase'
 import { getCurrentUser } from '../lib/authClient'
@@ -40,7 +40,8 @@ export default function AddDrinkScreen({ navigation, route }: any) {
     supplier: '',
   })
 
-  const windowWidth = Dimensions.get('window').width
+  // Reactive: re-renders on window resize (Dimensions.get alone does not).
+  const { width: windowWidth } = useWindowDimensions()
   const isDesktop = Platform.OS === 'web' && windowWidth >= BREAKPOINT
 
   // Auto-calculate COGS (cost per unit)

@@ -8,6 +8,9 @@ export default {
     tabStats: 'Stats',
     tabSettings: 'Paramètres',
 
+    // Sidebar (desktop web)
+    sidebarSubtitle: "Gestion d'inventaire",
+
     // SessionExpensesPanel
     expensesTitle: 'Dépenses du jour',
     expensesEmpty: 'Aucune dépense enregistrée',
@@ -91,6 +94,9 @@ export default {
     tabSession: 'Session',
     tabStats: 'Stats',
     tabSettings: 'Settings',
+
+    // Sidebar (desktop web)
+    sidebarSubtitle: 'Inventory management',
 
     // SessionExpensesPanel
     expensesTitle: "Today's expenses",

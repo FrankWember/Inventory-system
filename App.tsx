@@ -18,7 +18,7 @@ import { COLORS, FONT } from './src/utils/helpers'
 import { applyGlobalFont } from './src/styles/applyFonts'
 import { ResponsiveLayout } from './src/components/ResponsiveLayout'
 import { AuthProvider, useAuth } from './src/contexts/AuthContext'
-import { SettingsProvider } from './src/contexts/SettingsContext'
+import { SettingsProvider, useSettings } from './src/contexts/SettingsContext'
 import { t, useTranslation } from './src/i18n'
 import { saveNavigationState, loadNavigationState } from './src/utils/navigationPersistence'
 
@@ -168,6 +168,7 @@ const linking = Platform.OS === 'web' ? {
 
 function MainTabs() {
   const { t } = useTranslation()
+  const { colors } = useSettings()
   const insets = useSafeAreaInsets()
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
 
@@ -194,13 +195,13 @@ function MainTabs() {
             else if (route.name === 'Settings') iconName = focused ? 'settings' : 'settings-outline'
             return <Ionicons name={iconName} size={size} color={color} />
           },
-          tabBarActiveTintColor: COLORS.primary,
-          tabBarInactiveTintColor: COLORS.slate,
+          tabBarActiveTintColor: colors.primary,
+          tabBarInactiveTintColor: colors.slate,
           tabBarStyle: isDesktop
             ? { display: 'none' }
             : {
-                backgroundColor: COLORS.white,
-                borderTopColor: COLORS.border,
+                backgroundColor: colors.card,
+                borderTopColor: colors.border,
                 borderTopWidth: 1,
                 paddingBottom: Math.max(insets.bottom, 6),
                 paddingTop: 6,
@@ -225,6 +226,7 @@ function MainTabs() {
 
 function RootNavigator() {
   const { t } = useTranslation()
+  const { colors } = useSettings()
   const { user, loading, isWelcomeLoading } = useAuth()
   // On web, linking handles navigation state — no need for manual restore
   const [isReady, setIsReady] = useState(Platform.OS === 'web')
@@ -273,8 +275,8 @@ function RootNavigator() {
 
   if (loading || !isReady || checkingOnboarding) {
     return (
-      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
+      <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surface }}>
+        <ActivityIndicator size="large" color={colors.primary} />
       </View>
     )
   }
@@ -298,12 +300,12 @@ function RootNavigator() {
       {...(navigatorProps as any)}
       initialRouteName={user && !onboardingComplete ? initialRouteName : undefined}
       screenOptions={{
-        headerStyle: { backgroundColor: COLORS.white },
-        headerTintColor: COLORS.primary,
+        headerStyle: { backgroundColor: colors.card },
+        headerTintColor: colors.primary,
         headerTitleStyle: {
           fontFamily: FONT.bold,
           fontSize: 17,
-          color: COLORS.slateDark,
+          color: colors.slateDark,
         },
         headerShadowVisible: false,
         headerBackTitle: t('common.back'),
@@ -349,18 +351,26 @@ function RootNavigator() {
 }
 
 export default function App() {
-  const [fontsLoaded] = useFonts({
+  const [fontsLoaded, fontError] = useFonts({
     Manrope_400Regular,
     Manrope_500Medium,
     Manrope_600SemiBold,
     Manrope_700Bold,
     Manrope_800ExtraBold,
   })
+  // Never let font loading block the app forever: expo-font's web observer can
+  // reject/hang on a cold cache even though the @font-face rules are injected
+  // and will apply once ready. After 3s (or on error) we render regardless.
+  const [fontWaitExpired, setFontWaitExpired] = useState(false)
+  useEffect(() => {
+    const timer = setTimeout(() => setFontWaitExpired(true), 3000)
+    return () => clearTimeout(timer)
+  }, [])
 
   const routeNameRef = useRef<string | undefined>(undefined)
   const navigationRef = useRef<any>(null)
 
-  if (!fontsLoaded) {
+  if (!fontsLoaded && !fontError && !fontWaitExpired) {
     return (
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.surface }}>
         <ActivityIndicator size="large" color={COLORS.primary} />
@@ -377,6 +387,9 @@ export default function App() {
           <NavigationContainer
             ref={navigationRef}
             linking={linking}
+            documentTitle={{
+              formatter: () => 'BarTrack — Gestion d\'inventaire',
+            }}
             onReady={() => {
               routeNameRef.current = navigationRef.current?.getCurrentRoute()?.name
             }}

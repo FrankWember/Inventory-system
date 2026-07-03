@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { View, Animated, StyleSheet, ViewStyle, ScrollView, Dimensions, Platform } from 'react-native'
 import { COLORS, RADIUS, SPACE, shadow } from '../utils/helpers'
+import { useSettings } from '../contexts/SettingsContext'
 
 // ─── Shimmer primitives ───────────────────────────────────────────────────────
 // A soft Apple-style shimmer: a translating highlight band over a muted base,
@@ -13,8 +14,8 @@ function useSharedShimmer(): Animated.Value {
   useEffect(() => {
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(progress, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.timing(progress, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.timing(progress, { toValue: 1, duration: 1400, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(progress, { toValue: 0, duration: 0, useNativeDriver: Platform.OS !== 'web' }),
       ])
     )
     loop.start()
@@ -32,8 +33,8 @@ export function Skeleton({ style }: { style?: ViewStyle | ViewStyle[] }) {
     if (shared) return
     const loop = Animated.loop(
       Animated.sequence([
-        Animated.timing(local, { toValue: 1, duration: 1400, useNativeDriver: true }),
-        Animated.timing(local, { toValue: 0, duration: 0, useNativeDriver: true }),
+        Animated.timing(local, { toValue: 1, duration: 1400, useNativeDriver: Platform.OS !== 'web' }),
+        Animated.timing(local, { toValue: 0, duration: 0, useNativeDriver: Platform.OS !== 'web' }),
       ])
     )
     loop.start()
@@ -46,10 +47,15 @@ export function Skeleton({ style }: { style?: ViewStyle | ViewStyle[] }) {
     outputRange: [-screenWidth, screenWidth],
   })
 
+  const { colors, theme } = useSettings()
+  const bandColor = theme === 'dark'
+    ? 'rgba(255,255,255,0.08)'
+    : Platform.OS === 'web' ? 'rgba(255,255,255,0.55)' : 'rgba(255,255,255,0.45)'
+
   return (
-    <View style={[styles.base, style]}>
+    <View style={[styles.base, { backgroundColor: colors.border }, style]}>
       <Animated.View style={[StyleSheet.absoluteFill, { transform: [{ translateX }] }]}>
-        <View style={styles.shimmerBand} />
+        <View style={[styles.shimmerBand, { backgroundColor: bandColor }]} />
       </Animated.View>
     </View>
   )
@@ -58,8 +64,9 @@ export function Skeleton({ style }: { style?: ViewStyle | ViewStyle[] }) {
 // ─── Building blocks matching real UI pieces ─────────────────────────────────
 
 function StatTile() {
+  const { colors } = useSettings()
   return (
-    <View style={[styles.card, { flex: 1 }]}>
+    <View style={[styles.card, { flex: 1, backgroundColor: colors.card, borderColor: colors.border }]}>
       <Skeleton style={{ width: '45%', height: 10, marginBottom: 12 }} />
       <Skeleton style={{ width: '70%', height: 22 }} />
     </View>
@@ -67,8 +74,9 @@ function StatTile() {
 }
 
 function AlertRow() {
+  const { colors } = useSettings()
   return (
-    <View style={styles.alertRow}>
+    <View style={[styles.alertRow, { borderTopColor: colors.border }]}>
       <Skeleton style={{ width: 4, height: 36, borderRadius: 2 }} />
       <View style={{ flex: 1, gap: 6 }}>
         <Skeleton style={{ width: '55%', height: 13 }} />
@@ -82,8 +90,9 @@ function AlertRow() {
 function ChartCard({ height = 220 }: { height?: number }) {
   // Mimics SimpleBarChart: a row of bars of varying heights over a baseline
   const bars = [0.55, 0.8, 0.4, 0.95, 0.65, 0.75, 0.5]
+  const { colors } = useSettings()
   return (
-    <View style={[styles.card, { flex: 1 }]}>
+    <View style={[styles.card, { flex: 1, backgroundColor: colors.card, borderColor: colors.border }]}>
       <Skeleton style={{ width: 110, height: 13, marginBottom: 16 }} />
       <View style={[styles.chartArea, { height }]}>
         {bars.map((h, i) => (
@@ -95,8 +104,9 @@ function ChartCard({ height = 220 }: { height?: number }) {
 }
 
 function ListRowCard() {
+  const { colors } = useSettings()
   return (
-    <View style={styles.card}>
+    <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.border }]}>
       <View style={styles.rowBetween}>
         <View style={{ flex: 1, gap: 6 }}>
           <Skeleton style={{ width: '50%', height: 14 }} />
@@ -119,10 +129,11 @@ export type SkeletonVariant = 'list' | 'dashboard' | 'grid' | 'session' | 'trend
 
 export function ScreenSkeleton({ variant = 'list' }: { variant?: SkeletonVariant }) {
   const progress = useSharedShimmer()
+  const { colors } = useSettings()
 
   return (
     <ShimmerContext.Provider value={progress}>
-      <View style={{ flex: 1, backgroundColor: COLORS.surface }}>
+      <View style={{ flex: 1, backgroundColor: colors.surface }}>
         <ScrollView
           style={{ flex: 1 }}
           contentContainerStyle={{ padding: SPACE.lg, flexGrow: 1 }}
@@ -136,7 +147,7 @@ export function ScreenSkeleton({ variant = 'list' }: { variant?: SkeletonVariant
                 <StatTile />
               </View>
               {/* À surveiller */}
-              <View style={[styles.card, { marginBottom: SPACE.lg }]}>
+              <View style={[styles.card, { marginBottom: SPACE.lg, backgroundColor: colors.card, borderColor: colors.border }]}>
                 <Skeleton style={{ width: 110, height: 14, marginBottom: 14 }} />
                 <AlertRow />
                 <AlertRow />
@@ -166,7 +177,7 @@ export function ScreenSkeleton({ variant = 'list' }: { variant?: SkeletonVariant
               {/* Drink cards grid */}
               <View style={styles.gridWrap}>
                 {Array.from({ length: 6 }).map((_, i) => (
-                  <View key={i} style={styles.gridCell}>
+                  <View key={i} style={[styles.gridCell, { backgroundColor: colors.card, borderColor: colors.border }]}>
                     <View style={[styles.row, { alignItems: 'center', marginBottom: 10 }]}>
                       <Skeleton style={{ width: 8, height: 8, borderRadius: 4 }} />
                       <Skeleton style={{ width: 46, height: 9 }} />

@@ -26,7 +26,12 @@ import { useTranslation } from '../i18n'
 const BREAKPOINT = 768
 
 export default function DashboardScreen({ navigation }: any) {
-  const { colors } = useSettings()
+  const { colors, theme } = useSettings()
+  // "Glass" card surfaces — must follow the theme or dark mode renders
+  // light-on-light text on these cards.
+  const glass = theme === 'dark'
+    ? { backgroundColor: 'rgba(26, 38, 56, 0.88)', borderColor: 'rgba(61, 78, 102, 0.5)' }
+    : { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: 'rgba(255, 255, 255, 0.5)' }
   const { t } = useTranslation()
   const [drinks, setDrinks] = useState<Drink[]>([])
   const [sessions, setSessions] = useState<Session[]>([])
@@ -149,12 +154,12 @@ export default function DashboardScreen({ navigation }: any) {
         {/* ── 7-day pulse ── */}
         <View style={styles.statsRow}>
           {/* @ts-ignore - web-only className */}
-          <View style={[styles.statBox, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: 'rgba(255, 255, 255, 0.5)' }]} className="glass-card">
+          <View style={[styles.statBox, glass]} className="glass-card">
             <Text style={[styles.statLabel, { color: colors.slate }]}>{t('dashboard.revenue7d')}</Text>
             <Text style={[styles.statValue, { color: colors.slateDark }]} adjustsFontSizeToFit numberOfLines={1}>{fmt(last7Revenue)}</Text>
           </View>
           {/* @ts-ignore - web-only className */}
-          <View style={[styles.statBox, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: 'rgba(255, 255, 255, 0.5)' }]} className="glass-card">
+          <View style={[styles.statBox, glass]} className="glass-card">
             <Text style={[styles.statLabel, { color: colors.slate }]}>{t('dashboard.profit7d')}</Text>
             <Text
               style={[styles.statValue, { color: last7Profit >= 0 ? colors.primary : colors.rose }]}
@@ -169,7 +174,7 @@ export default function DashboardScreen({ navigation }: any) {
         {/* ── 2. What needs my attention? ── */}
         {attention.length > 0 ? (
           // @ts-ignore - web-only className
-          <View style={[styles.section, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: 'rgba(255, 255, 255, 0.5)' }]} className="glass-card">
+          <View style={[styles.section, glass]} className="glass-card">
             <View style={styles.sectionHeader}>
               <Text style={[styles.sectionTitle, { color: colors.slateDark }]}>{t('dashboard.watchlist')}</Text>
               <View style={styles.badgeRow}>
@@ -206,10 +211,10 @@ export default function DashboardScreen({ navigation }: any) {
           </View>
         ) : (
           <View style={[styles.healthyCard, { backgroundColor: `rgba(74, 144, 226, 0.12)`, borderColor: `rgba(74, 144, 226, 0.3)`, shadowColor: colors.primary }]}>
-            <View style={[styles.healthyIcon, { backgroundColor: 'rgba(255, 255, 255, 0.9)' }]}>
+            <View style={[styles.healthyIcon, { backgroundColor: theme === 'dark' ? 'rgba(26, 38, 56, 0.9)' : 'rgba(255, 255, 255, 0.9)' }]}>
               <Ionicons name="checkmark-circle" size={20} color={colors.primary} />
             </View>
-            <Text style={[styles.healthyText, { color: '#065F46' }]}>{t('dashboard.allHealthy')}</Text>
+            <Text style={[styles.healthyText, { color: theme === 'dark' ? colors.emerald : '#065F46' }]}>{t('dashboard.allHealthy')}</Text>
           </View>
         )}
 
@@ -218,7 +223,7 @@ export default function DashboardScreen({ navigation }: any) {
           {/* ── Profit trend chart ── */}
           {last7Sessions.length > 0 && (
             // @ts-ignore - web-only className
-            <View style={[styles.section, isDesktop && styles.dashboardHalf, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: 'rgba(255, 255, 255, 0.5)' }]} className="glass-card">
+            <View style={[styles.section, isDesktop && styles.dashboardHalf, glass]} className="glass-card">
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { color: colors.slateDark }]}>{t('dashboard.profitPerDay')}</Text>
                 <Text style={[styles.sectionHint, { color: colors.slate }]}>{t('dashboard.last7days')}</Text>
@@ -250,7 +255,7 @@ export default function DashboardScreen({ navigation }: any) {
           {/* ── 3. What's selling? ── */}
           {top5.length > 0 && (
             // @ts-ignore - web-only className
-            <View style={[styles.section, isDesktop && styles.dashboardHalf, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: 'rgba(255, 255, 255, 0.5)' }]} className="glass-card">
+            <View style={[styles.section, isDesktop && styles.dashboardHalf, glass]} className="glass-card">
               <View style={styles.sectionHeader}>
                 <Text style={[styles.sectionTitle, { color: colors.slateDark }]}>{t('dashboard.bestSellers')}</Text>
                 <Text style={[styles.sectionHint, { color: colors.slate }]}>{t('dashboard.last7days')}</Text>
@@ -275,7 +280,7 @@ export default function DashboardScreen({ navigation }: any) {
         </View>
 
         {attention.length === 0 && top5.length === 0 && (
-          <View style={[styles.emptyHint, { backgroundColor: 'rgba(255, 255, 255, 0.85)', borderColor: 'rgba(255, 255, 255, 0.5)' }]}>
+          <View style={[styles.emptyHint, glass]}>
             <Ionicons name="information-circle-outline" size={20} color={colors.slate} />
             <Text style={[styles.emptyHintText, { color: colors.slate }]}>
               {t('dashboard.emptyHint')}

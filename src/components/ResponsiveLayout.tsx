@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react'
 import { View, StyleSheet, Dimensions, Platform } from 'react-native'
-import { useNavigation, NavigationState, useNavigationState } from '@react-navigation/native'
+import { useNavigation, useNavigationState } from '@react-navigation/native'
 import { Sidebar } from './Sidebar'
-import { COLORS } from '../utils/helpers'
+import { useSettings } from '../contexts/SettingsContext'
 import type { TabParamList } from '../../App'
 
 interface ResponsiveLayoutProps {
@@ -11,15 +11,26 @@ interface ResponsiveLayoutProps {
 
 const BREAKPOINT = 768 // Tablet/Desktop breakpoint
 
+const TAB_ROUTES: (keyof TabParamList)[] = ['Dashboard', 'Inventory', 'Session', 'Trends', 'Settings']
+
 export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
   const [windowWidth, setWindowWidth] = useState(Dimensions.get('window').width)
   const navigation = useNavigation()
-  
-  // Get current route name
+  const { colors } = useSettings()
+
+  // The nearest navigator here is the root Stack (this component wraps the Tab
+  // navigator from inside the MainTabs screen), so drill into nested state to
+  // find the focused tab — the stack-level route is always just "MainTabs".
   const currentRoute = useNavigationState((state) => {
-    if (!state) return 'Dashboard'
-    const route = state.routes[state.index]
-    return route.name as keyof TabParamList
+    if (!state) return 'Dashboard' as keyof TabParamList
+    let route: any = state.routes[state.index]
+    while (route?.state?.routes?.length) {
+      // On deep links the nested state can be "stale" (PartialState) with no
+      // index yet — the focused route is then the last one in the list.
+      const nested = route.state
+      route = nested.routes[typeof nested.index === 'number' ? nested.index : nested.routes.length - 1]
+    }
+    return (TAB_ROUTES.includes(route?.name) ? route.name : 'Dashboard') as keyof TabParamList
   })
 
   useEffect(() => {
@@ -42,9 +53,9 @@ export function ResponsiveLayout({ children }: ResponsiveLayoutProps) {
 
   // Desktop view - render with sidebar
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: colors.surface }]}>
       <Sidebar currentRoute={currentRoute} onNavigate={handleNavigate} />
-      <View style={styles.content}>{children}</View>
+      <View style={[styles.content, { backgroundColor: colors.card }]}>{children}</View>
     </View>
   )
 }
@@ -53,7 +64,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: COLORS.surface,
     ...Platform.select({
       web: {
         height: '100vh',
@@ -65,7 +75,6 @@ const styles = StyleSheet.create({
     flex: 1,
     margin: 20,
     marginLeft: 16,
-    backgroundColor: COLORS.white,
     borderRadius: 20,
     overflow: 'auto',
     ...Platform.select({

@@ -119,9 +119,14 @@ export async function restoreSession(): Promise<AppUser | null> {
   if (!user) return null
   const token = await getValidAccessToken()
   if (token === anonKey) {
-    // Token expired and refresh failed → not a valid session.
-    await clearSession()
-    return null
+    // Refresh didn't yield a token. Only end the session if the refresh token
+    // is gone (definitively rejected). A transient failure (offline, edge
+    // function 5xx) keeps the session — the next request retries the refresh.
+    const refreshToken = await getRefreshToken()
+    if (!refreshToken) {
+      await clearSession()
+      return null
+    }
   }
   return user
 }

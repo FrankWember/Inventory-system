@@ -98,17 +98,22 @@ export const setBarInfo = async (info: BarInfo): Promise<void> => {
   }
 }
 
+// Keys that must survive a cache clear and must NEVER leave the device in an
+// export: session tokens (custom auth) and user identity.
+const SENSITIVE_KEYS = [
+  '@bartrack:access_token',
+  '@bartrack:refresh_token',
+  '@bartrack:token_expires_at',
+  '@bartrack:auth_user',
+]
+
 // Cache clearing
 export const clearCache = async (): Promise<void> => {
   try {
     // Clear all non-essential data, keep auth and settings
+    const keep = new Set<string>([...SENSITIVE_KEYS, ...Object.values(KEYS)])
     const allKeys = await AsyncStorage.getAllKeys()
-    const keysToRemove = allKeys.filter(
-      key =>
-        !key.includes('supabase') &&
-        !key.includes('@bartrack:theme') &&
-        !key.includes('@bartrack:language')
-    )
+    const keysToRemove = allKeys.filter(key => !keep.has(key) && !key.includes('supabase'))
     await AsyncStorage.multiRemove(keysToRemove)
   } catch (error) {
     console.error('Error clearing cache:', error)
@@ -136,11 +141,15 @@ export const setOnboardingCompleted = async (): Promise<void> => {
   }
 }
 
-// Data export
+// Data export — never include session tokens or other credentials: a shared
+// export file must not grant access to the account.
 export const exportData = async (): Promise<string> => {
   try {
     const allKeys = await AsyncStorage.getAllKeys()
-    const allData = await AsyncStorage.multiGet(allKeys)
+    const safeKeys = allKeys.filter(
+      key => !SENSITIVE_KEYS.includes(key) && !key.startsWith('sb-') && !key.includes('auth')
+    )
+    const allData = await AsyncStorage.multiGet(safeKeys)
     const dataObject = Object.fromEntries(
       allData.map(([key, value]) => [key, value])
     )
