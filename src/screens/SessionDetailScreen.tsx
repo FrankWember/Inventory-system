@@ -654,7 +654,7 @@ const s = StyleSheet.create({
 
   // print header (only visible when printing via CSS)
   printHeader: { display: 'none', marginBottom: 20 },
-  printTitle: { fontSize: 20, fontFamily: FONT.bold, color: COLORS.slateDark },
+  printTitle: { fontSize: 20, fontFamily: FONT.bold, color: COLORS.primary },
   printDate: { fontSize: 14, fontFamily: FONT.regular, color: COLORS.slate, marginTop: 4 },
   printDivider: { height: 2, backgroundColor: COLORS.primary, marginTop: 12 },
 

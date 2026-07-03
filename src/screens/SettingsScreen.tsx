@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   Platform,
   Switch,
-  Share,
   Modal,
   TextInput,
   ActivityIndicator,
@@ -15,13 +14,12 @@ import {
 import { Ionicons } from '@expo/vector-icons'
 import { ScreenHeader } from '../components/ScreenHeader'
 import { LoadingModal } from '../components/LoadingModal'
-import { FONT, today, fmt, dateLabelLong } from '../utils/helpers'
+import { FONT, fmt, dateLabelLong } from '../utils/helpers'
 import { requestNotificationPermission } from '../utils/notifications'
 import { LIGHT_COLORS } from '../styles/theme'
 import { showAlert } from '../utils/appAlert'
 import { useAuth } from '../contexts/AuthContext'
 import { useSettings } from '../contexts/SettingsContext'
-import { exportData } from '../lib/storage'
 import { supabase } from '../lib/supabase'
 import { usePdfExport } from '../hooks/usePdfExport'
 import { PeriodType } from '../services/pdfService'
@@ -119,28 +117,6 @@ export default function SettingsScreen() {
     }
   }
 
-  const handleExportData = async () => {
-    try {
-      const data = await exportData()
-      if (Platform.OS === 'web') {
-        const blob = new Blob([data])
-        const url = URL.createObjectURL(blob)
-        const a = (global as any).document?.createElement('a')
-        if (a) {
-          a.href = url
-          a.download = `bartrack-export-${today()}.json`
-          a.click()
-          URL.revokeObjectURL(url)
-        }
-        showAlert(t('common.success'), t('settings.exportSuccess'))
-      } else {
-        await Share.share({ message: data, title: t('settings.exportShareTitle') })
-      }
-    } catch {
-      showAlert(t('common.error'), t('settings.exportError'))
-    }
-  }
-
   const handlePdfExport = async (periodType: PeriodType) => {
     if (periodType === 'day') {
       setDateSelectorVisible(true)
@@ -214,21 +190,6 @@ export default function SettingsScreen() {
     setSessionSelectorVisible(false)
     generatePdf('session', sessionId, user?.user_metadata?.display_name || user?.email?.split('@')[0])
   }
-
-  const handleBackupData = async () => {
-    try {
-      const { data: drinks, error } = await supabase.from('drinks').select('id')
-      if (error) throw error
-      showAlert(
-        t('settings.cloudBackupTitle'),
-        t('settings.cloudBackupBody', { count: drinks?.length || 0 }),
-        [{ text: t('common.ok') }]
-      )
-    } catch {
-      showAlert(t('common.error'), t('settings.cloudBackupError'))
-    }
-  }
-
 
   const handleChangePassword = async () => {
     if (!user) return
@@ -472,6 +433,11 @@ export default function SettingsScreen() {
               onValueChange={handleNotificationsToggle}
               trackColor={{ false: colors.border, true: colors.primary }}
               thumbColor={colors.white}
+              // react-native-web ignores the RN trackColor/thumbColor for the ON state
+              // and falls back to its teal defaults — its own web-only props theme it.
+              {...(Platform.OS === 'web'
+                ? ({ activeTrackColor: colors.primary, activeThumbColor: colors.white } as any)
+                : {})}
             />
           </View>
 
@@ -508,19 +474,23 @@ export default function SettingsScreen() {
           </View>
         </SettingsCard>
 
-        {/* Data */}
-        <SectionTitle label={t('settings.sectionData')} colors={colors} />
-        <SettingsCard colors={colors}>
-          <RowItem icon="download-outline" label={t('settings.exportJson')} onPress={handleExportData} colors={colors} />
-          <View style={[styles.separator, { backgroundColor: colors.border }]} />
-          <RowItem icon="cloud-upload-outline" label={t('settings.cloudBackup')} onPress={handleBackupData} colors={colors} />
-        </SettingsCard>
-
         {/* PDF Reports */}
         <SectionTitle label={t('settings.sectionPdf')} colors={colors} />
         <Text style={[styles.sectionDescription, { color: colors.slate }]}>
           {t('settings.pdfDescription')}
         </Text>
+
+        {/* Session-specific report */}
+        <Text style={[styles.subSectionTitle, { color: colors.slateDark }]}>{t('settings.bySession')}</Text>
+        <SettingsCard colors={colors}>
+          <RowItem
+            icon="receipt-outline"
+            label={t('settings.specificSession')}
+            value={t('settings.choose')}
+            onPress={handleSessionSelectorOpen}
+            colors={colors}
+          />
+        </SettingsCard>
 
         {/* Period-based reports */}
         <Text style={[styles.subSectionTitle, { color: colors.slateDark }]}>{t('settings.byPeriod')}</Text>
@@ -550,18 +520,6 @@ export default function SettingsScreen() {
             icon="time-outline"
             label={t('settings.allPeriods')}
             onPress={() => handlePdfExport('all')}
-            colors={colors}
-          />
-        </SettingsCard>
-
-        {/* Session-specific report */}
-        <Text style={[styles.subSectionTitle, { color: colors.slateDark }]}>{t('settings.bySession')}</Text>
-        <SettingsCard colors={colors}>
-          <RowItem
-            icon="receipt-outline"
-            label={t('settings.specificSession')}
-            value={t('settings.choose')}
-            onPress={handleSessionSelectorOpen}
             colors={colors}
           />
         </SettingsCard>

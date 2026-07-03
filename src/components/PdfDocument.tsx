@@ -1,8 +1,22 @@
 import React from 'react'
 import { Document, Page, Text, View, StyleSheet } from '@react-pdf/renderer'
 import { PdfData, calculateSummary, getTopProducts, getCategoryBreakdown, getDailyTrends, getStockMovements, getStockValueSummary } from '../services/pdfService'
-import { fmt, fmtNum, dateLabelLong, fmtShortBare } from '../utils/helpers'
+import { fmt, fmtNum, dateLabelLong, fmtShortBare, getCategoryColor } from '../utils/helpers'
 import { t } from '../i18n'
+
+// Brand palette (light theme — documents print on white paper). Mirrors
+// src/styles/theme.ts so reports look like the app instead of plain black.
+const PDF = {
+  primary: '#1877F2',
+  primarySoft: '#EFF6FF', // light blue tint for highlights/tracks
+  emerald: '#059669',
+  rose: '#E11D48',
+  ink: '#0F172A',
+  slate: '#64748B',
+  slateMid: '#475569',
+  border: '#E2E8F0',
+  surface: '#F8FAFC',
+} as const
 
 interface PdfDocumentProps {
   data: PdfData
@@ -21,17 +35,17 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 24,
     paddingBottom: 16,
-    borderBottom: '2 solid #1E293B',
+    borderBottom: `2 solid ${PDF.primary}`,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    color: '#0F172A',
+    color: PDF.primary,
     marginBottom: 8,
   },
   subtitle: {
     fontSize: 11,
-    color: '#64748B',
+    color: PDF.slate,
     marginBottom: 3,
   },
   section: {
@@ -40,10 +54,12 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 14,
     fontWeight: 'bold',
-    color: '#0F172A',
+    color: PDF.ink,
     marginBottom: 12,
     paddingBottom: 6,
-    borderBottom: '1 solid #E2E8F0',
+    paddingLeft: 8,
+    borderLeft: `3 solid ${PDF.primary}`,
+    borderBottom: `1 solid ${PDF.border}`,
   },
   row: {
     flexDirection: 'row',
@@ -51,64 +67,65 @@ const styles = StyleSheet.create({
     paddingVertical: 5,
   },
   rowHighlight: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: PDF.primarySoft,
     paddingHorizontal: 12,
     paddingVertical: 8,
     marginHorizontal: -12,
     marginVertical: 4,
+    borderRadius: 4,
   },
   label: {
     fontSize: 10,
-    color: '#64748B',
+    color: PDF.slate,
   },
   value: {
     fontSize: 10,
     fontWeight: 'bold',
-    color: '#0F172A',
+    color: PDF.ink,
   },
   valueLarge: {
     fontSize: 16,
     fontWeight: 'bold',
-    color: '#0F172A',
+    color: PDF.ink,
   },
   positive: {
-    color: '#059669',
+    color: PDF.emerald,
   },
   negative: {
-    color: '#0F172A',
+    color: PDF.rose,
   },
   primary: {
-    color: '#0F172A',
+    color: PDF.primary,
   },
   table: {
     marginTop: 8,
   },
   tableHeader: {
     flexDirection: 'row',
-    backgroundColor: '#F8FAFC',
+    backgroundColor: PDF.primarySoft,
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderBottom: '1.5 solid #E2E8F0',
+    borderBottom: `1.5 solid ${PDF.primary}`,
   },
   tableRow: {
     flexDirection: 'row',
     paddingVertical: 8,
     paddingHorizontal: 12,
-    borderBottom: '0.5 solid #E2E8F0',
+    borderBottom: `0.5 solid ${PDF.border}`,
   },
   tableRowEven: {
-    backgroundColor: '#FAFBFC',
+    backgroundColor: PDF.surface,
   },
   th: {
     fontSize: 9,
     fontWeight: 'bold',
-    color: '#475569',
+    color: PDF.primary,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   td: {
     fontSize: 10,
-    color: '#0F172A',
+    color: PDF.ink,
   },
   col1: { width: '40%' },
   col2: { width: '20%', textAlign: 'right' },
@@ -120,18 +137,19 @@ const styles = StyleSheet.create({
     left: 40,
     right: 40,
     fontSize: 9,
-    color: '#64748B',
-    borderTop: '1 solid #E2E8F0',
+    color: PDF.slate,
+    borderTop: `1 solid ${PDF.border}`,
     paddingTop: 10,
     flexDirection: 'row',
     justifyContent: 'space-between',
   },
   divider: {
     height: 1,
-    backgroundColor: '#E2E8F0',
+    backgroundColor: PDF.border,
     marginVertical: 6,
   },
-  // Chart styles
+  // Chart styles — label | full-width track with a coloured fill | right-aligned value.
+  // The track makes bar lengths comparable at a glance (the old floating bars weren't).
   chartContainer: {
     marginTop: 12,
     marginBottom: 12,
@@ -139,34 +157,45 @@ const styles = StyleSheet.create({
   chartBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 6,
   },
   chartLabel: {
-    width: '35%',
+    width: '28%',
     fontSize: 9,
-    color: '#0F172A',
-    paddingRight: 10,
+    color: PDF.ink,
+    paddingRight: 8,
+  },
+  chartTrack: {
+    flexGrow: 1,
+    height: 12,
+    backgroundColor: PDF.primarySoft,
+    borderRadius: 6,
+    overflow: 'hidden',
   },
   chartBarFill: {
-    height: 20,
-    backgroundColor: '#0F172A',
+    height: 12,
+    borderRadius: 6,
+    backgroundColor: PDF.primary,
   },
   chartBarValue: {
-    fontSize: 9,
-    color: '#64748B',
+    width: 112,
+    fontSize: 8,
+    color: PDF.slateMid,
     marginLeft: 8,
+    textAlign: 'right',
     fontWeight: 'normal',
   },
   insightBox: {
-    backgroundColor: '#F8FAFC',
+    backgroundColor: PDF.primarySoft,
     padding: 12,
-    borderLeft: '3 solid #0F172A',
+    borderLeft: `3 solid ${PDF.primary}`,
+    borderRadius: 4,
     marginTop: 8,
     marginBottom: 4,
   },
   insightText: {
     fontSize: 10,
-    color: '#475569',
+    color: PDF.slateMid,
     lineHeight: 1.5,
   },
 })
@@ -387,12 +416,13 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
             <Text style={styles.sectionTitle}>{t('misc.pdfTopProducts')}</Text>
             <View style={styles.chartContainer}>
               {topProducts.map((product, index) => {
-                const barWidthPercent = maxRevenue > 0 ? (product.revenue / maxRevenue) * 65 : 0
-                const barWidth = `${barWidthPercent}%`
+                const pct = maxRevenue > 0 ? Math.max((product.revenue / maxRevenue) * 100, 2) : 0
                 return (
                   <View key={index} style={styles.chartBar}>
                     <Text style={styles.chartLabel}>{product.name}</Text>
-                    <View style={[styles.chartBarFill, { width: barWidth }]} />
+                    <View style={styles.chartTrack}>
+                      <View style={[styles.chartBarFill, { width: `${pct}%` }]} />
+                    </View>
                     <Text style={styles.chartBarValue}>{fmt(product.revenue)}</Text>
                   </View>
                 )
@@ -412,13 +442,16 @@ export function PdfDocument({ data, barName, userName }: PdfDocumentProps) {
             <Text style={styles.sectionTitle}>{t('misc.pdfCategoryBreakdown')}</Text>
             <View style={styles.chartContainer}>
               {categories.map((category, index) => {
-                const barWidthPercent = maxCategoryRevenue > 0 ? (category.revenue / maxCategoryRevenue) * 65 : 0
-                const barWidth = `${barWidthPercent}%`
+                const pct = maxCategoryRevenue > 0 ? Math.max((category.revenue / maxCategoryRevenue) * 100, 2) : 0
+                const share = summary.totalRevenue > 0 ? Math.round((category.revenue / summary.totalRevenue) * 100) : 0
                 return (
                   <View key={index} style={styles.chartBar}>
                     <Text style={styles.chartLabel}>{category.name}</Text>
-                    <View style={[styles.chartBarFill, { width: barWidth }]} />
-                    <Text style={styles.chartBarValue}>{fmt(category.revenue)}</Text>
+                    <View style={styles.chartTrack}>
+                      {/* Same distinct-hue palette as the in-app category chart */}
+                      <View style={[styles.chartBarFill, { width: `${pct}%`, backgroundColor: getCategoryColor(category.name) }]} />
+                    </View>
+                    <Text style={styles.chartBarValue}>{`${share}% · ${fmt(category.revenue)}`}</Text>
                   </View>
                 )
               })}
