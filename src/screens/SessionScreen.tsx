@@ -819,7 +819,7 @@ export default function SessionScreen({ navigation }: any) {
                 </View>
                 <View style={styles.stockTag}>
                   <Text style={styles.stockTagLabel}>{t('session.currentStock')}</Text>
-                  <Text style={styles.stockTagValue}>{formatWithCassiers(drink.stock, drink.category)}</Text>
+                  <Text style={styles.stockTagValue}>{formatWithCassiers(drink.stock, drink.category, getRackSize(drink.id))}</Text>
                 </View>
               </View>
 
@@ -1035,7 +1035,7 @@ export default function SessionScreen({ navigation }: any) {
               <View style={[styles.soldResult, !hasSales && styles.soldResultHidden]}>
                 <View style={styles.soldResultLeft}>
                   <Text style={styles.soldResultLabel}>{t('session.soldLabel')}</Text>
-                  <Text style={styles.soldResultQty}>{formatWithCassiers(sold, drink.category)}</Text>
+                  <Text style={styles.soldResultQty}>{formatWithCassiers(sold, drink.category, getRackSize(drink.id))}</Text>
                 </View>
                 <Text style={styles.soldResultRevenue} numberOfLines={1}>{fmt(sold * drink.price)}</Text>
               </View>

@@ -20,7 +20,7 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { LoadingModal } from '../components/LoadingModal'
 import { useSettings } from '../contexts/SettingsContext'
 import { useTranslation } from '../i18n'
-import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers, formatWithCassiersShort, today } from '../utils/helpers'
+import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers, formatWithCassiersShort, drinkRackSize, today } from '../utils/helpers'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SessionDetail'>
 
@@ -57,6 +57,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
   const [loading, setLoading] = useState(true)
   const [printLoading, setPrintLoading] = useState(false)
   const [drinksCategoryMap, setDrinksCategoryMap] = useState<Record<string, string>>({})
+  const [drinksRackMap, setDrinksRackMap] = useState<Record<string, number>>({})
 
   const fadeAnim = useRef(new Animated.Value(0)).current
   usePrintStyles()
@@ -93,18 +94,23 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
       // entire expenses table on every journal open.
       const [expensesRes, drinksRes] = await Promise.all([
         supabase.from('expenses').select('*').eq('date', sessionData.date).order('created_at'),
-        supabase.from('drinks').select('id, category'),
+        supabase.from('drinks').select('id, category, cassier_quantity, rack_size'),
       ])
       if (expensesRes.error) throw expensesRes.error
 
       const filteredExpenses = expensesRes.data ?? []
 
       const categoryMap: Record<string, string> = {}
-      drinksRes.data?.forEach(d => { categoryMap[d.id] = d.category })
+      const rackMap: Record<string, number> = {}
+      drinksRes.data?.forEach(d => {
+        categoryMap[d.id] = d.category
+        rackMap[d.id] = drinkRackSize(d)
+      })
 
       setSession(sessionData)
       setExpenses(filteredExpenses)
       setDrinksCategoryMap(categoryMap)
+      setDrinksRackMap(rackMap)
 
       Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start()
     } catch (error) {
@@ -312,6 +318,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
                 </View>
                 {saleLines.map((line, i) => {
                   const cat = drinksCategoryMap[line.drink_id] ?? 'Autre'
+                  const rack = drinksRackMap[line.drink_id] ?? 1
                   return (
                     <View key={line.id} style={[s.salesRow, i % 2 === 0 && s.stockRowEven]}>
                       <View style={s.stdSalesArticle}>
@@ -322,7 +329,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
                           →{line.closing_stock}
                         </Text>
                       </View>
-                      <Text style={[s.std, s.stdNum, s.stdAccent]}>{formatWithCassiersShort(line.sold, cat)}</Text>
+                      <Text style={[s.std, s.stdNum, s.stdAccent]}>{formatWithCassiersShort(line.sold, cat, rack)}</Text>
                       <Text style={[s.std, s.stdMoney]} numberOfLines={1}>{fmt(line.revenue)}</Text>
                     </View>
                   )

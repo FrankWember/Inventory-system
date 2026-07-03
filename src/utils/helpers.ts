@@ -125,15 +125,19 @@ export const drinkRackSize = (drink: { cassier_quantity?: number | null; rack_si
   return size >= 1 ? Math.floor(size) : 1
 }
 
-export const formatWithCassiers = (stock: number, category: string, rackSize = 12): string => {
-  if (category !== 'Bière') {
+// Whether to show a crate (cassier) breakdown is decided by the drink's rack size,
+// NOT its category: any drink sold in crates (rackSize > 1) — beer, soda, etc. —
+// gets the "Xc + Yu" format, and only truly single-unit items (rackSize 1) show
+// plain units. The `category` param is kept for call-site compatibility.
+export const formatWithCassiers = (stock: number, category: string, rackSize = 1): string => {
+  if (rackSize <= 1) {
     return getLang() === 'en' ? `${stock} units` : `${stock} unités`
   }
   return cassierLabel(stock, rackSize, false, getLang())
 }
 
-export const formatWithCassiersShort = (stock: number, category: string, rackSize = 12): string => {
-  if (category !== 'Bière') {
+export const formatWithCassiersShort = (stock: number, category: string, rackSize = 1): string => {
+  if (rackSize <= 1) {
     return `${stock}`
   }
   return cassierLabel(stock, rackSize, true, getLang())
