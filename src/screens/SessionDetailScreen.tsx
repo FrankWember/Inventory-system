@@ -224,17 +224,18 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
               horizontal
               showsHorizontalScrollIndicator={true}
               style={s.tableScrollContainer}
+              contentContainerStyle={s.tableScrollContent}
             >
               <View style={s.stockTable}>
                 {/* header */}
                 <View style={s.stockHead}>
-                  <Text style={[s.sth, s.sthArticle]}>{t('settings.colArticle')}</Text>
-                  <Text style={[s.sth, s.sthNum]}>{t('settings.colStart')}</Text>
-                  <Text style={[s.sth, s.sthNum]}>{t('settings.colReceived')}</Text>
-                  <Text style={[s.sth, s.sthNum]}>{t('settings.colAvailable')}</Text>
-                  <Text style={[s.sth, s.sthNum]}>{t('settings.colCounted')}</Text>
-                  <Text style={[s.sth, s.sthNum, { color: COLORS.primary }]}>{t('settings.colSold')}</Text>
-                  <Text style={[s.sth, s.sthMoney]}>{t('settings.colRevenue')}</Text>
+                  <Text style={[s.sth, s.sthArticle]} numberOfLines={1}>{t('settings.colArticle')}</Text>
+                  <Text style={[s.sth, s.sthNum]} numberOfLines={1}>{t('settings.colStart')}</Text>
+                  <Text style={[s.sth, s.sthNum]} numberOfLines={1}>{t('settings.colReceived')}</Text>
+                  <Text style={[s.sth, s.sthNum]} numberOfLines={1}>{t('settings.colAvailable')}</Text>
+                  <Text style={[s.sth, s.sthNum]} numberOfLines={1}>{t('settings.colCounted')}</Text>
+                  <Text style={[s.sth, s.sthNum, { color: COLORS.primary }]} numberOfLines={1}>{t('settings.colSold')}</Text>
+                  <Text style={[s.sth, s.sthMoney]} numberOfLines={1}>{t('settings.colRevenue')}</Text>
                 </View>
 
                 {activeLines.map((line, i) => {
@@ -244,16 +245,16 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
                   return (
                     <View key={line.id} style={[s.stockRow, isEven && s.stockRowEven]}>
                       <Text style={[s.std, s.stdArticle]} numberOfLines={1}>{line.drink_name}</Text>
-                      <Text style={[s.std, s.stdNum]}>{fmtNum(line.opening_stock)}</Text>
-                      <Text style={[s.std, s.stdNum, line.purchased > 0 && s.stdPos]}>
+                      <Text style={[s.std, s.stdNum]} numberOfLines={1}>{fmtNum(line.opening_stock)}</Text>
+                      <Text style={[s.std, s.stdNum, line.purchased > 0 && s.stdPos]} numberOfLines={1}>
                         {line.purchased > 0 ? `+${fmtNum(line.purchased)}` : '—'}
                       </Text>
-                      <Text style={[s.std, s.stdNum]}>{fmtNum(available)}</Text>
-                      <Text style={[s.std, s.stdNum]}>{fmtNum(line.closing_stock)}</Text>
-                      <Text style={[s.std, s.stdNum, line.sold > 0 && s.stdAccent]}>
+                      <Text style={[s.std, s.stdNum]} numberOfLines={1}>{fmtNum(available)}</Text>
+                      <Text style={[s.std, s.stdNum]} numberOfLines={1}>{fmtNum(line.closing_stock)}</Text>
+                      <Text style={[s.std, s.stdNum, line.sold > 0 && s.stdAccent]} numberOfLines={1}>
                         {line.sold > 0 ? fmtNum(line.sold) : '—'}
                       </Text>
-                      <Text style={[s.std, s.stdMoney]}>
+                      <Text style={[s.std, s.stdMoney]} numberOfLines={1}>
                         {line.sold > 0 ? fmt(line.revenue) : '—'}
                       </Text>
                     </View>
@@ -262,15 +263,15 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
 
                 {/* totals row */}
                 <View style={s.stockTotalRow}>
-                  <Text style={[s.stTotal, s.stdArticle]}>{t('settings.total')}</Text>
-                  <Text style={[s.stTotal, s.stdNum]}>—</Text>
-                  <Text style={[s.stTotal, s.stdNum, s.stdPos]}>
+                  <Text style={[s.stTotal, s.stdArticle]} numberOfLines={1}>{t('settings.total')}</Text>
+                  <Text style={[s.stTotal, s.stdNum]} numberOfLines={1}>—</Text>
+                  <Text style={[s.stTotal, s.stdNum, s.stdPos]} numberOfLines={1}>
                     {totalPurchased > 0 ? `+${fmtNum(totalPurchased)}` : '—'}
                   </Text>
-                  <Text style={[s.stTotal, s.stdNum]}>—</Text>
-                  <Text style={[s.stTotal, s.stdNum]}>—</Text>
-                  <Text style={[s.stTotal, s.stdNum, s.stdAccent]}>{fmtNum(totalUnits)}</Text>
-                  <Text style={[s.stTotal, s.stdMoney, { color: COLORS.primary }]}>{fmt(session.total_revenue)}</Text>
+                  <Text style={[s.stTotal, s.stdNum]} numberOfLines={1}>—</Text>
+                  <Text style={[s.stTotal, s.stdNum]} numberOfLines={1}>—</Text>
+                  <Text style={[s.stTotal, s.stdNum, s.stdAccent]} numberOfLines={1}>{fmtNum(totalUnits)}</Text>
+                  <Text style={[s.stTotal, s.stdMoney, { color: COLORS.primary }]} numberOfLines={1}>{fmt(session.total_revenue)}</Text>
                 </View>
               </View>
             </ScrollView>
@@ -687,6 +688,11 @@ const s = StyleSheet.create({
       } as any,
     }),
   },
+  // Let the scroll content fill the container on web so the flex columns stretch to
+  // the full width instead of forcing a fixed 900px width that overflows narrow panels.
+  tableScrollContent: {
+    ...Platform.select({ web: { flexGrow: 1, width: '100%' } }),
+  },
 
   simpleTableWrapper: {
     width: '100%',
@@ -700,7 +706,8 @@ const s = StyleSheet.create({
     borderRadius: 10,
     overflow: 'hidden',
     minWidth: '100%',
-    ...Platform.select({ web: { minWidth: 900 } }),
+    // On web fill the container (flex columns compress to fit) rather than a fixed 900px.
+    ...Platform.select({ web: { width: '100%', minWidth: 0 } }),
   },
   stockHead: {
     flexDirection: 'row',
@@ -715,21 +722,21 @@ const s = StyleSheet.create({
     flex: 2,
     minWidth: 120,
     paddingRight: 12,
-    ...Platform.select({ web: { flex: 2 } }),
+    ...Platform.select({ web: { flex: 2, minWidth: 88 } }),
   },
   sthNum: {
     flex: 1,
     minWidth: 60,
     textAlign: 'right',
     paddingHorizontal: 6,
-    ...Platform.select({ web: { flex: 1 } }),
+    ...Platform.select({ web: { flex: 1, minWidth: 42 } }),
   },
   sthMoney: {
     flex: 1.5,
     minWidth: 90,
     textAlign: 'right',
     paddingHorizontal: 6,
-    ...Platform.select({ web: { flex: 1.5 } }),
+    ...Platform.select({ web: { flex: 2, minWidth: 82, paddingLeft: 2 } }),
   },
   sthSalesArticle: { flex: 1, minWidth: 140, paddingRight: 12 },
   stockRow: { flexDirection: 'row', paddingVertical: 10, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: COLORS.border, alignItems: 'center' },
@@ -739,7 +746,7 @@ const s = StyleSheet.create({
     flex: 2,
     minWidth: 120,
     paddingRight: 12,
-    ...Platform.select({ web: { flex: 2 } }),
+    ...Platform.select({ web: { flex: 2, minWidth: 88 } }),
   },
   stdNum: {
     flex: 1,
@@ -748,7 +755,7 @@ const s = StyleSheet.create({
     fontFamily: FONT.semibold,
     fontVariant: ['tabular-nums'],
     paddingHorizontal: 6,
-    ...Platform.select({ web: { flex: 1 } }),
+    ...Platform.select({ web: { flex: 1, minWidth: 42 } }),
   },
   stdMoney: {
     flex: 1.5,
@@ -759,7 +766,7 @@ const s = StyleSheet.create({
     fontVariant: ['tabular-nums'],
     fontSize: 11,
     paddingHorizontal: 6,
-    ...Platform.select({ web: { flex: 1.5 } }),
+    ...Platform.select({ web: { flex: 2, minWidth: 82, fontSize: 10, paddingLeft: 2 } }),
   },
   stdSalesArticle: { flex: 1, minWidth: 140, paddingRight: 12 },
   stdPos: { color: COLORS.primary },

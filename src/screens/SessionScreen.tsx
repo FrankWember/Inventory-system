@@ -353,6 +353,10 @@ export default function SessionScreen({ navigation }: any) {
   const [barInfo, setBarInfo] = useState<{ name: string } | null>(null)
   const [userName, setUserName] = useState<string>('')
 
+  // Purchases list: when an item first receives a delivery it is promoted to the top
+  // group. We keep a ref to the scroll view so focus can follow it there (see onChange).
+  const purchasesScrollRef = useRef<ScrollView>(null)
+
   const categories: Array<Category | 'Tout'> = ['Tout', 'Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre']
   const todayStr = today()
   const isDesktop = Platform.OS === 'web' && windowWidth >= BREAKPOINT
@@ -797,7 +801,7 @@ export default function SessionScreen({ navigation }: any) {
         ))}
       </ScrollView>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={styles.listContent} keyboardShouldPersistTaps="handled">
+      <ScrollView ref={purchasesScrollRef} style={{ flex: 1 }} contentContainerStyle={styles.listContent} keyboardShouldPersistTaps="handled">
         {purchasedDrinks.length > 0 && (
           <Text style={styles.groupLabel}>{t('session.deliveriesEntered', { count: purchasedDrinks.length })}</Text>
         )}
@@ -834,7 +838,16 @@ export default function SessionScreen({ navigation }: any) {
                 </View>
                 <MiniStepper
                   value={racksVal}
-                  onChange={v => setPurchases(prev => ({ ...prev, [drink.id]: toUnits(v, drink.id) }))}
+                  onChange={v => {
+                    const units = toUnits(v, drink.id)
+                    const wasEmpty = (purchases[drink.id] ?? 0) === 0
+                    setPurchases(prev => ({ ...prev, [drink.id]: units }))
+                    // Item just moved into the top "delivered" group — scroll there so the
+                    // user's focus follows it instead of losing their place in the list.
+                    if (wasEmpty && units > 0) {
+                      requestAnimationFrame(() => purchasesScrollRef.current?.scrollTo({ y: 0, animated: true }))
+                    }
+                  }}
                   colors={colors}
                 />
               </View>
@@ -1116,13 +1129,13 @@ export default function SessionScreen({ navigation }: any) {
               <View style={styles.tableWrapper}>
                 {/* Table header */}
                 <View style={styles.tableHead}>
-                  <Text style={[styles.th, styles.thArticle]}>{t('session.thArticle')}</Text>
-                  <Text style={[styles.th, styles.thNum]}>{t('session.thStart')}</Text>
-                  <Text style={[styles.th, styles.thNum]}>{t('session.thReceived')}</Text>
-                  <Text style={[styles.th, styles.thNum]}>{t('session.thAvailable')}</Text>
-                  <Text style={[styles.th, styles.thNum]}>{t('session.thCounted')}</Text>
-                  <Text style={[styles.th, styles.thNum, styles.thAccent]}>{t('session.soldLabel')}</Text>
-                  <Text style={[styles.th, styles.thMoney]}>Revenu</Text>
+                  <Text style={[styles.th, styles.thArticle]} numberOfLines={1}>{t('session.thArticle')}</Text>
+                  <Text style={[styles.th, styles.thNum]} numberOfLines={1}>{t('session.thStart')}</Text>
+                  <Text style={[styles.th, styles.thNum]} numberOfLines={1}>{t('session.thReceived')}</Text>
+                  <Text style={[styles.th, styles.thNum]} numberOfLines={1}>{t('session.thAvailable')}</Text>
+                  <Text style={[styles.th, styles.thNum]} numberOfLines={1}>{t('session.thCounted')}</Text>
+                  <Text style={[styles.th, styles.thNum, styles.thAccent]} numberOfLines={1}>{t('session.soldLabel')}</Text>
+                  <Text style={[styles.th, styles.thMoney]} numberOfLines={1}>Revenu</Text>
                 </View>
 
                 {activeDrinks.map((drink, i) => {
@@ -1134,29 +1147,29 @@ export default function SessionScreen({ navigation }: any) {
                   return (
                     <View key={drink.id} style={[styles.tableRow, i % 2 === 0 && styles.tableRowEven]}>
                       <Text style={[styles.td, styles.tdArticle]} numberOfLines={1}>{drink.name}</Text>
-                      <Text style={[styles.td, styles.tdNum]}>{fmtNum(opening)}</Text>
-                      <Text style={[styles.td, styles.tdNum, purchased > 0 && styles.tdPositive]}>
+                      <Text style={[styles.td, styles.tdNum]} numberOfLines={1}>{fmtNum(opening)}</Text>
+                      <Text style={[styles.td, styles.tdNum, purchased > 0 && styles.tdPositive]} numberOfLines={1}>
                         {purchased > 0 ? `+${fmtNum(purchased)}` : '—'}
                       </Text>
-                      <Text style={[styles.td, styles.tdNum]}>{fmtNum(expected)}</Text>
-                      <Text style={[styles.td, styles.tdNum]}>{fmtNum(closing)}</Text>
-                      <Text style={[styles.td, styles.tdNum, sold > 0 && styles.tdAccent]}>{fmtNum(sold)}</Text>
-                      <Text style={[styles.td, styles.tdMoney]}>{sold > 0 ? fmt(sold * drink.price) : '—'}</Text>
+                      <Text style={[styles.td, styles.tdNum]} numberOfLines={1}>{fmtNum(expected)}</Text>
+                      <Text style={[styles.td, styles.tdNum]} numberOfLines={1}>{fmtNum(closing)}</Text>
+                      <Text style={[styles.td, styles.tdNum, sold > 0 && styles.tdAccent]} numberOfLines={1}>{fmtNum(sold)}</Text>
+                      <Text style={[styles.td, styles.tdMoney]} numberOfLines={1}>{sold > 0 ? fmt(sold * drink.price) : '—'}</Text>
                     </View>
                   )
                 })}
 
                 {/* Total row */}
                 <View style={styles.tableTotalRow}>
-                  <Text style={[styles.tdTotal, styles.tdArticle]}>{t('session.thTotal')}</Text>
-                  <Text style={[styles.tdTotal, styles.tdNum]}>—</Text>
-                  <Text style={[styles.tdTotal, styles.tdNum, styles.tdPositive]}>
+                  <Text style={[styles.tdTotal, styles.tdArticle]} numberOfLines={1}>{t('session.thTotal')}</Text>
+                  <Text style={[styles.tdTotal, styles.tdNum]} numberOfLines={1}>—</Text>
+                  <Text style={[styles.tdTotal, styles.tdNum, styles.tdPositive]} numberOfLines={1}>
                     {totalPurchasedUnits > 0 ? `+${fmtNum(totalPurchasedUnits)}` : '—'}
                   </Text>
-                  <Text style={[styles.tdTotal, styles.tdNum]}>—</Text>
-                  <Text style={[styles.tdTotal, styles.tdNum]}>—</Text>
-                  <Text style={[styles.tdTotal, styles.tdNum, styles.tdAccent]}>{fmtNum(totalSold)}</Text>
-                  <Text style={[styles.tdTotal, styles.tdMoney, { color: colors.primary }]}>{fmt(totalRevenue)}</Text>
+                  <Text style={[styles.tdTotal, styles.tdNum]} numberOfLines={1}>—</Text>
+                  <Text style={[styles.tdTotal, styles.tdNum]} numberOfLines={1}>—</Text>
+                  <Text style={[styles.tdTotal, styles.tdNum, styles.tdAccent]} numberOfLines={1}>{fmtNum(totalSold)}</Text>
+                  <Text style={[styles.tdTotal, styles.tdMoney, { color: colors.primary }]} numberOfLines={1}>{fmt(totalRevenue)}</Text>
                 </View>
               </View>
             </ScrollView>
@@ -1862,9 +1875,13 @@ const makeStyles = (colors: typeof LIGHT_COLORS) => StyleSheet.create({
   },
   tableScrollContent: {
     paddingHorizontal: 0,
+    // On web let the scroll content fill the card so the flex columns stretch to the
+    // full container width instead of shrinking to their content (which left a big gap).
+    ...Platform.select({ web: { flexGrow: 1, width: '100%' } }),
   },
   tableWrapper: {
     minWidth: '100%',
+    ...Platform.select({ web: { width: '100%' } }),
   },
 
   // Print section styles
@@ -1898,16 +1915,18 @@ const makeStyles = (colors: typeof LIGHT_COLORS) => StyleSheet.create({
     borderBottomColor: colors.border,
   },
   th: { fontSize: 9, fontFamily: FONT.bold, color: colors.slate, textTransform: 'uppercase', letterSpacing: 0.3 },
-  thArticle: { width: 120, minWidth: 120, paddingRight: 12 },
-  thNum: { width: 50, minWidth: 50, textAlign: 'right', paddingHorizontal: 6 },
-  thMoney: { width: 70, minWidth: 70, textAlign: 'right', paddingHorizontal: 6 },
+  // On web the columns flex to fill the container (no right-side gap); on native they keep
+  // fixed widths so the table can scroll horizontally on narrow phones.
+  thArticle: { paddingRight: 12, ...Platform.select({ web: { flexGrow: 2.2, flexShrink: 1, flexBasis: 0, minWidth: 110 }, default: { width: 120, minWidth: 120 } }) },
+  thNum: { textAlign: 'right', paddingHorizontal: 6, ...Platform.select({ web: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 52 }, default: { width: 50, minWidth: 50 } }) },
+  thMoney: { textAlign: 'right', paddingHorizontal: 6, ...Platform.select({ web: { flexGrow: 1.5, flexShrink: 1, flexBasis: 0, minWidth: 90 }, default: { width: 70, minWidth: 70 } }) },
   thAccent: { color: colors.primary },
   tableRow: { flexDirection: 'row', paddingVertical: 8, paddingHorizontal: 10, borderBottomWidth: 1, borderBottomColor: colors.border, alignItems: 'center' },
   tableRowEven: { backgroundColor: colors.surface + '60' },
   td: { fontSize: 11, fontFamily: FONT.medium, color: colors.slateDark },
-  tdArticle: { width: 120, minWidth: 120, paddingRight: 12 },
-  tdNum: { width: 50, minWidth: 50, textAlign: 'right', fontFamily: FONT.semibold, fontVariant: ['tabular-nums'], paddingHorizontal: 6 },
-  tdMoney: { width: 70, minWidth: 70, textAlign: 'right', fontFamily: FONT.bold, color: colors.primary, fontVariant: ['tabular-nums'], fontSize: 10, paddingHorizontal: 6 },
+  tdArticle: { paddingRight: 12, ...Platform.select({ web: { flexGrow: 2.2, flexShrink: 1, flexBasis: 0, minWidth: 110 }, default: { width: 120, minWidth: 120 } }) },
+  tdNum: { textAlign: 'right', fontFamily: FONT.semibold, fontVariant: ['tabular-nums'], paddingHorizontal: 6, ...Platform.select({ web: { flexGrow: 1, flexShrink: 1, flexBasis: 0, minWidth: 52 }, default: { width: 50, minWidth: 50 } }) },
+  tdMoney: { textAlign: 'right', fontFamily: FONT.bold, color: colors.primary, fontVariant: ['tabular-nums'], fontSize: 10, paddingHorizontal: 6, ...Platform.select({ web: { flexGrow: 1.5, flexShrink: 1, flexBasis: 0, minWidth: 90 }, default: { width: 70, minWidth: 70 } }) },
   tdPositive: { color: colors.primary },
   tdAccent: { color: colors.primary },
   tableTotalRow: {
