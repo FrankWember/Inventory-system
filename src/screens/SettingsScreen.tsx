@@ -462,7 +462,10 @@ export default function SettingsScreen() {
               <View style={styles.iconBox}>
                 <Ionicons name="notifications-outline" size={19} color={colors.primary} />
               </View>
-              <Text style={[styles.rowLabel, { color: colors.slateDark }]}>{t('settings.notifications')}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.rowLabel, { color: colors.slateDark, flex: 0 }]}>{t('settings.notifications')}</Text>
+                <Text style={[styles.rowSubLabel, { color: colors.slate }]}>{t('settings.notifSubtitle')}</Text>
+              </View>
             </View>
             <Switch
               value={notificationsEnabled}
@@ -471,24 +474,6 @@ export default function SettingsScreen() {
               thumbColor={colors.white}
             />
           </View>
-
-          {notificationsSupported() && (
-            <TouchableOpacity
-              style={[styles.notifButton, { backgroundColor: colors.primary + 'F0' }, sendingNotif && { opacity: 0.7 }]}
-              onPress={sendBusinessUpdate}
-              disabled={sendingNotif}
-              activeOpacity={0.85}
-            >
-              {sendingNotif ? (
-                <ActivityIndicator size="small" color={colors.white} />
-              ) : (
-                <Ionicons name="paper-plane-outline" size={16} color={colors.white} />
-              )}
-              <Text style={[styles.notifButtonText, { color: colors.white }]}>
-                {sendingNotif ? t('settings.notifSending') : t('settings.notifSendNow')}
-              </Text>
-            </TouchableOpacity>
-          )}
 
           <View style={[styles.separator, { backgroundColor: colors.border }]} />
 
@@ -816,37 +801,7 @@ const styles = StyleSheet.create({
   },
   segBtnText: { fontSize: 12, fontFamily: FONT.semibold },
   segBtnTextActive: {},
-  notifButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    marginTop: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    // Native depth (RNW ignores shadow* on web, so the glassy look below is web-only).
-    shadowColor: '#1877F2',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.3,
-    shadowRadius: 12,
-    elevation: 4,
-    // Apple "liquid glass": frosted backdrop + specular top highlight + soft coloured
-    // glow. Applied inline because RNW does not forward the .glass-* className to the DOM.
-    ...Platform.select({
-      web: {
-        cursor: 'pointer',
-        backdropFilter: 'blur(20px) saturate(180%)',
-        WebkitBackdropFilter: 'blur(20px) saturate(180%)',
-        borderWidth: 1,
-        borderColor: 'rgba(255,255,255,0.28)',
-        boxShadow:
-          '0 8px 28px rgba(24,119,242,0.36), inset 0 1px 0 rgba(255,255,255,0.5), inset 0 -1px 0 rgba(0,0,0,0.14)',
-        transition: 'transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease',
-      } as any,
-    }),
-  },
-  notifButtonText: { fontSize: 14, fontFamily: FONT.semibold, letterSpacing: 0.2 },
+  rowSubLabel: { fontSize: 12, fontFamily: FONT.regular, marginTop: 2 },
 
   // About row
   aboutRow: {

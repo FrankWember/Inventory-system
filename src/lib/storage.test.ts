@@ -88,10 +88,16 @@ test('setLanguage: can switch between languages', async () => {
 })
 
 // ─── Notifications Tests ──────────────────────────────────────────────────
-test('getNotificationsEnabled: returns false by default', async () => {
+test('getNotificationsEnabled: returns true by default (opt-out engagement)', async () => {
   await mockAsyncStorage.clear()
   const enabled = await getNotificationsEnabled()
-  assert.equal(enabled, false)
+  assert.equal(enabled, true)
+})
+
+test('getNotificationsEnabled: explicit false stays false', async () => {
+  await mockAsyncStorage.clear()
+  await setNotificationsEnabled(false)
+  assert.equal(await getNotificationsEnabled(), false)
 })
 
 test('setNotificationsEnabled: saves notification preference', async () => {
