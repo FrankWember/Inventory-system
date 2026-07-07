@@ -659,6 +659,23 @@ export default function SessionScreen({ navigation }: any) {
    */
   const netProfit = grossProfit - totalExpenses
 
+  /**
+   * Cost of Goods Sold — the cost of only the units actually SOLD today
+   * (as opposed to totalPurchaseCost, which is what was restocked). Valued the
+   * same crate-aware way as purchases so the margin lines up with the app's costing.
+   * Formula: COGS = Σ purchaseCost(Sold Units, unit/crate cost)
+   */
+  const costOfGoodsSold = drinks.reduce((s, d) => s + drinkPurchaseCost(getSold(d.id), d), 0)
+
+  /**
+   * Sales Benefit (bénéfice sur ventes) — the profit made on the day's sales,
+   * i.e. what was earned on the drinks that actually left the shelf. This is NOT
+   * the same as netProfit (revenue − purchases − expenses): it ignores restocking
+   * that hasn't sold yet and ignores operating expenses.
+   * Formula: Sales Benefit = Sales Revenue − Cost of Goods Sold
+   */
+  const salesBenefit = totalRevenue - costOfGoodsSold
+
   const openJournal = (session: Session) => {
     if (isDesktop) setSelectedSessionId(session.id)
     else navigation.navigate('SessionDetail', { sessionId: session.id })
@@ -1230,6 +1247,9 @@ export default function SessionScreen({ navigation }: any) {
           <Text style={styles.sectionTitle}>{t('session.incomeStatement')}</Text>
           <PLRow label={t('session.salesRevenue')} value={fmt(totalRevenue)} colors={colors} />
           <PLRow label={t('session.unitsSold')} value={fmtNum(totalSold)} muted colors={colors} />
+          <PLRow label={t('session.costOfGoodsSold')} value={`-${fmt(costOfGoodsSold)}`} negative muted colors={colors} />
+          <PLRow label={t('session.salesBenefit')} value={fmt(salesBenefit)} highlight accent={salesBenefit >= 0 ? colors.emerald : colors.rose} colors={colors} />
+          <View style={[styles.plDivider, { backgroundColor: colors.border }]} />
           <PLRow label={t('session.purchaseCost')} value={`-${fmt(totalPurchaseCost)}`} negative colors={colors} />
           <View style={[styles.plDivider, { backgroundColor: colors.border }]} />
           <PLRow label={t('session.grossMargin')} value={fmt(grossProfit)} highlight accent={grossProfit >= 0 ? colors.primary : colors.rose} colors={colors} />
