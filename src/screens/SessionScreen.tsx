@@ -34,6 +34,7 @@ import {
   drinkPurchaseCost,
 } from '../utils/helpers'
 import { LIGHT_COLORS } from '../styles/theme'
+import { saveSessionDraft, loadSessionDraft, clearSessionDraft } from '../utils/sessionDraft'
 import { showAlert } from '../utils/appAlert'
 import { useTranslation } from '../i18n'
 import { useSettings } from '../contexts/SettingsContext'
@@ -408,6 +409,80 @@ export default function SessionScreen({ navigation }: any) {
     }
   }
 
+  // Rebuild the wizard maps from a session's saved lines.
+  const linesToState = (session: Session) => {
+    const lines: Record<string, LineState> = {}
+    const purchasesMap: Record<string, number> = {}
+    const closingMap: Record<string, number> = {}
+    for (const line of session.session_lines ?? []) {
+      lines[line.drink_id] = { openingStock: line.opening_stock, purchased: line.purchased, closingStock: line.closing_stock }
+      purchasesMap[line.drink_id] = line.purchased
+      closingMap[line.drink_id] = line.closing_stock
+    }
+    return { lines, purchasesMap, closingMap }
+  }
+
+  // Resume the wizard where the user left it (survives refresh, tab switches
+  // and app restarts). The freshly fetched session is the base; the draft
+  // overlays the local edits that were never written to the DB.
+  const restoreDraft = async (todaySessions: { closed: Session | null; open: Session | null }): Promise<boolean> => {
+    const draft = await loadSessionDraft()
+    if (!draft) return false
+
+    let session: Session | null = null
+    if (draft.sessionId) {
+      const { data } = await supabase
+        .from('sessions').select('*, session_lines (*)')
+        .eq('id', draft.sessionId).maybeSingle()
+      session = data ?? null
+    } else if (draft.sessionDate === todayStr) {
+      session = todaySessions.open
+    } else {
+      const { data } = await supabase
+        .from('sessions').select('*, session_lines (*)')
+        .eq('date', draft.sessionDate).eq('closed', false)
+        .order('created_at', { ascending: false }).limit(1)
+      session = data?.[0] ?? null
+    }
+
+    if (session?.closed) {
+      // Closed after the draft was written (e.g. from another device) — stale.
+      await clearSessionDraft()
+      return false
+    }
+
+    if (session) {
+      const { lines, purchasesMap, closingMap } = linesToState(session)
+      setLineStates(lines)
+      setPurchases({ ...purchasesMap, ...draft.purchases })
+      setClosingCounts({ ...closingMap, ...draft.closingCounts })
+      setOpenSession(session)
+      setSessionDate(session.date)
+      setSelectedDate(session.date)
+      if (session.date !== todayStr) setTodayExpenses(await loadExpensesForDate(session.date))
+      setStep(draft.step)
+      return true
+    }
+
+    // No session row yet: the user was still entering deliveries. Don't
+    // resurrect the draft if that date got a closed session in the meantime.
+    const closedForDate = draft.sessionDate === todayStr
+      ? todaySessions.closed
+      : (await loadDataForDate(draft.sessionDate)).closed
+    if (closedForDate) {
+      await clearSessionDraft()
+      return false
+    }
+    setLineStates({})
+    setPurchases(draft.purchases)
+    setClosingCounts(draft.closingCounts)
+    setSessionDate(draft.sessionDate)
+    setSelectedDate(draft.sessionDate)
+    if (draft.sessionDate !== todayStr) setTodayExpenses(await loadExpensesForDate(draft.sessionDate))
+    setStep('purchases')
+    return true
+  }
+
   const loadData = useCallback(async () => {
     try {
       // Load bar info and user name for PDF export
@@ -432,26 +507,22 @@ export default function SessionScreen({ navigation }: any) {
       setClosedToday(closed)
       setOpenSession(open)
 
-      if (closed && !open) {
-        setStep('done')
-      } else if (open?.session_lines?.length) {
-        const lines: Record<string, LineState> = {}
-        const purchasesMap: Record<string, number> = {}
-        const closingMap: Record<string, number> = {}
-        for (const line of open.session_lines) {
-          lines[line.drink_id] = { openingStock: line.opening_stock, purchased: line.purchased, closingStock: line.closing_stock }
-          purchasesMap[line.drink_id] = line.purchased
-          closingMap[line.drink_id] = line.closing_stock
+      const restored = await restoreDraft({ closed, open })
+      if (!restored) {
+        if (closed && !open) {
+          setStep('done')
+        } else if (open?.session_lines?.length) {
+          const { lines, purchasesMap, closingMap } = linesToState(open)
+          setLineStates(lines)
+          setPurchases(purchasesMap)
+          setClosingCounts(closingMap)
+          setStep(prev => (prev === 'summary' || prev === 'inventory' || prev === 'expenses' ? prev : 'inventory'))
+        } else if (!open && !closed) {
+          setStep('purchases')
+          setPurchases({})
+          setClosingCounts({})
+          setLineStates({})
         }
-        setLineStates(lines)
-        setPurchases(purchasesMap)
-        setClosingCounts(closingMap)
-        setStep(prev => (prev === 'summary' || prev === 'inventory' || prev === 'expenses' ? prev : 'inventory'))
-      } else if (!open && !closed) {
-        setStep('purchases')
-        setPurchases({})
-        setClosingCounts({})
-        setLineStates({})
       }
 
       const { data: history } = await supabase
@@ -469,6 +540,32 @@ export default function SessionScreen({ navigation }: any) {
   }, [todayStr])
 
   useEffect(() => { loadData() }, [loadData])
+
+  // Snapshot the wizard after every edit so refresh/remount resumes it.
+  // Skipped while loading (initial restore hasn't run yet) and on the landing
+  // step ('done' means nothing is in progress from this screen's viewpoint).
+  useEffect(() => {
+    if (loading || step === 'done') return
+    const hasLocalEdits =
+      Object.values(purchases).some(v => v > 0) || Object.keys(closingCounts).length > 0
+    if (!openSession && !hasLocalEdits) {
+      // An untouched wizard (the default view on a day with no session) must
+      // not hijack a later visit — drop any leftover draft instead.
+      clearSessionDraft()
+      return
+    }
+    const timer = setTimeout(() => {
+      saveSessionDraft({
+        sessionId: openSession?.id ?? null,
+        sessionDate,
+        step,
+        purchases,
+        closingCounts,
+        updatedAt: Date.now(),
+      })
+    }, 250)
+    return () => clearTimeout(timer)
+  }, [loading, step, purchases, closingCounts, openSession, sessionDate])
 
   useEffect(() => {
     const sub = Dimensions.addEventListener('change', ({ window }) => setWindowWidth(window.width))
@@ -586,22 +683,39 @@ export default function SessionScreen({ navigation }: any) {
       if (openSession) {
         const ops: any[] = []
         const nextLines: Record<string, LineState> = { ...lineStates }
+        const nextClosing: Record<string, number> = { ...closingCounts }
         for (const drink of drinks) {
           const newPurchased = purchases[drink.id] ?? 0
           const oldLine = lineStates[drink.id]
           const oldPurchased = oldLine?.purchased ?? 0
           const opening = oldLine?.openingStock ?? drink.stock - oldPurchased
           const delta = newPurchased - oldPurchased
-          const expected = opening + newPurchased
-          ops.push(
-            supabase.from('session_lines').update({ purchased: newPurchased, closing_stock: expected, cost: drinkPurchaseCost(newPurchased, drink) })
-              .eq('session_id', openSession.id).eq('drink_id', drink.id)
-          )
+          // Preserve any inventory count already entered: shift it by the
+          // purchase delta instead of resetting it to opening + purchased.
+          const oldClosing = closingCounts[drink.id] ?? oldLine?.closingStock ?? opening + oldPurchased
+          const closing = Math.max(0, oldClosing + delta)
+          if (oldLine) {
+            ops.push(
+              supabase.from('session_lines').update({ purchased: newPurchased, closing_stock: closing, cost: drinkPurchaseCost(newPurchased, drink) })
+                .eq('session_id', openSession.id).eq('drink_id', drink.id)
+            )
+          } else {
+            // Drink created after the session started — it has no line yet and
+            // update() would silently match nothing.
+            ops.push(
+              supabase.from('session_lines').insert({
+                user_id: user.id, session_id: openSession.id, drink_id: drink.id, drink_name: drink.name,
+                opening_stock: opening, purchased: newPurchased, sold: 0, closing_stock: closing, revenue: 0, cost: drinkPurchaseCost(newPurchased, drink),
+              })
+            )
+          }
           if (delta !== 0) ops.push(supabase.from('drinks').update({ stock: drink.stock + delta }).eq('id', drink.id))
-          nextLines[drink.id] = { openingStock: opening, purchased: newPurchased, closingStock: expected }
+          nextLines[drink.id] = { openingStock: opening, purchased: newPurchased, closingStock: closing }
+          nextClosing[drink.id] = closing
         }
         throwOnError(await Promise.all(ops))
         setLineStates(nextLines)
+        setClosingCounts(nextClosing)
         setStep('expenses')
         await reloadDrinks()
         return
@@ -685,6 +799,7 @@ export default function SessionScreen({ navigation }: any) {
           .eq('id', openSession.id)
       )
       throwOnError(await Promise.all(ops))
+      await clearSessionDraft()
       setSessionDate(todayStr)
       await loadData()
       const { data } = await supabase.from('sessions').select('*, session_lines (*)').eq('id', openSession.id).single()
@@ -712,14 +827,7 @@ export default function SessionScreen({ navigation }: any) {
           // Hydrate the wizard from the reopened session's lines — loadData()
           // only rebuilds state for today's session, and this one can belong
           // to any calendar date.
-          const lines: Record<string, LineState> = {}
-          const purchasesMap: Record<string, number> = {}
-          const closingMap: Record<string, number> = {}
-          for (const l of session.session_lines ?? []) {
-            lines[l.drink_id] = { openingStock: l.opening_stock, purchased: l.purchased, closingStock: l.closing_stock }
-            purchasesMap[l.drink_id] = l.purchased
-            closingMap[l.drink_id] = l.closing_stock
-          }
+          const { lines, purchasesMap, closingMap } = linesToState(session)
           setLineStates(lines)
           setPurchases(purchasesMap)
           setClosingCounts(closingMap)
@@ -811,6 +919,9 @@ export default function SessionScreen({ navigation }: any) {
           const racksVal = toRacks(purchases[drink.id] ?? 0, drink.id)
           const unitsVal = purchases[drink.id] ?? 0
           const hasDelivery = unitsVal > 0
+          // Once purchases are saved, drink.stock already includes them —
+          // always display the stock as it was before today's deliveries.
+          const opening = lineStates[drink.id]?.openingStock ?? drink.stock
           return (
             <View key={drink.id} style={[styles.purchaseCard, hasDelivery && styles.purchaseCardActive]}>
               <View style={styles.purchaseCardTop}>
@@ -820,7 +931,7 @@ export default function SessionScreen({ navigation }: any) {
                 </View>
                 <View style={styles.stockTag}>
                   <Text style={styles.stockTagLabel}>{t('session.currentStock')}</Text>
-                  <Text style={styles.stockTagValue}>{formatWithCassiers(drink.stock, drink.category, getRackSize(drink.id))}</Text>
+                  <Text style={styles.stockTagValue}>{formatWithCassiers(opening, drink.category, getRackSize(drink.id))}</Text>
                 </View>
               </View>
 
@@ -857,7 +968,7 @@ export default function SessionScreen({ navigation }: any) {
                 <View style={styles.afterDelivery}>
                   <Ionicons name="trending-up" size={14} color={colors.emerald} />
                   <Text style={styles.afterDeliveryText}>
-                    {t('session.newStock', { value: formatWithCassiers(drink.stock + unitsVal, drink.category, getRackSize(drink.id)) })}
+                    {t('session.newStock', { value: formatWithCassiers(opening + unitsVal, drink.category, getRackSize(drink.id)) })}
                   </Text>
                 </View>
               )}

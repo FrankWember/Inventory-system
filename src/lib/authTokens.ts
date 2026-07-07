@@ -89,32 +89,38 @@ let refreshInFlight: Promise<string | null> | null = null
 async function refreshSession(): Promise<string | null> {
   const refreshToken = await getRefreshToken()
   if (!refreshToken) return null
-  try {
-    const res = await fetch(`${FUNCTIONS_URL}/auth-refresh`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: ANON_KEY,
-        Authorization: `Bearer ${ANON_KEY}`,
-      },
-      body: JSON.stringify({ refresh_token: refreshToken }),
-    })
-    if (!res.ok) {
+  // Two attempts: an Edge Function cold start or a flaky connection routinely
+  // fails a single call, which used to surface as a random "save failed" that
+  // succeeded on the very next tap.
+  for (let attempt = 0; attempt < 2; attempt++) {
+    if (attempt > 0) await new Promise(resolve => setTimeout(resolve, 700))
+    try {
+      const res = await fetch(`${FUNCTIONS_URL}/auth-refresh`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          apikey: ANON_KEY,
+          Authorization: `Bearer ${ANON_KEY}`,
+        },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      })
+      if (res.ok) {
+        const session = (await res.json()) as SessionResponse
+        await saveSession(session)
+        return session.access_token
+      }
       // Only a definitive rejection (invalid/rotated refresh token) ends the
       // session. Transient server errors (5xx, cold starts) must not log the
-      // user out — keep the tokens and retry on the next request.
+      // user out — keep the tokens and retry.
       if (res.status === 400 || res.status === 401 || res.status === 403) {
         await clearSession()
+        return null
       }
-      return null
+    } catch {
+      // Network error — keep the (stale) session and retry.
     }
-    const session = (await res.json()) as SessionResponse
-    await saveSession(session)
-    return session.access_token
-  } catch {
-    // Network error — keep the (stale) session so we can retry later.
-    return null
   }
+  return null
 }
 
 // Returns a bearer token for PostgREST. Falls back to the anon key when logged
@@ -137,5 +143,10 @@ export async function getValidAccessToken(): Promise<string> {
     })
   }
   const refreshed = await refreshInFlight
-  return refreshed ?? ANON_KEY
+  if (refreshed) return refreshed
+  // Refresh failed, but we start refreshing 60s BEFORE expiry — inside that
+  // window the current token is still valid. Prefer it over the anon key:
+  // an anon-key write silently fails RLS and shows up as a save error.
+  if (Date.now() < expiresAt) return access
+  return ANON_KEY
 }
