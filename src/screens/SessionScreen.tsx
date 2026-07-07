@@ -355,9 +355,13 @@ export default function SessionScreen({ navigation }: any) {
   const [barInfo, setBarInfo] = useState<{ name: string } | null>(null)
   const [userName, setUserName] = useState<string>('')
 
-  // Purchases list: when an item first receives a delivery it is promoted to the top
-  // group. We keep a ref to the scroll view so focus can follow it there (see onChange).
   const purchasesScrollRef = useRef<ScrollView>(null)
+
+  // Frozen display order (drink ids) for the purchases step. We snapshot the
+  // "delivered-first" ordering only when the step is (re)entered — see the effect
+  // below — so entering a delivery does NOT make its row jump to the top while the
+  // user is still adding stock. Reordering happens on the next visit instead.
+  const [purchasesOrder, setPurchasesOrder] = useState<string[]>([])
 
   const categories: Array<Category | 'Tout'> = ['Tout', 'Bière', 'Soda', 'Jus', 'Eau', 'Vin', 'Autre']
   const todayStr = today()
@@ -378,6 +382,17 @@ export default function SessionScreen({ navigation }: any) {
     }
     return marks
   }, [allSessions, selectedDate, colors])
+
+  // Snapshot the purchases-step ordering (delivered items first, then the rest)
+  // only when the step is entered or the drinks list (re)loads — intentionally NOT
+  // on every `purchases` change, so a row stays put while the user edits it.
+  useEffect(() => {
+    if (step !== 'purchases') return
+    const delivered = drinks.filter(d => (purchases[d.id] ?? 0) > 0)
+    const rest = drinks.filter(d => (purchases[d.id] ?? 0) === 0)
+    setPurchasesOrder([...delivered, ...rest].map(d => d.id))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, drinks])
 
   const getRackSize = (drinkId: string) => {
     const drink = drinks.find(d => d.id === drinkId)
@@ -853,10 +868,16 @@ export default function SessionScreen({ navigation }: any) {
     return true
   })
 
-  // ── Purchases step: articles with non-zero purchases, then the rest
+  // ── Purchases step: keep the frozen entry-time order (see purchasesOrder) so
+  // rows don't jump while the user is adding deliveries. Any drink not yet in the
+  // snapshot (e.g. added after load) falls to the end, still in name order.
   const purchasedDrinks = filtered.filter(d => (purchases[d.id] ?? 0) > 0)
-  const otherDrinks = filtered.filter(d => (purchases[d.id] ?? 0) === 0)
-  const orderedDrinks = [...purchasedDrinks, ...otherDrinks]
+  const orderIndex = new Map(purchasesOrder.map((id, i) => [id, i]))
+  const orderedDrinks = [...filtered].sort((a, b) => {
+    const ia = orderIndex.has(a.id) ? (orderIndex.get(a.id) as number) : Number.MAX_SAFE_INTEGER
+    const ib = orderIndex.has(b.id) ? (orderIndex.get(b.id) as number) : Number.MAX_SAFE_INTEGER
+    return ia - ib
+  })
 
   // ── Summary: only drinks with any activity
   const activeDrinks = drinks.filter(d => {
@@ -952,13 +973,9 @@ export default function SessionScreen({ navigation }: any) {
                   value={racksVal}
                   onChange={v => {
                     const units = toUnits(v, drink.id)
-                    const wasEmpty = (purchases[drink.id] ?? 0) === 0
+                    // Keep the row exactly where it is; the list order is frozen on
+                    // entry (see purchasesOrder) so the user doesn't lose their place.
                     setPurchases(prev => ({ ...prev, [drink.id]: units }))
-                    // Item just moved into the top "delivered" group — scroll there so the
-                    // user's focus follows it instead of losing their place in the list.
-                    if (wasEmpty && units > 0) {
-                      requestAnimationFrame(() => purchasesScrollRef.current?.scrollTo({ y: 0, animated: true }))
-                    }
                   }}
                   colors={colors}
                 />
