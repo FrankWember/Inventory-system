@@ -20,7 +20,7 @@ import { ScreenHeader } from '../components/ScreenHeader'
 import { LoadingModal } from '../components/LoadingModal'
 import { useSettings } from '../contexts/SettingsContext'
 import { useTranslation } from '../i18n'
-import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers, formatWithCassiersShort, drinkRackSize, drinkCrateCost, today } from '../utils/helpers'
+import { COLORS, FONT, fmt, fmtNum, dateLabelLong, formatWithCassiers, formatWithCassiersShort, drinkRackSize, drinkCrateCost, drinkPurchaseCost, today } from '../utils/helpers'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'SessionDetail'>
 
@@ -59,6 +59,9 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
   const [drinksCategoryMap, setDrinksCategoryMap] = useState<Record<string, string>>({})
   const [drinksRackMap, setDrinksRackMap] = useState<Record<string, number>>({})
   const [drinksCrateCostMap, setDrinksCrateCostMap] = useState<Record<string, number>>({})
+  // Raw cost fields per drink, kept so we can crate-aware-value the units actually
+  // sold (cost of goods sold) — the sales profit line needs this, not restocking cost.
+  const [drinksCostMap, setDrinksCostMap] = useState<Record<string, { cost: number; cassier_cost?: number | null; cassier_quantity?: number | null; rack_size?: number | null }>>({})
 
   const fadeAnim = useRef(new Animated.Value(0)).current
   usePrintStyles()
@@ -104,10 +107,12 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
       const categoryMap: Record<string, string> = {}
       const rackMap: Record<string, number> = {}
       const crateCostMap: Record<string, number> = {}
+      const costMap: Record<string, { cost: number; cassier_cost?: number | null; cassier_quantity?: number | null; rack_size?: number | null }> = {}
       drinksRes.data?.forEach(d => {
         categoryMap[d.id] = d.category
         rackMap[d.id] = drinkRackSize(d)
         crateCostMap[d.id] = drinkCrateCost(d)
+        costMap[d.id] = { cost: d.cost, cassier_cost: d.cassier_cost, cassier_quantity: d.cassier_quantity, rack_size: d.rack_size }
       })
 
       setSession(sessionData)
@@ -115,6 +120,7 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
       setDrinksCategoryMap(categoryMap)
       setDrinksRackMap(rackMap)
       setDrinksCrateCostMap(crateCostMap)
+      setDrinksCostMap(costMap)
 
       Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start()
     } catch (error) {
@@ -151,6 +157,18 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
   const totalUnits = saleLines.reduce((s, l) => s + l.sold, 0)
   const totalPurchased = purchaseLines.reduce((s, l) => s + l.purchased, 0)
   const totalPurchaseCost = purchaseLines.reduce((s, l) => s + l.cost, 0)
+  // Cost of goods SOLD — value only the units that actually left the shelf, the same
+  // crate-aware way purchases are costed. Falls back to the line's stored average unit
+  // cost when the drink was deleted since (so profit stays sensible for old sessions).
+  const costOfGoodsSold = saleLines.reduce((s, l) => {
+    const drinkCost = drinksCostMap[l.drink_id]
+    if (drinkCost) return s + drinkPurchaseCost(l.sold, drinkCost)
+    const avgUnit = l.purchased > 0 ? l.cost / l.purchased : 0
+    return s + avgUnit * l.sold
+  }, 0)
+  // Sales profit (bénéfice sur ventes): what was earned on the day's sales only —
+  // revenue minus the cost of goods sold. Ignores restocking not yet sold and expenses.
+  const salesBenefit = session.total_revenue - costOfGoodsSold
   const grossProfit = session.total_revenue - session.total_cost
   const netProfit = session.total_revenue - session.total_cost - totalExpenses
 
@@ -208,6 +226,14 @@ export default function SessionDetailScreen({ route, navigation }: Props) {
         <Section title={t('settings.plTitle')} icon="bar-chart-outline">
           <JRow label={t('settings.salesRevenue')} value={fmt(session.total_revenue)} accent={COLORS.primary} />
           <JRow label={t('settings.unitsSold')} value={fmtNum(totalUnits)} muted />
+          <JRow label={t('settings.costOfGoodsSold')} value={`-${fmt(costOfGoodsSold)}`} accent={COLORS.rose} muted />
+          <JRow
+            label={t('settings.salesBenefit')}
+            value={fmt(salesBenefit)}
+            accent={salesBenefit >= 0 ? COLORS.emerald : COLORS.rose}
+            highlight
+          />
+          <Divider />
           <JRow label={t('settings.purchasesCost')} value={`-${fmt(session.total_cost)}`} accent={COLORS.rose} />
           <Divider />
           <JRow
