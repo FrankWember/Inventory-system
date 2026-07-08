@@ -9,7 +9,7 @@ export default {
     tabSettings: 'Paramètres',
 
     // Sidebar (desktop web)
-    sidebarSubtitle: "Gestion d'inventaire",
+    sidebarSubtitle: 'Gestion de bar simplifiée',
 
     // SessionExpensesPanel
     expensesTitle: 'Dépenses du jour',
@@ -96,7 +96,7 @@ export default {
     tabSettings: 'Settings',
 
     // Sidebar (desktop web)
-    sidebarSubtitle: 'Inventory management',
+    sidebarSubtitle: 'Bar management made simple',
 
     // SessionExpensesPanel
     expensesTitle: "Today's expenses",

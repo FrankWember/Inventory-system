@@ -1,10 +1,8 @@
-// BarTrack logo mark — the martini-glass symbol from the app icon.
-// Vector (react-native-svg) so it stays crisp at any size and can be tinted
-// to match the surrounding theme. The "BarTrack" wordmark is rendered as text
-// alongside this mark at each call site, so the mark itself stays text-free
-// and legible at small sizes.
+// BarTrack logo mark — the martini-glass + "BT" symbol, matching the app
+// launcher icon (assets/icon.png). Vector (react-native-svg) so it stays crisp
+// at any size and can be tinted to match the surrounding theme.
 import React from 'react'
-import Svg, { Polygon, Rect } from 'react-native-svg'
+import Svg, { Polygon, Rect, Text as SvgText } from 'react-native-svg'
 import { COLORS } from '../utils/helpers'
 
 type LogoProps = {
@@ -16,11 +14,22 @@ export function Logo({ size = 28, color = COLORS.primary }: LogoProps) {
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
       {/* bowl */}
-      <Polygon points="22,24 78,24 50,58" fill={color} />
+      <Polygon points="24,14 76,14 50,44" fill={color} />
       {/* stem */}
-      <Rect x={47} y={58} width={6} height={26} fill={color} />
+      <Rect x={47} y={44} width={6} height={20} fill={color} />
       {/* base */}
-      <Rect x={32} y={83} width={36} height={7} rx={3} fill={color} />
+      <Rect x={34} y={63} width={32} height={6} rx={2} fill={color} />
+      {/* BT wordmark */}
+      <SvgText
+        x={50}
+        y={96}
+        fill={color}
+        fontSize={30}
+        fontWeight="bold"
+        textAnchor="middle"
+      >
+        BT
+      </SvgText>
     </Svg>
   )
 }
