@@ -1,6 +1,7 @@
 import React from 'react'
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { Logo } from './Logo'
 import { useSettings } from '../contexts/SettingsContext'
 import { useTranslation } from '../i18n'
 import type { TabParamList } from '../../App'
@@ -33,7 +34,7 @@ export function Sidebar({ currentRoute, onNavigate }: SidebarProps) {
     <View style={[styles.container, { backgroundColor: colors.card }]}>
       <View style={styles.header}>
         <View style={[styles.logo, { backgroundColor: colors.primaryLight }]}>
-          <Ionicons name="bar-chart" size={28} color={colors.primary} />
+          <Logo size={28} color={colors.primary} />
         </View>
         <Text style={[styles.appName, { color: colors.slateDark }]}>{barInfo?.name || 'BarTrack'}</Text>
         <Text style={[styles.appSubtitle, { color: colors.slate }]}>{t('misc.sidebarSubtitle')}</Text>

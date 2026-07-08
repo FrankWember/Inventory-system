@@ -5,7 +5,9 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "light",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/splash.png",
       "backgroundColor": "#2563EB",
       "resizeMode": "contain"
     },
@@ -15,9 +17,11 @@
     },
     "android": {
       "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#2563EB"
       },
-      "package": "com.bartrack.app"
+      "package": "com.bartrack.app",
+      "versionCode": 1
     },
     "web": {
       "bundler": "metro",
@@ -38,6 +42,12 @@
     },
     "plugins": [
       "expo-font"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "0d4569fd-f9f1-451e-8d1b-56a404216153"
+      }
+    },
+    "owner": "frankwember"
   }
 }

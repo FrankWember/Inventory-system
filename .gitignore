@@ -30,3 +30,10 @@ yarn-error.log*
 
 # TypeScript
 *.tsbuildinfo
+
+# Android signing credentials (KEEP BACKED UP — never commit)
+credentials.json
+credentials/
+*.jks
+*.keystore
+google-service-account.json

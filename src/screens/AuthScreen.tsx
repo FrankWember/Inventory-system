@@ -14,6 +14,7 @@ import {
 import { Input } from '../components/Input'
 import { PhoneInput } from '../components/PhoneInput'
 import { Button } from '../components/Button'
+import { Logo } from '../components/Logo'
 import { COLORS, FONT } from '../utils/helpers'
 import { showAlert } from '../utils/appAlert'
 import { useAuth } from '../contexts/AuthContext'
@@ -243,7 +244,7 @@ export default function AuthScreen({ navigation, route }: AuthScreenProps) {
           >
             <View style={styles.header}>
               <View style={styles.iconContainer}>
-                <Ionicons name="beer" size={48} color={COLORS.primary} />
+                <Logo size={48} color={COLORS.primary} />
               </View>
               <Text style={styles.title}>
                 {mode === 'signin' ? 'BarTrack' : t('auth.signUpTitle')}

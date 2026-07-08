@@ -12,6 +12,7 @@ import {
 } from 'react-native'
 import { Input } from '../components/Input'
 import { PhoneInput } from '../components/PhoneInput'
+import { Logo } from '../components/Logo'
 import { COLORS, FONT } from '../utils/helpers'
 import { useAuth } from '../contexts/AuthContext'
 import { Ionicons } from '@expo/vector-icons'
@@ -131,7 +132,7 @@ export default function SignUpScreen({ navigation }: SignUpScreenProps) {
             {/* Header */}
             <View style={styles.header}>
               <View style={styles.logoWrap}>
-                <Ionicons name="beer" size={28} color={COLORS.primary} />
+                <Logo size={28} color={COLORS.primary} />
               </View>
               <Text style={styles.appName}>{t('auth.signUpTitle')}</Text>
               <Text style={styles.tagline}>{t('auth.signUpTagline')}</Text>

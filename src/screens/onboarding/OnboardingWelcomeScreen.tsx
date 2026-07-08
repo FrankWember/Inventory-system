@@ -5,6 +5,7 @@ import { Ionicons } from '@expo/vector-icons'
 import { OnboardingStackParamList } from './OnboardingNavigator'
 import { OnboardingLayout } from '../../components/onboarding/OnboardingLayout'
 import { Button } from '../../components/Button'
+import { Logo } from '../../components/Logo'
 import { SimpleBarChart, BarChartItem } from '../../components/SimpleBarChart'
 import { FONT, TYPE, SPACE, RADIUS, LIGHT_COLORS } from '../../utils/helpers'
 import { useSettings } from '../../contexts/SettingsContext'
@@ -95,7 +96,7 @@ export default function OnboardingWelcomeScreen({ navigation }: Props) {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <View style={styles.hero}>
           <View style={styles.logoWrap}>
-            <Ionicons name="beer" size={34} color={colors.primary} />
+            <Logo size={34} color={colors.primary} />
           </View>
           <Text style={styles.title}>{t('onboarding.welcomeTitle')}</Text>
           <Text style={styles.subtitle}>{t('onboarding.welcomeSubtitle')}</Text>

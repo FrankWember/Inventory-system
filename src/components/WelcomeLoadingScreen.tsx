@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react'
 import { View, Text, StyleSheet, Animated, Easing, Platform } from 'react-native'
 import { Ionicons } from '@expo/vector-icons'
+import { Logo } from './Logo'
 import { COLORS, FONT } from '../utils/helpers'
 import { useSettings } from '../contexts/SettingsContext'
 import { useTranslation } from '../i18n'
@@ -77,7 +78,7 @@ export function WelcomeLoadingScreen({ name, isReturningUser = true }: WelcomeLo
         style={[styles.content, { opacity: fadeAnim, transform: [{ translateY: riseAnim }] }]}
       >
         <View style={styles.logoWrap}>
-          <Ionicons name="beer" size={30} color={COLORS.primary} />
+          <Logo size={30} color={COLORS.primary} />
         </View>
 
         <Text style={styles.greeting}>{greeting},</Text>
